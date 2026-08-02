@@ -6,6 +6,7 @@ export type Song = {
   artista: string;
   tom: string;
   bpm: string;
+  ritmo?: string;
   observacoes: string;
   letra: string;
   criadoEm: number;
