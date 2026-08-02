@@ -22,19 +22,37 @@ export const Route = createFileRoute("/musicas")({
   component: MusicasPage,
 });
 
+type Ordem = "titulo" | "artista" | "recentes";
+
+const ORDENS: { valor: Ordem; label: string }[] = [
+  { valor: "titulo", label: "Título A-Z" },
+  { valor: "artista", label: "Artista A-Z" },
+  { valor: "recentes", label: "Mais recentes" },
+];
+
 function MusicasPage() {
   const { data, update } = useAppData();
   const [busca, setBusca] = useState("");
+  const [ordem, setOrdem] = useState<Ordem>("titulo");
   const [aberta, setAberta] = useState<string | null>(null);
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    const ordenadas = [...data.songs].sort((a, b) => a.titulo.localeCompare(b.titulo));
-    if (!termo) return ordenadas;
-    return ordenadas.filter((s) =>
-      `${s.titulo} ${s.artista} ${s.tom}`.toLowerCase().includes(termo),
-    );
-  }, [data.songs, busca]);
+    const filtradas = termo
+      ? data.songs.filter((s) =>
+          `${s.titulo} ${s.artista} ${s.tom}`.toLowerCase().includes(termo),
+        )
+      : [...data.songs];
+    return filtradas.sort((a, b) => {
+      if (ordem === "recentes") return b.criadoEm - a.criadoEm;
+      if (ordem === "artista")
+        return (
+          a.artista.localeCompare(b.artista, "pt-BR") ||
+          a.titulo.localeCompare(b.titulo, "pt-BR")
+        );
+      return a.titulo.localeCompare(b.titulo, "pt-BR");
+    });
+  }, [data.songs, busca, ordem]);
 
   const excluir = (id: string) => {
     update((prev) => ({
