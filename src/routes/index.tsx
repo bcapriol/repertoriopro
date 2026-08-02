@@ -1,5 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   MusicIcon,
   ListMusicIcon,
@@ -9,6 +8,7 @@ import {
   SunIcon,
   type LucideIcon,
 } from "lucide-react";
+import { useAppData, useTheme } from "@/lib/repertorio-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,56 +30,28 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-function ActionTile({
-  label,
-  hint,
-  Icon,
-  onClick,
-}: {
-  label: string;
-  hint: string;
-  Icon: LucideIcon;
-  onClick?: () => void;
-}) {
+const tileClass =
+  "surface-tile group flex w-full items-center gap-4 rounded-2xl border border-border px-5 py-5 text-left transition-transform duration-150 active:scale-[0.98] hover:border-primary/40";
+
+function TileBody({ label, hint, Icon }: { label: string; hint: string; Icon: LucideIcon }) {
   return (
-    <button
-      onClick={onClick}
-      className="surface-tile group flex w-full items-center gap-4 rounded-2xl border border-border px-5 py-5 text-left transition-transform duration-150 active:scale-[0.98] hover:border-primary/40"
-    >
+    <>
       <span className="gradient-stage flex size-12 shrink-0 items-center justify-center rounded-xl text-primary-foreground shadow-sm">
         <Icon className="size-6" strokeWidth={2.2} />
       </span>
       <span className="min-w-0">
-        <span className="block text-base font-bold tracking-wide uppercase text-foreground">
+        <span className="block text-base font-bold tracking-wide text-foreground uppercase">
           {label}
         </span>
         <span className="block text-sm text-muted-foreground">{hint}</span>
       </span>
-    </button>
+    </>
   );
 }
 
 function Index() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("rf-theme");
-    const isDark =
-      stored === "dark" ||
-      (stored === null && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    setDark(isDark);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
-
-  const toggleTheme = () => {
-    setDark((d) => {
-      localStorage.setItem("rf-theme", !d ? "dark" : "light");
-      return !d;
-    });
-  };
+  const { dark, toggle } = useTheme();
+  const { data } = useAppData();
 
   return (
     <main className="min-h-screen bg-background px-5 pt-12 pb-14">
@@ -98,32 +70,41 @@ function Index() {
         </header>
 
         <nav className="mt-10 flex flex-col gap-4">
-          <ActionTile
-            label="Cadastrar Música"
-            hint="Adicione título, tom e letra"
-            Icon={MusicIcon}
-          />
-          <ActionTile
-            label="Músicas Salvas"
-            hint="Sua biblioteca completa"
-            Icon={ListMusicIcon}
-          />
-          <ActionTile
-            label="Repertórios"
-            hint="Monte listas para cada show"
-            Icon={LibraryIcon}
-          />
-          <ActionTile
-            label="Exportar / Importar"
-            hint="Faça backup dos seus dados"
-            Icon={ArrowDownUpIcon}
-          />
-          <ActionTile
-            label={dark ? "Modo Claro" : "Modo Escuro"}
-            hint="Ajuste a tela para o palco"
-            Icon={dark ? SunIcon : MoonStarIcon}
-            onClick={toggleTheme}
-          />
+          <Link to="/cadastrar" className={tileClass}>
+            <TileBody
+              label="Cadastrar Música"
+              hint="Título, artista, tom, letra e cifra"
+              Icon={MusicIcon}
+            />
+          </Link>
+          <Link to="/musicas" className={tileClass}>
+            <TileBody
+              label="Músicas Salvas"
+              hint={`${data.songs.length} música(s) na biblioteca`}
+              Icon={ListMusicIcon}
+            />
+          </Link>
+          <Link to="/repertorios" className={tileClass}>
+            <TileBody
+              label="Repertórios"
+              hint={`${data.setlists.length} lista(s) montada(s)`}
+              Icon={LibraryIcon}
+            />
+          </Link>
+          <Link to="/dados" className={tileClass}>
+            <TileBody
+              label="Exportar / Importar"
+              hint="Faça backup dos seus dados"
+              Icon={ArrowDownUpIcon}
+            />
+          </Link>
+          <button onClick={toggle} className={tileClass}>
+            <TileBody
+              label={dark ? "Modo Claro" : "Modo Escuro"}
+              hint="Ajuste a tela para o palco"
+              Icon={dark ? SunIcon : MoonStarIcon}
+            />
+          </button>
         </nav>
       </div>
     </main>
