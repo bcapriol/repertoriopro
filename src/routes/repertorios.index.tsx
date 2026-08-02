@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChevronRightIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, ChevronRightIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import { EmptyState, PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ function RepertoriosPage() {
   const [nome, setNome] = useState("");
   const [local, setLocal] = useState("");
   const [dataShow, setDataShow] = useState("");
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [novoNome, setNovoNome] = useState("");
 
   const criar = () => {
     if (!nome.trim()) {
@@ -51,6 +53,25 @@ function RepertoriosPage() {
   const excluir = (id: string) => {
     update((prev) => ({ ...prev, setlists: prev.setlists.filter((r) => r.id !== id) }));
     toast.success("Repertório excluído.");
+  };
+
+  const iniciarRenomear = (r: Setlist) => {
+    setEditandoId(r.id);
+    setNovoNome(r.nome);
+  };
+
+  const salvarNome = (id: string) => {
+    const nomeLimpo = novoNome.trim();
+    if (!nomeLimpo) {
+      toast.error("O nome não pode ficar vazio.");
+      return;
+    }
+    update((prev) => ({
+      ...prev,
+      setlists: prev.setlists.map((r) => (r.id === id ? { ...r, nome: nomeLimpo } : r)),
+    }));
+    setEditandoId(null);
+    toast.success("Repertório renomeado!");
   };
 
   return (
@@ -95,6 +116,37 @@ function RepertoriosPage() {
                 key={r.id}
                 className="surface-tile flex items-center gap-2 rounded-2xl border border-border pr-2"
               >
+                {editandoId === r.id ? (
+                  <div className="flex flex-1 items-center gap-2 py-2 pl-3">
+                    <Input
+                      value={novoNome}
+                      autoFocus
+                      onChange={(e) => setNovoNome(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") salvarNome(r.id);
+                        if (e.key === "Escape") setEditandoId(null);
+                      }}
+                      className="h-11 text-base"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Salvar nome"
+                      onClick={() => salvarNome(r.id)}
+                    >
+                      <CheckIcon />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Cancelar"
+                      onClick={() => setEditandoId(null)}
+                    >
+                      <XIcon />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
                 <Link
                   to="/repertorios/$id"
                   params={{ id: r.id }}
@@ -113,12 +165,22 @@ function RepertoriosPage() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={() => iniciarRenomear(r)}
+                  aria-label={`Renomear ${r.nome}`}
+                >
+                  <PencilIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="text-destructive"
                   onClick={() => excluir(r.id)}
                   aria-label={`Excluir ${r.nome}`}
                 >
                   <Trash2Icon />
                 </Button>
+                  </>
+                )}
               </li>
             ))}
           </ul>
