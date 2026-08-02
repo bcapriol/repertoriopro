@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDownIcon, ArrowUpIcon, PencilIcon, PlusIcon, XIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, PencilIcon, PlayIcon, PlusIcon, XIcon } from "lucide-react";
 import { EmptyState, PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppData } from "@/lib/repertorio-store";
 
-export const Route = createFileRoute("/repertorios/$id")({
+export const Route = createFileRoute("/repertorios/$id/")({
   head: () => ({
     meta: [
       { title: "Repertório | Repertório Fácil" },
@@ -99,6 +99,13 @@ function RepertorioDetalhe() {
         .join(" · ")}
     >
       <div className="flex flex-col gap-5">
+        {rep.songIds.length > 0 ? (
+          <Link to="/repertorios/$id/palco" params={{ id }}>
+            <Button className="h-14 w-full rounded-2xl text-base font-bold">
+              <PlayIcon /> Iniciar modo palco
+            </Button>
+          </Link>
+        ) : null}
         <div className="grid grid-cols-2 gap-3">
           <Button
             className="h-12 rounded-xl font-bold"
