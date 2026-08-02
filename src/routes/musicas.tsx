@@ -78,6 +78,25 @@ function MusicasPage() {
           />
         </div>
 
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="shrink-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Ordenar
+          </span>
+          {ORDENS.map((o) => (
+            <button
+              key={o.valor}
+              onClick={() => setOrdem(o.valor)}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                ordem === o.valor
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card text-muted-foreground"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+
         <Button asChild className="h-12 w-full rounded-xl font-bold">
           <Link to="/cadastrar">
             <PlusIcon /> Nova música
