@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppData } from "@/lib/repertorio-store";
 
-export const Route = createFileRoute("/repertorios/$id")({
+export const Route = createFileRoute("/repertorios/$id/")({
   head: () => ({
     meta: [
       { title: "Repertório | Repertório Fácil" },
