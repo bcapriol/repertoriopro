@@ -14,7 +14,7 @@ import { Route as CadastrarRouteImport } from './routes/cadastrar'
 import { Route as DadosRouteImport } from './routes/dados'
 import { Route as MusicasRouteImport } from './routes/musicas'
 import { Route as RepertoriosIndexRouteImport } from './routes/repertorios.index'
-import { Route as RepertoriosIdRouteImport } from './routes/repertorios.$id'
+import { Route as RepertoriosIdIndexRouteImport } from './routes/repertorios.$id.index'
 import { Route as RepertoriosIdPalcoRouteImport } from './routes/repertorios.$id.palco'
 
 const IndexRoute = IndexRouteImport.update({
@@ -42,15 +42,15 @@ const RepertoriosIndexRoute = RepertoriosIndexRouteImport.update({
   path: '/repertorios/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RepertoriosIdRoute = RepertoriosIdRouteImport.update({
-  id: '/repertorios/$id',
-  path: '/repertorios/$id',
+const RepertoriosIdIndexRoute = RepertoriosIdIndexRouteImport.update({
+  id: '/repertorios/$id/',
+  path: '/repertorios/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RepertoriosIdPalcoRoute = RepertoriosIdPalcoRouteImport.update({
-  id: '/palco',
-  path: '/palco',
-  getParentRoute: () => RepertoriosIdRoute,
+  id: '/repertorios/$id/palco',
+  path: '/repertorios/$id/palco',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -58,18 +58,18 @@ export interface FileRoutesByFullPath {
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
-  '/repertorios/$id': typeof RepertoriosIdRouteWithChildren
   '/repertorios/': typeof RepertoriosIndexRoute
   '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
+  '/repertorios/$id/': typeof RepertoriosIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
-  '/repertorios/$id': typeof RepertoriosIdRouteWithChildren
   '/repertorios': typeof RepertoriosIndexRoute
   '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
+  '/repertorios/$id': typeof RepertoriosIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,9 +77,9 @@ export interface FileRoutesById {
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
-  '/repertorios/$id': typeof RepertoriosIdRouteWithChildren
   '/repertorios/': typeof RepertoriosIndexRoute
   '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
+  '/repertorios/$id/': typeof RepertoriosIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,27 +88,27 @@ export interface FileRouteTypes {
     | '/cadastrar'
     | '/dados'
     | '/musicas'
-    | '/repertorios/$id'
     | '/repertorios/'
     | '/repertorios/$id/palco'
+    | '/repertorios/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/cadastrar'
     | '/dados'
     | '/musicas'
-    | '/repertorios/$id'
     | '/repertorios'
     | '/repertorios/$id/palco'
+    | '/repertorios/$id'
   id:
     | '__root__'
     | '/'
     | '/cadastrar'
     | '/dados'
     | '/musicas'
-    | '/repertorios/$id'
     | '/repertorios/'
     | '/repertorios/$id/palco'
+    | '/repertorios/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,8 +116,9 @@ export interface RootRouteChildren {
   CadastrarRoute: typeof CadastrarRoute
   DadosRoute: typeof DadosRoute
   MusicasRoute: typeof MusicasRoute
-  RepertoriosIdRoute: typeof RepertoriosIdRouteWithChildren
   RepertoriosIndexRoute: typeof RepertoriosIndexRoute
+  RepertoriosIdPalcoRoute: typeof RepertoriosIdPalcoRoute
+  RepertoriosIdIndexRoute: typeof RepertoriosIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -157,42 +158,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepertoriosIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/repertorios/$id': {
-      id: '/repertorios/$id'
+    '/repertorios/$id/': {
+      id: '/repertorios/$id/'
       path: '/repertorios/$id'
-      fullPath: '/repertorios/$id'
-      preLoaderRoute: typeof RepertoriosIdRouteImport
+      fullPath: '/repertorios/$id/'
+      preLoaderRoute: typeof RepertoriosIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/repertorios/$id/palco': {
       id: '/repertorios/$id/palco'
-      path: '/palco'
+      path: '/repertorios/$id/palco'
       fullPath: '/repertorios/$id/palco'
       preLoaderRoute: typeof RepertoriosIdPalcoRouteImport
-      parentRoute: typeof RepertoriosIdRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface RepertoriosIdRouteChildren {
-  RepertoriosIdPalcoRoute: typeof RepertoriosIdPalcoRoute
-}
-
-const RepertoriosIdRouteChildren: RepertoriosIdRouteChildren = {
-  RepertoriosIdPalcoRoute: RepertoriosIdPalcoRoute,
-}
-
-const RepertoriosIdRouteWithChildren = RepertoriosIdRoute._addFileChildren(
-  RepertoriosIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CadastrarRoute: CadastrarRoute,
   DadosRoute: DadosRoute,
   MusicasRoute: MusicasRoute,
-  RepertoriosIdRoute: RepertoriosIdRouteWithChildren,
   RepertoriosIndexRoute: RepertoriosIndexRoute,
+  RepertoriosIdPalcoRoute: RepertoriosIdPalcoRoute,
+  RepertoriosIdIndexRoute: RepertoriosIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
