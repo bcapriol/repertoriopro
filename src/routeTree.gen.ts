@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CadastrarRouteImport } from './routes/cadastrar'
+import { Route as MusicasRouteImport } from './routes/musicas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CadastrarRoute = CadastrarRouteImport.update({
+  id: '/cadastrar',
+  path: '/cadastrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MusicasRoute = MusicasRouteImport.update({
+  id: '/musicas',
+  path: '/musicas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cadastrar': typeof CadastrarRoute
+  '/musicas': typeof MusicasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cadastrar': typeof CadastrarRoute
+  '/musicas': typeof MusicasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cadastrar': typeof CadastrarRoute
+  '/musicas': typeof MusicasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/cadastrar' | '/musicas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/cadastrar' | '/musicas'
+  id: '__root__' | '/' | '/cadastrar' | '/musicas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CadastrarRoute: typeof CadastrarRoute
+  MusicasRoute: typeof MusicasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +68,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cadastrar': {
+      id: '/cadastrar'
+      path: '/cadastrar'
+      fullPath: '/cadastrar'
+      preLoaderRoute: typeof CadastrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/musicas': {
+      id: '/musicas'
+      path: '/musicas'
+      fullPath: '/musicas'
+      preLoaderRoute: typeof MusicasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CadastrarRoute: CadastrarRoute,
+  MusicasRoute: MusicasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
