@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CadastrarRouteImport } from './routes/cadastrar'
+import { Route as DadosRouteImport } from './routes/dados'
 import { Route as MusicasRouteImport } from './routes/musicas'
 import { Route as RepertoriosIndexRouteImport } from './routes/repertorios.index'
 import { Route as RepertoriosIdRouteImport } from './routes/repertorios.$id'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const CadastrarRoute = CadastrarRouteImport.update({
   id: '/cadastrar',
   path: '/cadastrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DadosRoute = DadosRouteImport.update({
+  id: '/dados',
+  path: '/dados',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MusicasRoute = MusicasRouteImport.update({
@@ -44,6 +50,7 @@ const RepertoriosIdRoute = RepertoriosIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cadastrar': typeof CadastrarRoute
+  '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
   '/repertorios/$id': typeof RepertoriosIdRoute
   '/repertorios/': typeof RepertoriosIndexRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cadastrar': typeof CadastrarRoute
+  '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
   '/repertorios/$id': typeof RepertoriosIdRoute
   '/repertorios': typeof RepertoriosIndexRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/cadastrar': typeof CadastrarRoute
+  '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
   '/repertorios/$id': typeof RepertoriosIdRoute
   '/repertorios/': typeof RepertoriosIndexRoute
@@ -66,13 +75,25 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/cadastrar' | '/musicas' | '/repertorios/$id' | '/repertorios/'
+    | '/'
+    | '/cadastrar'
+    | '/dados'
+    | '/musicas'
+    | '/repertorios/$id'
+    | '/repertorios/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cadastrar' | '/musicas' | '/repertorios/$id' | '/repertorios'
+  to:
+    | '/'
+    | '/cadastrar'
+    | '/dados'
+    | '/musicas'
+    | '/repertorios/$id'
+    | '/repertorios'
   id:
     | '__root__'
     | '/'
     | '/cadastrar'
+    | '/dados'
     | '/musicas'
     | '/repertorios/$id'
     | '/repertorios/'
@@ -81,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CadastrarRoute: typeof CadastrarRoute
+  DadosRoute: typeof DadosRoute
   MusicasRoute: typeof MusicasRoute
   RepertoriosIdRoute: typeof RepertoriosIdRoute
   RepertoriosIndexRoute: typeof RepertoriosIndexRoute
@@ -100,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/cadastrar'
       fullPath: '/cadastrar'
       preLoaderRoute: typeof CadastrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dados': {
+      id: '/dados'
+      path: '/dados'
+      fullPath: '/dados'
+      preLoaderRoute: typeof DadosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/musicas': {
@@ -129,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CadastrarRoute: CadastrarRoute,
+  DadosRoute: DadosRoute,
   MusicasRoute: MusicasRoute,
   RepertoriosIdRoute: RepertoriosIdRoute,
   RepertoriosIndexRoute: RepertoriosIndexRoute,
