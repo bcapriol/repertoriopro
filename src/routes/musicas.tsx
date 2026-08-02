@@ -40,7 +40,7 @@ function MusicasPage() {
     const termo = busca.trim().toLowerCase();
     const filtradas = termo
       ? data.songs.filter((s) =>
-          `${s.titulo} ${s.artista} ${s.tom}`.toLowerCase().includes(termo),
+          `${s.titulo} ${s.artista} ${s.tom} ${s.ritmo ?? ""}`.toLowerCase().includes(termo),
         )
       : [...data.songs];
     return filtradas.sort((a, b) => {
@@ -119,7 +119,12 @@ function MusicasPage() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold text-foreground">{song.titulo}</span>
                     <span className="block truncate text-sm text-muted-foreground">
-                      {[song.artista, song.tom && `Tom ${song.tom}`, song.bpm && `${song.bpm} BPM`]
+                      {[
+                        song.artista,
+                        song.tom && `Tom ${song.tom}`,
+                        song.bpm && `${song.bpm} BPM`,
+                        song.ritmo,
+                      ]
                         .filter(Boolean)
                         .join(" · ") || "Sem detalhes"}
                     </span>

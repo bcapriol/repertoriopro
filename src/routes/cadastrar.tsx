@@ -29,7 +29,15 @@ export const Route = createFileRoute("/cadastrar")({
   component: CadastrarPage,
 });
 
-const vazio = { titulo: "", artista: "", tom: "", bpm: "", observacoes: "", letra: "" };
+const vazio = {
+  titulo: "",
+  artista: "",
+  tom: "",
+  bpm: "",
+  ritmo: "",
+  observacoes: "",
+  letra: "",
+};
 
 function CadastrarPage() {
   const { id } = Route.useSearch();
@@ -48,6 +56,7 @@ function CadastrarPage() {
         artista: song.artista,
         tom: song.tom,
         bpm: song.bpm,
+        ritmo: song.ritmo ?? "",
         observacoes: song.observacoes,
         letra: song.letra,
       });
@@ -118,6 +127,14 @@ function CadastrarPage() {
             />
           </Field>
         </div>
+        <Field label="Ritmo">
+          <Input
+            value={form.ritmo}
+            onChange={(e) => set("ritmo")(e.target.value)}
+            placeholder="Ex.: Sertanejo, Samba, Balada"
+            className="h-12 text-base"
+          />
+        </Field>
         <Field label="Observações">
           <Input
             value={form.observacoes}
