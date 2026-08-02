@@ -63,25 +63,29 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --background: oklch(0.985 0.008 85);
+  --foreground: oklch(0.22 0.03 265);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.22 0.03 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.22 0.03 265);
+  --primary: oklch(0.42 0.13 262);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --secondary: oklch(0.94 0.02 85);
+  --secondary-foreground: oklch(0.28 0.04 265);
+  --muted: oklch(0.95 0.01 85);
+  --muted-foreground: oklch(0.52 0.03 265);
+  --accent: oklch(0.74 0.15 62);
+  --accent-foreground: oklch(0.2 0.03 265);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --border: oklch(0.9 0.015 85);
+  --input: oklch(0.9 0.015 85);
+  --ring: oklch(0.42 0.13 262);
+  --surface: oklch(1 0 0);
+  --gradient-stage: linear-gradient(150deg, oklch(0.42 0.13 262), oklch(0.55 0.14 300));
+  --gradient-accent: linear-gradient(120deg, oklch(0.74 0.15 62), oklch(0.68 0.17 35));
+  --shadow-tile: 0 8px 24px -12px oklch(0.42 0.13 262 / 0.45);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -98,25 +102,29 @@
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
+  --background: oklch(0.16 0.03 265);
+  --foreground: oklch(0.97 0.005 85);
+  --card: oklch(0.22 0.035 265);
+  --card-foreground: oklch(0.97 0.005 85);
+  --popover: oklch(0.22 0.035 265);
+  --popover-foreground: oklch(0.97 0.005 85);
+  --primary: oklch(0.66 0.15 265);
+  --primary-foreground: oklch(0.14 0.03 265);
+  --secondary: oklch(0.27 0.04 265);
+  --secondary-foreground: oklch(0.97 0.005 85);
+  --muted: oklch(0.27 0.04 265);
+  --muted-foreground: oklch(0.72 0.03 265);
+  --accent: oklch(0.78 0.15 62);
+  --accent-foreground: oklch(0.16 0.03 265);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --ring: oklch(0.66 0.15 265);
+  --surface: oklch(0.22 0.035 265);
+  --gradient-stage: linear-gradient(150deg, oklch(0.3 0.09 265), oklch(0.35 0.1 300));
+  --gradient-accent: linear-gradient(120deg, oklch(0.78 0.15 62), oklch(0.7 0.17 35));
+  --shadow-tile: 0 10px 30px -14px oklch(0 0 0 / 0.7);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -140,5 +148,25 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
   }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@utility surface-tile {
+  background-color: var(--surface);
+  box-shadow: var(--shadow-tile);
+}
+
+@utility gradient-stage {
+  background-image: var(--gradient-stage);
+}
+
+@utility gradient-accent {
+  background-image: var(--gradient-accent);
 }
