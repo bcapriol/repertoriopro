@@ -22,19 +22,37 @@ export const Route = createFileRoute("/musicas")({
   component: MusicasPage,
 });
 
+type Ordem = "titulo" | "artista" | "recentes";
+
+const ORDENS: { valor: Ordem; label: string }[] = [
+  { valor: "titulo", label: "Título A-Z" },
+  { valor: "artista", label: "Artista A-Z" },
+  { valor: "recentes", label: "Mais recentes" },
+];
+
 function MusicasPage() {
   const { data, update } = useAppData();
   const [busca, setBusca] = useState("");
+  const [ordem, setOrdem] = useState<Ordem>("titulo");
   const [aberta, setAberta] = useState<string | null>(null);
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    const ordenadas = [...data.songs].sort((a, b) => a.titulo.localeCompare(b.titulo));
-    if (!termo) return ordenadas;
-    return ordenadas.filter((s) =>
-      `${s.titulo} ${s.artista} ${s.tom}`.toLowerCase().includes(termo),
-    );
-  }, [data.songs, busca]);
+    const filtradas = termo
+      ? data.songs.filter((s) =>
+          `${s.titulo} ${s.artista} ${s.tom}`.toLowerCase().includes(termo),
+        )
+      : [...data.songs];
+    return filtradas.sort((a, b) => {
+      if (ordem === "recentes") return b.criadoEm - a.criadoEm;
+      if (ordem === "artista")
+        return (
+          a.artista.localeCompare(b.artista, "pt-BR") ||
+          a.titulo.localeCompare(b.titulo, "pt-BR")
+        );
+      return a.titulo.localeCompare(b.titulo, "pt-BR");
+    });
+  }, [data.songs, busca, ordem]);
 
   const excluir = (id: string) => {
     update((prev) => ({
@@ -60,8 +78,27 @@ function MusicasPage() {
           />
         </div>
 
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="shrink-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Ordenar
+          </span>
+          {ORDENS.map((o) => (
+            <button
+              key={o.valor}
+              onClick={() => setOrdem(o.valor)}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                ordem === o.valor
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card text-muted-foreground"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+
         <Button asChild className="h-12 w-full rounded-xl font-bold">
-          <Link to="/cadastrar">
+          <Link to="/cadastrar" search={{ id: undefined }}>
             <PlusIcon /> Nova música
           </Link>
         </Button>

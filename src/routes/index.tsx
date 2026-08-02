@@ -70,7 +70,7 @@ function Index() {
         </header>
 
         <nav className="mt-10 flex flex-col gap-4">
-          <Link to="/cadastrar" className={tileClass}>
+          <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>
             <TileBody
               label="Cadastrar Música"
               hint="Título, artista, tom, letra e cifra"
