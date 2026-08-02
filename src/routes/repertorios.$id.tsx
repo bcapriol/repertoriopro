@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDownIcon, ArrowUpIcon, PlusIcon, XIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, PencilIcon, PlusIcon, XIcon } from "lucide-react";
 import { EmptyState, PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ function RepertorioDetalhe() {
   const { data, update } = useAppData();
   const [busca, setBusca] = useState("");
   const [adicionando, setAdicionando] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [rascunho, setRascunho] = useState({ nome: "", local: "", data: "" });
 
   const rep = data.setlists.find((r) => r.id === id);
   const songsById = useMemo(
@@ -68,6 +70,27 @@ function RepertorioDetalhe() {
       return next;
     });
 
+  const abrirEdicao = () => {
+    setRascunho({ nome: rep.nome, local: rep.local, data: rep.data });
+    setEditando(true);
+  };
+
+  const salvarEdicao = () => {
+    const nome = rascunho.nome.trim();
+    if (!nome) {
+      toast.error("O nome não pode ficar vazio.");
+      return;
+    }
+    update((prev) => ({
+      ...prev,
+      setlists: prev.setlists.map((r) =>
+        r.id === id ? { ...r, nome, local: rascunho.local.trim(), data: rascunho.data } : r,
+      ),
+    }));
+    setEditando(false);
+    toast.success("Repertório atualizado!");
+  };
+
   return (
     <PageShell
       title={rep.nome}
@@ -76,7 +99,23 @@ function RepertorioDetalhe() {
         .join(" · ")}
     >
       <div className="flex flex-col gap-5">
-        <Button
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            className="h-12 rounded-xl font-bold"
+            variant={editando ? "secondary" : "outline"}
+            onClick={() => (editando ? setEditando(false) : abrirEdicao())}
+          >
+            {editando ? (
+              <>
+                <XIcon /> Fechar
+              </>
+            ) : (
+              <>
+                <PencilIcon /> Renomear
+              </>
+            )}
+          </Button>
+          <Button
           className="h-12 rounded-xl font-bold"
           onClick={() => setAdicionando((v) => !v)}
           variant={adicionando ? "secondary" : "default"}
@@ -87,10 +126,39 @@ function RepertorioDetalhe() {
             </>
           ) : (
             <>
-              <PlusIcon /> Adicionar músicas
+              <PlusIcon /> Adicionar
             </>
           )}
-        </Button>
+          </Button>
+        </div>
+
+        {editando ? (
+          <section className="surface-tile flex flex-col gap-3 rounded-2xl border border-border p-4">
+            <Input
+              value={rascunho.nome}
+              onChange={(e) => setRascunho((p) => ({ ...p, nome: e.target.value }))}
+              placeholder="Nome do repertório"
+              className="h-12 text-base"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                value={rascunho.local}
+                onChange={(e) => setRascunho((p) => ({ ...p, local: e.target.value }))}
+                placeholder="Local"
+                className="h-12 text-base"
+              />
+              <Input
+                type="date"
+                value={rascunho.data}
+                onChange={(e) => setRascunho((p) => ({ ...p, data: e.target.value }))}
+                className="h-12 text-base"
+              />
+            </div>
+            <Button onClick={salvarEdicao} className="h-12 rounded-xl font-bold">
+              Salvar alterações
+            </Button>
+          </section>
+        ) : null}
 
         {adicionando ? (
           <section className="surface-tile flex flex-col gap-3 rounded-2xl border border-border p-4">
