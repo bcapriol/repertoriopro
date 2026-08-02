@@ -15,6 +15,7 @@ import { Route as DadosRouteImport } from './routes/dados'
 import { Route as MusicasRouteImport } from './routes/musicas'
 import { Route as RepertoriosIndexRouteImport } from './routes/repertorios.index'
 import { Route as RepertoriosIdRouteImport } from './routes/repertorios.$id'
+import { Route as RepertoriosIdPalcoRouteImport } from './routes/repertorios.$id.palco'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,22 +47,29 @@ const RepertoriosIdRoute = RepertoriosIdRouteImport.update({
   path: '/repertorios/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RepertoriosIdPalcoRoute = RepertoriosIdPalcoRouteImport.update({
+  id: '/palco',
+  path: '/palco',
+  getParentRoute: () => RepertoriosIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
-  '/repertorios/$id': typeof RepertoriosIdRoute
+  '/repertorios/$id': typeof RepertoriosIdRouteWithChildren
   '/repertorios/': typeof RepertoriosIndexRoute
+  '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
-  '/repertorios/$id': typeof RepertoriosIdRoute
+  '/repertorios/$id': typeof RepertoriosIdRouteWithChildren
   '/repertorios': typeof RepertoriosIndexRoute
+  '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,8 +77,9 @@ export interface FileRoutesById {
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
-  '/repertorios/$id': typeof RepertoriosIdRoute
+  '/repertorios/$id': typeof RepertoriosIdRouteWithChildren
   '/repertorios/': typeof RepertoriosIndexRoute
+  '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/musicas'
     | '/repertorios/$id'
     | '/repertorios/'
+    | '/repertorios/$id/palco'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/musicas'
     | '/repertorios/$id'
     | '/repertorios'
+    | '/repertorios/$id/palco'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/musicas'
     | '/repertorios/$id'
     | '/repertorios/'
+    | '/repertorios/$id/palco'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -104,7 +116,7 @@ export interface RootRouteChildren {
   CadastrarRoute: typeof CadastrarRoute
   DadosRoute: typeof DadosRoute
   MusicasRoute: typeof MusicasRoute
-  RepertoriosIdRoute: typeof RepertoriosIdRoute
+  RepertoriosIdRoute: typeof RepertoriosIdRouteWithChildren
   RepertoriosIndexRoute: typeof RepertoriosIndexRoute
 }
 
@@ -152,15 +164,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepertoriosIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/repertorios/$id/palco': {
+      id: '/repertorios/$id/palco'
+      path: '/palco'
+      fullPath: '/repertorios/$id/palco'
+      preLoaderRoute: typeof RepertoriosIdPalcoRouteImport
+      parentRoute: typeof RepertoriosIdRoute
+    }
   }
 }
+
+interface RepertoriosIdRouteChildren {
+  RepertoriosIdPalcoRoute: typeof RepertoriosIdPalcoRoute
+}
+
+const RepertoriosIdRouteChildren: RepertoriosIdRouteChildren = {
+  RepertoriosIdPalcoRoute: RepertoriosIdPalcoRoute,
+}
+
+const RepertoriosIdRouteWithChildren = RepertoriosIdRoute._addFileChildren(
+  RepertoriosIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CadastrarRoute: CadastrarRoute,
   DadosRoute: DadosRoute,
   MusicasRoute: MusicasRoute,
-  RepertoriosIdRoute: RepertoriosIdRoute,
+  RepertoriosIdRoute: RepertoriosIdRouteWithChildren,
   RepertoriosIndexRoute: RepertoriosIndexRoute,
 }
 export const routeTree = rootRouteImport
