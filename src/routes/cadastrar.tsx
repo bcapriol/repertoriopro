@@ -24,7 +24,7 @@ export const Route = createFileRoute("/cadastrar")({
     ],
   }),
   validateSearch: (search: Record<string, unknown>) => ({
-    id: typeof search.id === "string" ? search.id : undefined,
+    id: typeof search['id'] === "string" ? (search['id'] as string) : undefined,
   }),
   component: CadastrarPage,
 });

@@ -61,7 +61,10 @@ function RepertorioDetalhe() {
       const next = [...ids];
       const alvo = index + delta;
       if (alvo < 0 || alvo >= next.length) return ids;
-      [next[index], next[alvo]] = [next[alvo], next[index]];
+      const a = next[index]!;
+      const b = next[alvo]!;
+      next[index] = b;
+      next[alvo] = a;
       return next;
     });
 
