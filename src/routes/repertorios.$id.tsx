@@ -103,7 +103,7 @@ function RepertorioDetalhe() {
             {disponiveis.length === 0 ? (
               <p className="py-3 text-center text-sm text-muted-foreground">
                 Nenhuma música disponível.{" "}
-                <Link to="/cadastrar" className="font-semibold text-primary underline">
+                <Link to="/cadastrar" search={{ id: undefined }} className="font-semibold text-primary underline">
                   Cadastrar
                 </Link>
               </p>

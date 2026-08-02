@@ -98,7 +98,7 @@ function MusicasPage() {
         </div>
 
         <Button asChild className="h-12 w-full rounded-xl font-bold">
-          <Link to="/cadastrar">
+          <Link to="/cadastrar" search={{ id: undefined }}>
             <PlusIcon /> Nova música
           </Link>
         </Button>
