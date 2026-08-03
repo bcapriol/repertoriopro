@@ -114,11 +114,12 @@ function MusicasPage() {
           <ul className="flex flex-col gap-3">
             {lista.map((song) => (
               <li key={song.id} className="surface-tile rounded-2xl border border-border">
-                <button
-                  onClick={() => setAberta(aberta === song.id ? null : song.id)}
-                  className="flex w-full items-center gap-3 px-4 py-4 text-left"
-                >
-                  <span className="min-w-0 flex-1">
+                <div className="flex items-center gap-1 pr-2">
+                  <button
+                    onClick={() => setAberta(song.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-4 py-4 text-left"
+                  >
+                    <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold text-foreground">{song.titulo}</span>
                     <span className="block truncate text-sm text-muted-foreground">
                       {[
@@ -130,68 +131,51 @@ function MusicasPage() {
                         .filter(Boolean)
                         .join(" · ") || "Sem detalhes"}
                     </span>
-                  </span>
-                  <ChevronDownIcon
-                    className={`size-5 shrink-0 text-muted-foreground transition-transform ${
-                      aberta === song.id ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                {aberta === song.id ? (
-                  <div className="border-t border-border px-4 py-4">
-                    {song.observacoes ? (
-                      <p className="mb-3 text-sm text-muted-foreground">{song.observacoes}</p>
-                    ) : null}
-                    {song.anexos?.length ? (
-                      <ul className="mb-4 flex gap-2 overflow-x-auto">
-                        {song.anexos.map((a) =>
-                          a.tipo.startsWith("image/") ? (
-                            <li key={a.id}>
-                              <img
-                                src={a.dados}
-                                alt={a.nome}
-                                className="size-20 shrink-0 rounded-lg border border-border object-cover"
-                              />
-                            </li>
-                          ) : (
-                            <li
-                              key={a.id}
-                              className="flex size-20 shrink-0 items-center justify-center rounded-lg border border-border bg-muted px-1 text-center text-xs text-muted-foreground"
-                            >
-                              PDF
-                            </li>
-                          ),
-                        )}
-                      </ul>
-                    ) : null}
-                    {song.letra ? (
-                      <pre className="mb-4 max-h-72 overflow-auto rounded-xl bg-muted p-3 font-mono text-sm whitespace-pre-wrap text-foreground">
-                        {song.letra}
-                      </pre>
-                    ) : (
-                      <p className="mb-4 text-sm text-muted-foreground">Sem letra cadastrada.</p>
-                    )}
-                    <div className="flex gap-2">
-                      <Button asChild variant="secondary" className="h-11 flex-1 rounded-xl">
-                        <Link to="/cadastrar" search={{ id: song.id }}>
-                          <PencilIcon /> Editar
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        className="h-11 rounded-xl"
-                        onClick={() => excluir(song.id)}
-                      >
-                        <Trash2Icon /> Excluir
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
+                    </span>
+                  </button>
+                  <Button asChild variant="ghost" size="icon" aria-label="Editar música">
+                    <Link to="/cadastrar" search={{ id: song.id }}>
+                      <PencilIcon />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Excluir música"
+                    onClick={() => excluir(song.id)}
+                  >
+                    <Trash2Icon />
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {songAberta ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <button
+            onClick={() => setAberta(null)}
+            aria-label="Fechar"
+            className="pointer-events-auto absolute top-3 right-3 z-10 flex size-11 items-center justify-center rounded-full bg-foreground/10 text-foreground backdrop-blur-sm"
+          >
+            <XIcon />
+          </button>
+          <div className="flex-1 overflow-auto">
+            {songAberta.anexos?.length ? (
+              <AnexosViewer anexos={songAberta.anexos} />
+            ) : (
+              <div className="px-5 py-6">
+                <h2 className="text-2xl font-black text-foreground">{songAberta.titulo}</h2>
+                <pre className="mt-4 font-sans text-lg leading-relaxed whitespace-pre-wrap text-foreground">
+                  {songAberta.letra || "Sem letra nem anexo cadastrado."}
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </PageShell>
   );
 }
