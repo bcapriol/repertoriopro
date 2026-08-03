@@ -11,6 +11,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnexosViewer } from "@/components/AnexoView";
 import { useAppData } from "@/lib/repertorio-store";
 
 export const Route = createFileRoute("/repertorios/$id/palco")({
@@ -50,12 +51,6 @@ function PalcoPage() {
   const total = musicas.length;
   const atual = musicas[Math.min(index, Math.max(total - 1, 0))];
   const anexos = atual?.anexos ?? [];
-  const [anexoIdx, setAnexoIdx] = useState(0);
-  const anexo = anexos[Math.min(anexoIdx, Math.max(anexos.length - 1, 0))];
-
-  useEffect(() => {
-    setAnexoIdx(0);
-  }, [index]);
 
   const avancar = useCallback(
     (delta: number) => setIndex((i) => Math.min(Math.max(i + delta, 0), Math.max(total - 1, 0))),
@@ -188,30 +183,8 @@ function PalcoPage() {
       ) : null}
 
       <section className="relative flex-1 overflow-hidden">
-        {anexo ? (
-          anexo.tipo.startsWith("image/") ? (
-            <img
-              src={anexo.dados}
-              alt={anexo.nome}
-              className="h-full w-full object-contain"
-            />
-          ) : (
-            <object
-              data={`${anexo.dados}#toolbar=0&navpanes=0&view=FitH`}
-              type="application/pdf"
-              className="h-full w-full"
-              aria-label={anexo.nome}
-            >
-              <a
-                href={anexo.dados}
-                target="_blank"
-                rel="noreferrer"
-                className="block p-6 text-center text-primary underline"
-              >
-                Abrir {anexo.nome}
-              </a>
-            </object>
-          )
+        {anexos.length ? (
+          <AnexosViewer key={atual.id} anexos={anexos} />
         ) : (
           <div className="h-full overflow-auto px-5 py-6">
             <h1 className="text-3xl leading-tight font-black text-foreground">{atual.titulo}</h1>
@@ -239,21 +212,6 @@ function PalcoPage() {
             <div className="h-24" />
           </div>
         )}
-
-        {anexos.length > 1 ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-16 flex justify-center gap-2">
-            {anexos.map((a, i) => (
-              <button
-                key={a.id}
-                onClick={() => setAnexoIdx(i)}
-                aria-label={`Página ${i + 1}`}
-                className={`pointer-events-auto size-2.5 rounded-full ${
-                  i === anexoIdx ? "bg-foreground/70" : "bg-foreground/25"
-                }`}
-              />
-            ))}
-          </div>
-        ) : null}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between px-3 pb-3">
           <Button
