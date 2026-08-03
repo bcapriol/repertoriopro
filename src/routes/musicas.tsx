@@ -140,6 +140,28 @@ function MusicasPage() {
                     {song.observacoes ? (
                       <p className="mb-3 text-sm text-muted-foreground">{song.observacoes}</p>
                     ) : null}
+                    {song.anexos?.length ? (
+                      <ul className="mb-4 flex gap-2 overflow-x-auto">
+                        {song.anexos.map((a) =>
+                          a.tipo.startsWith("image/") ? (
+                            <li key={a.id}>
+                              <img
+                                src={a.dados}
+                                alt={a.nome}
+                                className="size-20 shrink-0 rounded-lg border border-border object-cover"
+                              />
+                            </li>
+                          ) : (
+                            <li
+                              key={a.id}
+                              className="flex size-20 shrink-0 items-center justify-center rounded-lg border border-border bg-muted px-1 text-center text-xs text-muted-foreground"
+                            >
+                              PDF
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    ) : null}
                     {song.letra ? (
                       <pre className="mb-4 max-h-72 overflow-auto rounded-xl bg-muted p-3 font-mono text-sm whitespace-pre-wrap text-foreground">
                         {song.letra}

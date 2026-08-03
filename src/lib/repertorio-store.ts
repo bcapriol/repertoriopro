@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
+export type Anexo = {
+  id: string;
+  nome: string;
+  tipo: string;
+  dados: string;
+};
+
 export type Song = {
   id: string;
   titulo: string;
@@ -9,6 +16,7 @@ export type Song = {
   ritmo?: string;
   observacoes: string;
   letra: string;
+  anexos?: Anexo[];
   criadoEm: number;
 };
 
