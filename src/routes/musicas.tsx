@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDownIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon, SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { EmptyState, PageShell } from "@/components/PageShell";
+import { AnexosViewer } from "@/components/AnexoView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppData } from "@/lib/repertorio-store";
@@ -35,6 +36,7 @@ function MusicasPage() {
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<Ordem>("titulo");
   const [aberta, setAberta] = useState<string | null>(null);
+  const songAberta = data.songs.find((s) => s.id === aberta) ?? null;
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
