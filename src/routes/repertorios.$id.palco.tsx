@@ -119,7 +119,7 @@ function PalcoPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-background">
+    <main className="flex h-screen flex-col overflow-hidden bg-background">
       <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur">
         <Button variant="ghost" size="icon" aria-label="Sair do modo palco" onClick={sair}>
           <XIcon />
