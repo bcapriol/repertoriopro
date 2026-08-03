@@ -49,6 +49,13 @@ function PalcoPage() {
 
   const total = musicas.length;
   const atual = musicas[Math.min(index, Math.max(total - 1, 0))];
+  const anexos = atual?.anexos ?? [];
+  const [anexoIdx, setAnexoIdx] = useState(0);
+  const anexo = anexos[Math.min(anexoIdx, Math.max(anexos.length - 1, 0))];
+
+  useEffect(() => {
+    setAnexoIdx(0);
+  }, [index]);
 
   const avancar = useCallback(
     (delta: number) => setIndex((i) => Math.min(Math.max(i + delta, 0), Math.max(total - 1, 0))),
@@ -180,44 +187,97 @@ function PalcoPage() {
         </nav>
       ) : null}
 
-      <section className="flex-1 overflow-auto px-5 py-6">
-        <h1 className="text-3xl font-black leading-tight text-foreground">{atual.titulo}</h1>
-        <p className="mt-1 text-base text-muted-foreground">
-          {[atual.artista, atual.tom && `Tom ${atual.tom}`, atual.bpm && `${atual.bpm} BPM`, atual.ritmo]
-            .filter(Boolean)
-            .join(" · ") || "—"}
-        </p>
-        {atual.observacoes ? (
-          <p className="mt-3 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-            {atual.observacoes}
-          </p>
-        ) : null}
-        <pre
-          className="mt-5 whitespace-pre-wrap break-words font-sans leading-relaxed text-foreground"
-          style={{ fontSize: `${fonte}px` }}
-        >
-          {atual.letra || "Sem letra cadastrada."}
-        </pre>
-        <div className="h-28" />
-      </section>
+      <section className="relative flex-1 overflow-hidden">
+        {anexo ? (
+          anexo.tipo.startsWith("image/") ? (
+            <img
+              src={anexo.dados}
+              alt={anexo.nome}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <object
+              data={`${anexo.dados}#toolbar=0&navpanes=0&view=FitH`}
+              type="application/pdf"
+              className="h-full w-full"
+              aria-label={anexo.nome}
+            >
+              <a
+                href={anexo.dados}
+                target="_blank"
+                rel="noreferrer"
+                className="block p-6 text-center text-primary underline"
+              >
+                Abrir {anexo.nome}
+              </a>
+            </object>
+          )
+        ) : (
+          <div className="h-full overflow-auto px-5 py-6">
+            <h1 className="text-3xl leading-tight font-black text-foreground">{atual.titulo}</h1>
+            <p className="mt-1 text-base text-muted-foreground">
+              {[
+                atual.artista,
+                atual.tom && `Tom ${atual.tom}`,
+                atual.bpm && `${atual.bpm} BPM`,
+                atual.ritmo,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "—"}
+            </p>
+            {atual.observacoes ? (
+              <p className="mt-3 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+                {atual.observacoes}
+              </p>
+            ) : null}
+            <pre
+              className="mt-5 font-sans leading-relaxed break-words whitespace-pre-wrap text-foreground"
+              style={{ fontSize: `${fonte}px` }}
+            >
+              {atual.letra || "Sem letra nem anexo cadastrado."}
+            </pre>
+            <div className="h-24" />
+          </div>
+        )}
 
-      <footer className="sticky bottom-0 z-20 grid grid-cols-2 gap-3 border-t border-border bg-background/95 p-3 backdrop-blur">
-        <Button
-          variant="secondary"
-          className="h-16 rounded-2xl text-base font-bold"
-          disabled={index === 0}
-          onClick={() => avancar(-1)}
-        >
-          <ChevronLeftIcon /> Anterior
-        </Button>
-        <Button
-          className="h-16 rounded-2xl text-base font-bold"
-          disabled={index >= total - 1}
-          onClick={() => avancar(1)}
-        >
-          Próxima <ChevronRightIcon />
-        </Button>
-      </footer>
+        {anexos.length > 1 ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-16 flex justify-center gap-2">
+            {anexos.map((a, i) => (
+              <button
+                key={a.id}
+                onClick={() => setAnexoIdx(i)}
+                aria-label={`Página ${i + 1}`}
+                className={`pointer-events-auto size-2.5 rounded-full ${
+                  i === anexoIdx ? "bg-foreground/70" : "bg-foreground/25"
+                }`}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between px-3 pb-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Música anterior"
+            disabled={index === 0}
+            onClick={() => avancar(-1)}
+            className="pointer-events-auto size-11 rounded-full bg-foreground/10 text-foreground opacity-50 backdrop-blur-sm hover:opacity-100 disabled:opacity-15"
+          >
+            <ChevronLeftIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Próxima música"
+            disabled={index >= total - 1}
+            onClick={() => avancar(1)}
+            className="pointer-events-auto size-11 rounded-full bg-foreground/10 text-foreground opacity-50 backdrop-blur-sm hover:opacity-100 disabled:opacity-15"
+          >
+            <ChevronRightIcon />
+          </Button>
+        </div>
+      </section>
     </main>
   );
 }
