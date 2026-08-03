@@ -1,12 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { FileTextIcon, PaperclipIcon, XIcon } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { newId, readData, writeData, type Song } from "@/lib/repertorio-store";
+import { newId, readData, writeData, type Anexo, type Song } from "@/lib/repertorio-store";
+
+const MAX_BYTES = 3 * 1024 * 1024;
 
 export const Route = createFileRoute("/cadastrar")({
   head: () => ({
@@ -43,14 +46,18 @@ function CadastrarPage() {
   const { id } = Route.useSearch();
   const navigate = useNavigate();
   const [form, setForm] = useState(vazio);
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const inputFile = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) {
       setForm(vazio);
+      setAnexos([]);
       return;
     }
     const song = readData().songs.find((s) => s.id === id);
     if (song) {
+      setAnexos(song.anexos ?? []);
       setForm({
         titulo: song.titulo,
         artista: song.artista,
@@ -66,22 +73,55 @@ function CadastrarPage() {
   const set = (key: keyof typeof vazio) => (value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const adicionarArquivos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const novos: Anexo[] = [];
+    for (const file of Array.from(files)) {
+      const ok = file.type === "application/pdf" || file.type.startsWith("image/");
+      if (!ok) {
+        toast.error(`${file.name}: envie apenas PDF ou imagem.`);
+        continue;
+      }
+      if (file.size > MAX_BYTES) {
+        toast.error(`${file.name}: máximo de 3 MB por arquivo.`);
+        continue;
+      }
+      const dados = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      novos.push({ id: newId(), nome: file.name, tipo: file.type, dados });
+    }
+    if (novos.length) {
+      setAnexos((prev) => [...prev, ...novos]);
+      toast.success(`${novos.length} anexo(s) adicionado(s).`);
+    }
+    if (inputFile.current) inputFile.current.value = "";
+  };
+
   const salvar = () => {
     if (!form.titulo.trim()) {
       toast.error("Informe o título da música.");
       return;
     }
     const data = readData();
-    if (id) {
-      writeData({
-        ...data,
-        songs: data.songs.map((s) => (s.id === id ? { ...s, ...form } : s)),
-      });
-      toast.success("Música atualizada!");
-    } else {
-      const song: Song = { id: newId(), criadoEm: Date.now(), ...form };
-      writeData({ ...data, songs: [song, ...data.songs] });
-      toast.success("Música cadastrada!");
+    try {
+      if (id) {
+        writeData({
+          ...data,
+          songs: data.songs.map((s) => (s.id === id ? { ...s, ...form, anexos } : s)),
+        });
+        toast.success("Música atualizada!");
+      } else {
+        const song: Song = { id: newId(), criadoEm: Date.now(), ...form, anexos };
+        writeData({ ...data, songs: [song, ...data.songs] });
+        toast.success("Música cadastrada!");
+      }
+    } catch {
+      toast.error("Não foi possível salvar: espaço do dispositivo cheio. Remova alguns anexos.");
+      return;
     }
     navigate({ to: "/musicas" });
   };
@@ -143,12 +183,68 @@ function CadastrarPage() {
             className="h-12 text-base"
           />
         </Field>
-        <Field label="Letra / Cifra">
+        <Field label="Anexos (PDF ou imagem, até 3 MB cada)">
+          <div className="flex flex-col gap-3">
+            <input
+              ref={inputFile}
+              type="file"
+              accept="application/pdf,image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => void adicionarArquivos(e.target.files)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-12 w-full rounded-xl font-bold"
+              onClick={() => inputFile.current?.click()}
+            >
+              <PaperclipIcon /> Anexar PDF ou imagem
+            </Button>
+            {anexos.length ? (
+              <ul className="flex flex-col gap-2">
+                {anexos.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-2"
+                  >
+                    {a.tipo.startsWith("image/") ? (
+                      <img
+                        src={a.dados}
+                        alt={a.nome}
+                        className="size-12 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <FileTextIcon className="size-5 text-muted-foreground" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">{a.nome}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Remover ${a.nome}`}
+                      onClick={() => setAnexos((prev) => prev.filter((x) => x.id !== a.id))}
+                    >
+                      <XIcon />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Nenhum anexo. Suba a cifra em PDF ou foto.
+              </p>
+            )}
+          </div>
+        </Field>
+        <Field label="Letra / Cifra (opcional)">
           <Textarea
             value={form.letra}
             onChange={(e) => set("letra")(e.target.value)}
-            placeholder="Cole aqui a letra ou a cifra..."
-            className="min-h-52 text-base"
+            placeholder="Opcional — use os anexos acima se preferir."
+            className="min-h-32 text-base"
           />
         </Field>
         <Button onClick={salvar} className="h-14 w-full rounded-2xl text-base font-bold">
