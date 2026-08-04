@@ -12,12 +12,15 @@ function dataUrlToUint8(dataUrl: string) {
 function PdfView({ anexo }: { anexo: Anexo }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [erro, setErro] = useState(false);
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     let cancelado = false;
     const container = containerRef.current;
     if (!container) return;
     container.innerHTML = "";
+    setErro(false);
+    setCarregando(true);
 
     (async () => {
       try {
@@ -31,11 +34,18 @@ function PdfView({ anexo }: { anexo: Anexo }) {
           const page = await doc.getPage(n);
           const largura = container.clientWidth || 800;
           const base = page.getViewport({ scale: 1 });
-          const escala = (largura / base.width) * Math.min(window.devicePixelRatio || 1, 2);
+          let escala = (largura / base.width) * Math.min(window.devicePixelRatio || 1, 2);
+          // limites de canvas em celulares: evita tela branca em PDFs grandes
+          const MAX_LADO = 4096;
+          const MAX_AREA = 4_000_000;
+          const ladoMax = Math.max(base.width, base.height) * escala;
+          if (ladoMax > MAX_LADO) escala *= MAX_LADO / ladoMax;
+          const area = base.width * escala * base.height * escala;
+          if (area > MAX_AREA) escala *= Math.sqrt(MAX_AREA / area);
           const viewport = page.getViewport({ scale: escala });
           const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
           canvas.style.width = "100%";
           canvas.style.height = "auto";
           canvas.style.display = "block";
@@ -43,9 +53,14 @@ function PdfView({ anexo }: { anexo: Anexo }) {
           if (!ctx) return;
           container.appendChild(canvas);
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          if (!cancelado) setCarregando(false);
         }
+        if (!cancelado) setCarregando(false);
       } catch {
-        if (!cancelado) setErro(true);
+        if (!cancelado) {
+          setErro(true);
+          setCarregando(false);
+        }
       }
     })();
 
@@ -56,15 +71,33 @@ function PdfView({ anexo }: { anexo: Anexo }) {
 
   if (erro) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-center">
-        <a href={anexo.dados} target="_blank" rel="noreferrer" className="text-primary underline">
-          Abrir {anexo.nome}
-        </a>
+      <div className="w-full">
+        <object data={anexo.dados} type="application/pdf" className="h-[80vh] w-full">
+          <div className="flex flex-col items-center gap-3 p-6 text-center text-sm text-slate-700">
+            <span>Não foi possível exibir este PDF aqui.</span>
+            <a
+              href={anexo.dados}
+              target="_blank"
+              rel="noreferrer"
+              download={anexo.nome}
+              className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white"
+            >
+              Abrir {anexo.nome}
+            </a>
+          </div>
+        </object>
       </div>
     );
   }
 
-  return <div ref={containerRef} className="w-full bg-white" />;
+  return (
+    <div className="w-full bg-white">
+      {carregando && (
+        <div className="p-6 text-center text-sm text-slate-500">Carregando PDF…</div>
+      )}
+      <div ref={containerRef} className="w-full" />
+    </div>
+  );
 }
 
 export function AnexoView({ anexo }: { anexo: Anexo }) {
