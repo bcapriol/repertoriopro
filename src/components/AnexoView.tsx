@@ -69,8 +69,9 @@ function PdfView({ anexo }: { anexo: Anexo }) {
           if (!cancelado) setEstado("pronto");
         }
         if (!cancelado) setEstado("pronto");
-      } catch {
-        if (!cancelado) setEstado("erro");
+      } catch (e) {
+        (window as any).__pdfErro = String((e as any)?.message ?? e);
+        if (!cancelado) setEstado((atual) => (atual === "pronto" ? "pronto" : "erro"));
       }
     })();
 
