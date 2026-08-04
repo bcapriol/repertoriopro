@@ -24,11 +24,14 @@ function PdfView({ anexo }: { anexo: Anexo }) {
 
     (async () => {
       try {
+        (window as any).__step="import";
         const pdfjs = await import("pdfjs-dist");
         pdfjs.GlobalWorkerOptions.workerSrc = (
           await import("pdfjs-dist/build/pdf.worker.min.mjs?url")
         ).default;
+        (window as any).__step="getdoc";
         const doc = await pdfjs.getDocument({ data: dataUrlToUint8(anexo.dados) }).promise;
+        (window as any).__step="pages:"+doc.numPages;
         for (let n = 1; n <= doc.numPages; n++) {
           if (cancelado) return;
           const page = await doc.getPage(n);
@@ -57,7 +60,7 @@ function PdfView({ anexo }: { anexo: Anexo }) {
         }
         if (!cancelado) setCarregando(false);
       } catch (e) {
-        (window as any).__pdfErro = String((e as any)?.message ?? e);
+        (window as any).__pdfErro = String((e as any)?.message ?? e) + " @" + (window as any).__step;
         if (!cancelado) {
           setErro(true);
           setCarregando(false);
