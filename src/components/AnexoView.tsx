@@ -56,7 +56,8 @@ function PdfView({ anexo }: { anexo: Anexo }) {
           if (!cancelado) setCarregando(false);
         }
         if (!cancelado) setCarregando(false);
-      } catch {
+      } catch (e) {
+        console.error("pdf-erro", e);
         if (!cancelado) {
           setErro(true);
           setCarregando(false);
