@@ -220,7 +220,7 @@ function PalcoPage() {
             aria-label="Música anterior"
             disabled={index === 0}
             onClick={() => avancar(-1)}
-            className="pointer-events-auto size-11 rounded-full bg-foreground/10 text-foreground opacity-50 backdrop-blur-sm hover:opacity-100 disabled:opacity-15"
+            className="pointer-events-auto size-11 rounded-full border border-white/20 bg-black/45 text-white opacity-70 shadow-lg backdrop-blur-sm hover:bg-black/60 hover:opacity-100 disabled:opacity-20"
           >
             <ChevronLeftIcon />
           </Button>
@@ -230,7 +230,7 @@ function PalcoPage() {
             aria-label="Próxima música"
             disabled={index >= total - 1}
             onClick={() => avancar(1)}
-            className="pointer-events-auto size-11 rounded-full bg-foreground/10 text-foreground opacity-50 backdrop-blur-sm hover:opacity-100 disabled:opacity-15"
+            className="pointer-events-auto size-11 rounded-full border border-white/20 bg-black/45 text-white opacity-70 shadow-lg backdrop-blur-sm hover:bg-black/60 hover:opacity-100 disabled:opacity-20"
           >
             <ChevronRightIcon />
           </Button>

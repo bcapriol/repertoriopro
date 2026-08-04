@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Anexo } from "@/lib/repertorio-store";
 
 function dataUrlToUint8(dataUrl: string) {
-  const base64 = dataUrl.split(",")[1] ?? "";
+  const base64 = dataUrl.includes(",") ? dataUrl.split(",")[1]! : dataUrl;
   const bin = atob(base64);
   const arr = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
@@ -10,42 +10,69 @@ function dataUrlToUint8(dataUrl: string) {
 }
 
 function PdfView({ anexo }: { anexo: Anexo }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [erro, setErro] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando");
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+  // URL de blob (fallback nativo do navegador)
+  useEffect(() => {
+    let url: string | null = null;
+    try {
+      const bytes = dataUrlToUint8(anexo.dados);
+      url = URL.createObjectURL(new Blob([bytes as unknown as BlobPart], { type: "application/pdf" }));
+      setBlobUrl(url);
+    } catch {
+      setBlobUrl(null);
+    }
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [anexo.dados]);
 
   useEffect(() => {
     let cancelado = false;
-    const container = containerRef.current;
-    if (!container) return;
-    container.innerHTML = "";
+    let paginasOk = 0;
+    setEstado("carregando");
 
     (async () => {
       try {
+        const container = containerRef.current;
+        if (!container) throw new Error("sem container");
+        container.innerHTML = "";
+
         const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = (
-          await import("pdfjs-dist/build/pdf.worker.min.mjs?url")
-        ).default;
+        const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+        pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+
         const doc = await pdfjs.getDocument({ data: dataUrlToUint8(anexo.dados) }).promise;
         for (let n = 1; n <= doc.numPages; n++) {
           if (cancelado) return;
           const page = await doc.getPage(n);
-          const largura = container.clientWidth || 800;
+          const largura = container.clientWidth || window.innerWidth || 800;
           const base = page.getViewport({ scale: 1 });
-          const escala = (largura / base.width) * Math.min(window.devicePixelRatio || 1, 2);
+          let escala = (largura / base.width) * Math.min(window.devicePixelRatio || 1, 2);
+          const ladoMax = Math.max(base.width, base.height) * escala;
+          if (ladoMax > 4096) escala *= 4096 / ladoMax;
+          const area = base.width * escala * (base.height * escala);
+          if (area > 4_000_000) escala *= Math.sqrt(4_000_000 / area);
+
           const viewport = page.getViewport({ scale: escala });
           const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
           canvas.style.width = "100%";
           canvas.style.height = "auto";
           canvas.style.display = "block";
           const ctx = canvas.getContext("2d");
-          if (!ctx) return;
+          if (!ctx) throw new Error("sem canvas 2d");
           container.appendChild(canvas);
-          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          paginasOk++;
+          if (!cancelado) setEstado("pronto");
         }
+        if (!cancelado) setEstado("pronto");
       } catch {
-        if (!cancelado) setErro(true);
+        if (!cancelado && paginasOk === 0) setEstado("erro");
       }
     })();
 
@@ -54,17 +81,32 @@ function PdfView({ anexo }: { anexo: Anexo }) {
     };
   }, [anexo.dados]);
 
-  if (erro) {
-    return (
-      <div className="flex h-full items-center justify-center p-6 text-center">
-        <a href={anexo.dados} target="_blank" rel="noreferrer" className="text-primary underline">
-          Abrir {anexo.nome}
-        </a>
-      </div>
-    );
-  }
-
-  return <div ref={containerRef} className="w-full bg-white" />;
+  return (
+    <div className="w-full bg-white">
+      {estado === "carregando" && (
+        <div className="p-6 text-center text-sm text-slate-500">Carregando PDF…</div>
+      )}
+      {/* container do pdf.js sempre montado */}
+      <div ref={containerRef} className={estado === "erro" ? "hidden" : "w-full"} />
+      {estado === "erro" && (
+        <div className="w-full">
+          {blobUrl ? (
+            <iframe src={blobUrl} title={anexo.nome} className="h-[85vh] w-full border-0" />
+          ) : null}
+          <div className="flex justify-center p-4">
+            <a
+              href={blobUrl ?? anexo.dados}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Abrir {anexo.nome}
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AnexoView({ anexo }: { anexo: Anexo }) {
