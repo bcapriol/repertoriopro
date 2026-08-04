@@ -66,7 +66,7 @@ function PdfView({ anexo }: { anexo: Anexo }) {
           const ctx = canvas.getContext("2d");
           if (!ctx) throw new Error("sem canvas 2d");
           container.appendChild(canvas);
-          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          await page.render({ canvasContext: ctx, viewport }).promise;
           paginasOk++;
           if (!cancelado) setEstado("pronto");
         }
