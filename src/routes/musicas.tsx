@@ -158,7 +158,7 @@ function MusicasPage() {
           <button
             onClick={() => setAberta(null)}
             aria-label="Fechar"
-            className="pointer-events-auto absolute top-3 right-3 z-10 flex size-11 items-center justify-center rounded-full bg-foreground/10 text-foreground backdrop-blur-sm"
+            className="pointer-events-auto absolute top-3 right-3 z-10 flex size-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-lg backdrop-blur-sm"
           >
             <XIcon />
           </button>
