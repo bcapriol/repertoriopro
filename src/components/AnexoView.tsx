@@ -31,6 +31,7 @@ function PdfView({ anexo }: { anexo: Anexo }) {
 
   useEffect(() => {
     let cancelado = false;
+    let paginasOk = 0;
     setEstado("carregando");
 
     (async () => {
@@ -66,12 +67,13 @@ function PdfView({ anexo }: { anexo: Anexo }) {
           if (!ctx) throw new Error("sem canvas 2d");
           container.appendChild(canvas);
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          paginasOk++;
           if (!cancelado) setEstado("pronto");
         }
         if (!cancelado) setEstado("pronto");
       } catch (e) {
         (window as any).__pdfErro = String((e as any)?.message ?? e);
-        if (!cancelado) setEstado((atual) => (atual === "pronto" ? "pronto" : "erro"));
+        if (!cancelado && paginasOk === 0) setEstado("erro");
       }
     })();
 
