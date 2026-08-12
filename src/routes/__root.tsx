@@ -129,6 +129,15 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    try {
+      localStorage.removeItem("rf-theme");
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
