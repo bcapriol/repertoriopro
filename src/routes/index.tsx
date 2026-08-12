@@ -4,9 +4,12 @@ import {
   ListMusicIcon,
   LibraryIcon,
   ArrowDownUpIcon,
+  DownloadCloudIcon,
+  LockIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
+import { useBanda } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -49,16 +52,26 @@ function TileBody({ label, hint, Icon }: { label: string; hint: string; Icon: Lu
 
 function Index() {
   const { data } = useAppData();
+  const banda = useBanda();
 
   return (
     <main className="min-h-screen bg-background px-5 pt-12 pb-14">
       <div className="mx-auto w-full max-w-md">
+        <div className="flex justify-end">
+          <Link
+            to="/adm"
+            aria-label="Área do administrador"
+            className="flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <LockIcon className="size-4" />
+          </Link>
+        </div>
         <header className="text-center">
           <span className="gradient-accent mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl text-accent-foreground">
             <MusicIcon className="size-7" strokeWidth={2.4} />
           </span>
           <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-foreground">
-            Repertório Fácil
+            {banda ? `Repertório ${banda}` : "Repertório Fácil"}
           </h1>
           <p className="mt-1 text-lg font-semibold text-primary">Bruno Capriolli</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -93,6 +106,13 @@ function Index() {
               label="Exportar / Importar"
               hint="Faça backup dos seus dados"
               Icon={ArrowDownUpIcon}
+            />
+          </Link>
+          <Link to="/carregar" className={tileClass}>
+            <TileBody
+              label="Carregar Show"
+              hint={banda ? `Banda atual: ${banda}` : "Baixe o repertório pela chave"}
+              Icon={DownloadCloudIcon}
             />
           </Link>
         </nav>
