@@ -14,7 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_usuarios: {
+        Row: {
+          banda_id: string
+          criado_em: string
+          id: string
+          senha_hash: string
+          usuario: string
+        }
+        Insert: {
+          banda_id: string
+          criado_em?: string
+          id?: string
+          senha_hash: string
+          usuario: string
+        }
+        Update: {
+          banda_id?: string
+          criado_em?: string
+          id?: string
+          senha_hash?: string
+          usuario?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_usuarios_banda_id_fkey"
+            columns: ["banda_id"]
+            isOneToOne: false
+            referencedRelation: "bandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bandas: {
+        Row: {
+          criado_em: string
+          id: string
+          keygen: string
+          nome: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          keygen: string
+          nome: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          keygen?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      cloud_setlists: {
+        Row: {
+          banda_id: string
+          criado_em: string
+          data: string
+          id: string
+          local: string
+          nome: string
+          ordem: number
+          setlist_id: string
+          song_ids: Json
+        }
+        Insert: {
+          banda_id: string
+          criado_em?: string
+          data?: string
+          id?: string
+          local?: string
+          nome: string
+          ordem?: number
+          setlist_id: string
+          song_ids?: Json
+        }
+        Update: {
+          banda_id?: string
+          criado_em?: string
+          data?: string
+          id?: string
+          local?: string
+          nome?: string
+          ordem?: number
+          setlist_id?: string
+          song_ids?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_setlists_banda_id_fkey"
+            columns: ["banda_id"]
+            isOneToOne: false
+            referencedRelation: "bandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_songs: {
+        Row: {
+          anexos: Json
+          artista: string
+          banda_id: string
+          bpm: string
+          criado_em: string
+          id: string
+          letra: string
+          observacoes: string
+          ordem: number
+          ritmo: string
+          song_id: string
+          titulo: string
+          tom: string
+        }
+        Insert: {
+          anexos?: Json
+          artista?: string
+          banda_id: string
+          bpm?: string
+          criado_em?: string
+          id?: string
+          letra?: string
+          observacoes?: string
+          ordem?: number
+          ritmo?: string
+          song_id: string
+          titulo: string
+          tom?: string
+        }
+        Update: {
+          anexos?: Json
+          artista?: string
+          banda_id?: string
+          bpm?: string
+          criado_em?: string
+          id?: string
+          letra?: string
+          observacoes?: string
+          ordem?: number
+          ritmo?: string
+          song_id?: string
+          titulo?: string
+          tom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_songs_banda_id_fkey"
+            columns: ["banda_id"]
+            isOneToOne: false
+            referencedRelation: "bandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
