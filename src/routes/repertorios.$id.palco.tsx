@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  InfoIcon,
   ListIcon,
   MaximizeIcon,
   MinimizeIcon,
@@ -159,6 +160,13 @@ function PalcoPage() {
         </Button>
       </header>
 
+      {atual.observacoes ? (
+        <div className="flex items-start gap-2 border-b border-border bg-card/50 px-3 py-2 text-xs text-muted-foreground">
+          <InfoIcon className="mt-0.5 size-3.5 shrink-0 text-primary" />
+          <span className="leading-snug">{atual.observacoes}</span>
+        </div>
+      ) : null}
+
       {listaAberta ? (
         <nav className="border-b border-border bg-card">
           <ol className="max-h-64 overflow-auto p-2">
@@ -198,11 +206,6 @@ function PalcoPage() {
                 .filter(Boolean)
                 .join(" · ") || "—"}
             </p>
-            {atual.observacoes ? (
-              <p className="mt-3 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-                {atual.observacoes}
-              </p>
-            ) : null}
             <pre
               className="mt-5 font-sans leading-relaxed break-words whitespace-pre-wrap text-foreground"
               style={{ fontSize: `${fonte}px` }}
