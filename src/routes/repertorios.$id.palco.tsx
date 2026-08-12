@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  InfoIcon,
   ListIcon,
   MaximizeIcon,
   MinimizeIcon,

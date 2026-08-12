@@ -4,11 +4,9 @@ import {
   ListMusicIcon,
   LibraryIcon,
   ArrowDownUpIcon,
-  MoonStarIcon,
-  SunIcon,
   type LucideIcon,
 } from "lucide-react";
-import { useAppData, useTheme } from "@/lib/repertorio-store";
+import { useAppData } from "@/lib/repertorio-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -50,7 +48,6 @@ function TileBody({ label, hint, Icon }: { label: string; hint: string; Icon: Lu
 }
 
 function Index() {
-  const { dark, toggle } = useTheme();
   const { data } = useAppData();
 
   return (
@@ -98,13 +95,6 @@ function Index() {
               Icon={ArrowDownUpIcon}
             />
           </Link>
-          <button onClick={toggle} className={tileClass}>
-            <TileBody
-              label={dark ? "Modo Claro" : "Modo Escuro"}
-              hint="Ajuste a tela para o palco"
-              Icon={dark ? SunIcon : MoonStarIcon}
-            />
-          </button>
         </nav>
       </div>
     </main>
