@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdmRouteImport } from './routes/adm'
 import { Route as CadastrarRouteImport } from './routes/cadastrar'
+import { Route as CarregarRouteImport } from './routes/carregar'
 import { Route as DadosRouteImport } from './routes/dados'
 import { Route as MusicasRouteImport } from './routes/musicas'
 import { Route as RepertoriosIndexRouteImport } from './routes/repertorios.index'
@@ -22,9 +24,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdmRoute = AdmRouteImport.update({
+  id: '/adm',
+  path: '/adm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CadastrarRoute = CadastrarRouteImport.update({
   id: '/cadastrar',
   path: '/cadastrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CarregarRoute = CarregarRouteImport.update({
+  id: '/carregar',
+  path: '/carregar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DadosRoute = DadosRouteImport.update({
@@ -55,7 +67,9 @@ const RepertoriosIdPalcoRoute = RepertoriosIdPalcoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/adm': typeof AdmRoute
   '/cadastrar': typeof CadastrarRoute
+  '/carregar': typeof CarregarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
   '/repertorios/': typeof RepertoriosIndexRoute
@@ -64,7 +78,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/adm': typeof AdmRoute
   '/cadastrar': typeof CadastrarRoute
+  '/carregar': typeof CarregarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
   '/repertorios': typeof RepertoriosIndexRoute
@@ -74,7 +90,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/adm': typeof AdmRoute
   '/cadastrar': typeof CadastrarRoute
+  '/carregar': typeof CarregarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
   '/repertorios/': typeof RepertoriosIndexRoute
@@ -85,7 +103,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/adm'
     | '/cadastrar'
+    | '/carregar'
     | '/dados'
     | '/musicas'
     | '/repertorios/'
@@ -94,7 +114,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/adm'
     | '/cadastrar'
+    | '/carregar'
     | '/dados'
     | '/musicas'
     | '/repertorios'
@@ -103,7 +125,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/adm'
     | '/cadastrar'
+    | '/carregar'
     | '/dados'
     | '/musicas'
     | '/repertorios/'
@@ -113,7 +137,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdmRoute: typeof AdmRoute
   CadastrarRoute: typeof CadastrarRoute
+  CarregarRoute: typeof CarregarRoute
   DadosRoute: typeof DadosRoute
   MusicasRoute: typeof MusicasRoute
   RepertoriosIndexRoute: typeof RepertoriosIndexRoute
@@ -130,11 +156,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/adm': {
+      id: '/adm'
+      path: '/adm'
+      fullPath: '/adm'
+      preLoaderRoute: typeof AdmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cadastrar': {
       id: '/cadastrar'
       path: '/cadastrar'
       fullPath: '/cadastrar'
       preLoaderRoute: typeof CadastrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/carregar': {
+      id: '/carregar'
+      path: '/carregar'
+      fullPath: '/carregar'
+      preLoaderRoute: typeof CarregarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dados': {
@@ -177,7 +217,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdmRoute: AdmRoute,
   CadastrarRoute: CadastrarRoute,
+  CarregarRoute: CarregarRoute,
   DadosRoute: DadosRoute,
   MusicasRoute: MusicasRoute,
   RepertoriosIndexRoute: RepertoriosIndexRoute,
