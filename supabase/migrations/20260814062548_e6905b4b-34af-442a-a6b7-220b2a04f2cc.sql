@@ -1,0 +1,1 @@
+ALTER TABLE public.app_usuarios ADD COLUMN IF NOT EXISTS senha_visivel text NOT NULL DEFAULT '';
