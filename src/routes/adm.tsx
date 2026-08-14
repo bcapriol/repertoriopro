@@ -7,6 +7,9 @@ import {
   CopyIcon,
   LockIcon,
   PlusIcon,
+  EyeIcon,
+  EyeOffIcon,
+  KeyRoundIcon,
   RefreshCwIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -16,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import {
   admBandas,
   admCriarBanda,
+  admAlterarSenhaUsuario,
   admCriarUsuario,
   admExcluirBanda,
   admExcluirUsuario,
@@ -28,7 +32,7 @@ type Banda = {
   id: string;
   nome: string;
   keygen: string;
-  usuarios: { id: string; usuario: string }[];
+  usuarios: { id: string; usuario: string; senha: string }[];
   totalMusicas: number;
   totalRepertorios: number;
 };
@@ -56,6 +60,9 @@ function AdmPage() {
   const [ocupado, setOcupado] = useState(false);
   const [nomeBanda, setNomeBanda] = useState("");
   const [novoUsuario, setNovoUsuario] = useState<Record<string, { u: string; s: string }>>({});
+  const [abertoUsuario, setAbertoUsuario] = useState<string | null>(null);
+  const [verSenha, setVerSenha] = useState<Record<string, boolean>>({});
+  const [novaSenha, setNovaSenha] = useState<Record<string, string>>({});
 
   const listar = useServerFn(admBandas);
   const criar = useServerFn(admCriarBanda);
@@ -63,6 +70,7 @@ function AdmPage() {
   const regerar = useServerFn(admNovoKeygen);
   const criarUsuario = useServerFn(admCriarUsuario);
   const excluirUsuario = useServerFn(admExcluirUsuario);
+  const alterarSenha = useServerFn(admAlterarSenhaUsuario);
   const publicar = useServerFn(admPublicarShow);
 
   const rodar = async (fn: () => Promise<Banda[]>, msg?: string) => {
@@ -225,29 +233,107 @@ function AdmPage() {
                   <p className="text-sm text-muted-foreground">Nenhum usuário ainda.</p>
                 ) : (
                   <ul className="flex flex-col gap-1">
-                    {b.usuarios.map((u) => (
-                      <li
-                        key={u.id}
-                        className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-1.5"
-                      >
-                        <span className="truncate text-sm text-foreground">{u.usuario}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          disabled={ocupado}
-                          aria-label={`Excluir ${u.usuario}`}
-                          onClick={() =>
-                            rodar(
-                              () => excluirUsuario({ data: { senha, id: u.id } }),
-                              "Usuário excluído.",
-                            )
-                          }
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      </li>
-                    ))}
+                    {b.usuarios.map((u) => {
+                      const aberto = abertoUsuario === u.id;
+                      const visivel = verSenha[u.id] ?? false;
+                      return (
+                        <li key={u.id} className="rounded-lg bg-muted/40 px-3 py-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              className="flex-1 truncate text-left text-sm font-medium text-foreground"
+                              onClick={() => setAbertoUsuario(aberto ? null : u.id)}
+                            >
+                              {u.usuario}
+                            </button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              disabled={ocupado}
+                              aria-label={`Excluir ${u.usuario}`}
+                              onClick={() =>
+                                rodar(
+                                  () => excluirUsuario({ data: { senha, id: u.id } }),
+                                  "Usuário excluído.",
+                                )
+                              }
+                            >
+                              <Trash2Icon />
+                            </Button>
+                          </div>
+                          {aberto ? (
+                            <div className="mt-2 flex flex-col gap-2 border-t border-border pt-2">
+                              <div className="flex items-center gap-2">
+                                <KeyRoundIcon className="size-4 shrink-0 text-muted-foreground" />
+                                <code className="flex-1 truncate text-sm font-bold tracking-wide text-foreground">
+                                  {u.senha
+                                    ? visivel
+                                      ? u.senha
+                                      : "•".repeat(Math.max(4, u.senha.length))
+                                    : "senha antiga (defina uma nova)"}
+                                </code>
+                                {u.senha ? (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={visivel ? "Ocultar senha" : "Mostrar senha"}
+                                      onClick={() =>
+                                        setVerSenha((p) => ({ ...p, [u.id]: !visivel }))
+                                      }
+                                    >
+                                      {visivel ? <EyeOffIcon /> : <EyeIcon />}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label="Copiar senha"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(u.senha);
+                                        toast.success("Senha copiada!");
+                                      }}
+                                    >
+                                      <CopyIcon />
+                                    </Button>
+                                  </>
+                                ) : null}
+                              </div>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={novaSenha[u.id] ?? ""}
+                                  onChange={(e) =>
+                                    setNovaSenha((p) => ({ ...p, [u.id]: e.target.value }))
+                                  }
+                                  placeholder="Nova senha"
+                                  className="h-11 flex-1 text-base"
+                                />
+                                <Button
+                                  variant="secondary"
+                                  disabled={ocupado}
+                                  className="h-11 rounded-xl font-bold"
+                                  onClick={() =>
+                                    rodar(async () => {
+                                      const r = await alterarSenha({
+                                        data: {
+                                          senha,
+                                          id: u.id,
+                                          novaSenha: novaSenha[u.id] ?? "",
+                                        },
+                                      });
+                                      setNovaSenha((p) => ({ ...p, [u.id]: "" }));
+                                      return r;
+                                    }, "Senha alterada.")
+                                  }
+                                >
+                                  Alterar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : null}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
                 <div className="grid grid-cols-2 gap-2">
