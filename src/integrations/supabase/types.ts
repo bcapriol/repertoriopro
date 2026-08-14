@@ -20,6 +20,7 @@ export type Database = {
           criado_em: string
           id: string
           senha_hash: string
+          senha_visivel: string
           usuario: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           criado_em?: string
           id?: string
           senha_hash: string
+          senha_visivel?: string
           usuario: string
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           criado_em?: string
           id?: string
           senha_hash?: string
+          senha_visivel?: string
           usuario?: string
         }
         Relationships: [
