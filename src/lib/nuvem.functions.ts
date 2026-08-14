@@ -50,6 +50,16 @@ export const admCriarUsuario = createServerFn({ method: "POST" })
     return m.listarBandas();
   });
 
+export const admAlterarSenhaUsuario = createServerFn({ method: "POST" })
+  .inputValidator((d: { senha: string; id: string; novaSenha: string }) => d)
+  .handler(async ({ data }) => {
+    const m = await import("./nuvem.server");
+    m.conferirSenhaAdm(data.senha);
+    if (data.novaSenha.length < 4) throw new Error("Senha precisa de ao menos 4 caracteres.");
+    await m.alterarSenhaUsuario(data.id, data.novaSenha);
+    return m.listarBandas();
+  });
+
 export const admExcluirUsuario = createServerFn({ method: "POST" })
   .inputValidator((d: { senha: string; id: string }) => d)
   .handler(async ({ data }) => {

@@ -5,7 +5,7 @@ export type BandaResumo = {
   id: string;
   nome: string;
   keygen: string;
-  usuarios: { id: string; usuario: string }[];
+  usuarios: { id: string; usuario: string; senha: string }[];
   totalMusicas: number;
   totalRepertorios: number;
 };
@@ -43,7 +43,7 @@ export async function listarBandas(): Promise<BandaResumo[]> {
   const db = await admin();
   const [bandas, usuarios, musicas, repertorios] = await Promise.all([
     db.from("bandas").select("id, nome, keygen, criado_em").order("criado_em", { ascending: false }),
-    db.from("app_usuarios").select("id, usuario, banda_id"),
+    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id"),
     db.from("cloud_songs").select("banda_id"),
     db.from("cloud_setlists").select("banda_id"),
   ]);
@@ -56,7 +56,7 @@ export async function listarBandas(): Promise<BandaResumo[]> {
     keygen: b.keygen,
     usuarios: (usuarios.data ?? [])
       .filter((u) => u.banda_id === b.id)
-      .map((u) => ({ id: u.id, usuario: u.usuario })),
+      .map((u) => ({ id: u.id, usuario: u.usuario, senha: u.senha_visivel ?? "" })),
     totalMusicas: conta(musicas.data, b.id),
     totalRepertorios: conta(repertorios.data, b.id),
   }));
@@ -84,10 +84,19 @@ export async function criarUsuario(bandaId: string, usuario: string, senha: stri
   const db = await admin();
   const { error } = await db
     .from("app_usuarios")
-    .insert({ banda_id: bandaId, usuario, senha_hash: hashSenha(senha) });
+    .insert({ banda_id: bandaId, usuario, senha_hash: hashSenha(senha), senha_visivel: senha });
   if (error) {
     throw new Error(error.code === "23505" ? "Esse usuário já existe." : error.message);
   }
+}
+
+export async function alterarSenhaUsuario(id: string, senha: string) {
+  const db = await admin();
+  const { error } = await db
+    .from("app_usuarios")
+    .update({ senha_hash: hashSenha(senha), senha_visivel: senha })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export async function excluirUsuario(id: string) {
