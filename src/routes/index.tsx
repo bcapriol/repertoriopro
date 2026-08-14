@@ -80,6 +80,12 @@ function Index() {
         </header>
 
         <nav className="mt-10 flex flex-col gap-4">
+          {!banda && data.songs.length === 0 && data.setlists.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-border px-5 py-4 text-center text-sm text-muted-foreground">
+              Aparelho vazio. Use <span className="font-semibold text-foreground">Carregar Show</span>{" "}
+              com a chave da banda (ou um arquivo de backup) para trazer músicas e repertórios.
+            </p>
+          ) : null}
           <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>
             <TileBody
               label="Cadastrar Música"
