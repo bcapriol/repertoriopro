@@ -1,14 +1,20 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { DownloadCloudIcon, KeyRoundIcon, UserRoundIcon } from "lucide-react";
+import {
+  DownloadCloudIcon,
+  KeyRoundIcon,
+  UserRoundIcon,
+  FileUpIcon,
+  EraserIcon,
+} from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { carregarShow, entrarComUsuario } from "@/lib/nuvem.functions";
 import { writeData } from "@/lib/repertorio-store";
-import { salvarBanda } from "@/lib/banda-local";
+import { salvarBanda, useBanda } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/carregar")({
   head: () => ({
@@ -30,6 +36,7 @@ export const Route = createFileRoute("/carregar")({
 
 function CarregarPage() {
   const navigate = useNavigate();
+  const banda = useBanda();
   const baixar = useServerFn(carregarShow);
   const entrar = useServerFn(entrarComUsuario);
   const [chave, setChave] = useState("");
@@ -81,6 +88,11 @@ function CarregarPage() {
   return (
     <PageShell title="Carregar show" subtitle="Baixa músicas e repertórios da banda">
       <div className="flex flex-col gap-6">
+        <p className="text-sm text-muted-foreground">
+          {banda
+            ? `Aparelho carregado com: ${banda}. Carregar outra chave troca todo o conteúdo pelo da nova banda.`
+            : "Este aparelho está vazio. Use a chave da banda, seu login ou um arquivo de backup para carregar o show do dia."}
+        </p>
         <section className="surface-tile flex flex-col gap-3 rounded-2xl border border-border p-4">
           <h2 className="flex items-center gap-2 font-bold text-foreground">
             <KeyRoundIcon className="size-4" /> Chave do show
@@ -122,6 +134,42 @@ function CarregarPage() {
             className="h-12 rounded-xl font-bold"
           >
             Entrar e carregar
+          </Button>
+        </section>
+
+        <section className="surface-tile flex flex-col gap-3 rounded-2xl border border-border p-4">
+          <h2 className="flex items-center gap-2 font-bold text-foreground">
+            <FileUpIcon className="size-4" /> Arquivo de backup
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Recebeu um arquivo JSON/CSV da banda? Importe por aqui.
+          </p>
+          <Link to="/dados">
+            <Button variant="secondary" className="h-12 w-full rounded-xl font-bold">
+              Abrir Exportar / Importar
+            </Button>
+          </Link>
+        </section>
+
+        <section className="surface-tile flex flex-col gap-3 rounded-2xl border border-border p-4">
+          <h2 className="flex items-center gap-2 font-bold text-foreground">
+            <EraserIcon className="size-4" /> Trocar de banda
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Limpa todo o conteúdo deste aparelho e deixa o app zerado, pronto para carregar outra
+            banda.
+          </p>
+          <Button
+            variant="destructive"
+            className="h-12 rounded-xl font-bold"
+            onClick={() => {
+              if (!window.confirm("Apagar todas as músicas e repertórios deste aparelho?")) return;
+              writeData({ songs: [], setlists: [] });
+              salvarBanda("");
+              toast.success("Aparelho limpo. Carregue a chave da próxima banda.");
+            }}
+          >
+            Limpar este aparelho
           </Button>
         </section>
 
