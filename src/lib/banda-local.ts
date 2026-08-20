@@ -34,3 +34,27 @@ export function useBanda() {
   }, []);
   return nome;
 }
+
+const KEY_CONTA = "repertorio-facil-conta";
+
+export type Conta = { usuario: string; senha: string };
+
+export function lerConta(): Conta | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(KEY_CONTA);
+    return raw ? (JSON.parse(raw) as Conta) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function salvarConta(conta: Conta | null) {
+  try {
+    if (conta) window.localStorage.setItem(KEY_CONTA, JSON.stringify(conta));
+    else window.localStorage.removeItem(KEY_CONTA);
+  } catch {
+    // ignora
+  }
+  ouvintes.forEach((f) => f());
+}
