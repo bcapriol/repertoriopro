@@ -10,7 +10,6 @@ import {
   EyeIcon,
   EyeOffIcon,
   KeyRoundIcon,
-  RefreshCwIcon,
   Trash2Icon,
 } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
@@ -23,7 +22,6 @@ import {
   admCriarUsuario,
   admExcluirBanda,
   admExcluirUsuario,
-  admNovoKeygen,
   admPublicarShow,
 } from "@/lib/nuvem.functions";
 import { readData } from "@/lib/repertorio-store";
@@ -31,7 +29,6 @@ import { readData } from "@/lib/repertorio-store";
 type Banda = {
   id: string;
   nome: string;
-  keygen: string;
   usuarios: { id: string; usuario: string; senha: string }[];
   totalMusicas: number;
   totalRepertorios: number;
@@ -67,7 +64,6 @@ function AdmPage() {
   const listar = useServerFn(admBandas);
   const criar = useServerFn(admCriarBanda);
   const excluir = useServerFn(admExcluirBanda);
-  const regerar = useServerFn(admNovoKeygen);
   const criarUsuario = useServerFn(admCriarUsuario);
   const excluirUsuario = useServerFn(admExcluirUsuario);
   const alterarSenha = useServerFn(admAlterarSenhaUsuario);
@@ -155,10 +151,10 @@ function AdmPage() {
                 const r = await criar({ data: { senha, nome: nomeBanda } });
                 setNomeBanda("");
                 return r;
-              }, "Banda criada com chave gerada!")
+              }, "Banda criada!")
             }
           >
-            <PlusIcon /> Criar banda + chave
+            <PlusIcon /> Criar banda
           </Button>
         </section>
 
@@ -187,34 +183,6 @@ function AdmPage() {
                   }
                 >
                   <Trash2Icon />
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2">
-                <code className="flex-1 truncate text-sm font-bold tracking-widest text-foreground">
-                  {b.keygen}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Copiar chave"
-                  onClick={() => {
-                    navigator.clipboard.writeText(b.keygen);
-                    toast.success("Chave copiada!");
-                  }}
-                >
-                  <CopyIcon />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Gerar nova chave"
-                  disabled={ocupado}
-                  onClick={() =>
-                    rodar(() => regerar({ data: { senha, id: b.id } }), "Nova chave gerada.")
-                  }
-                >
-                  <RefreshCwIcon />
                 </Button>
               </div>
 
