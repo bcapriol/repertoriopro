@@ -12,9 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdmRouteImport } from './routes/adm'
 import { Route as CadastrarRouteImport } from './routes/cadastrar'
-import { Route as CarregarRouteImport } from './routes/carregar'
 import { Route as DadosRouteImport } from './routes/dados'
 import { Route as MusicasRouteImport } from './routes/musicas'
+import { Route as SincronizarRouteImport } from './routes/sincronizar'
 import { Route as RepertoriosIndexRouteImport } from './routes/repertorios.index'
 import { Route as RepertoriosIdIndexRouteImport } from './routes/repertorios.$id.index'
 import { Route as RepertoriosIdPalcoRouteImport } from './routes/repertorios.$id.palco'
@@ -34,11 +34,6 @@ const CadastrarRoute = CadastrarRouteImport.update({
   path: '/cadastrar',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CarregarRoute = CarregarRouteImport.update({
-  id: '/carregar',
-  path: '/carregar',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DadosRoute = DadosRouteImport.update({
   id: '/dados',
   path: '/dados',
@@ -47,6 +42,11 @@ const DadosRoute = DadosRouteImport.update({
 const MusicasRoute = MusicasRouteImport.update({
   id: '/musicas',
   path: '/musicas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SincronizarRoute = SincronizarRouteImport.update({
+  id: '/sincronizar',
+  path: '/sincronizar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RepertoriosIndexRoute = RepertoriosIndexRouteImport.update({
@@ -69,9 +69,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/adm': typeof AdmRoute
   '/cadastrar': typeof CadastrarRoute
-  '/carregar': typeof CarregarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
+  '/sincronizar': typeof SincronizarRoute
   '/repertorios/': typeof RepertoriosIndexRoute
   '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
   '/repertorios/$id/': typeof RepertoriosIdIndexRoute
@@ -80,9 +80,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/adm': typeof AdmRoute
   '/cadastrar': typeof CadastrarRoute
-  '/carregar': typeof CarregarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
+  '/sincronizar': typeof SincronizarRoute
   '/repertorios': typeof RepertoriosIndexRoute
   '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
   '/repertorios/$id': typeof RepertoriosIdIndexRoute
@@ -92,9 +92,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/adm': typeof AdmRoute
   '/cadastrar': typeof CadastrarRoute
-  '/carregar': typeof CarregarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
+  '/sincronizar': typeof SincronizarRoute
   '/repertorios/': typeof RepertoriosIndexRoute
   '/repertorios/$id/palco': typeof RepertoriosIdPalcoRoute
   '/repertorios/$id/': typeof RepertoriosIdIndexRoute
@@ -105,9 +105,9 @@ export interface FileRouteTypes {
     | '/'
     | '/adm'
     | '/cadastrar'
-    | '/carregar'
     | '/dados'
     | '/musicas'
+    | '/sincronizar'
     | '/repertorios/'
     | '/repertorios/$id/palco'
     | '/repertorios/$id/'
@@ -116,9 +116,9 @@ export interface FileRouteTypes {
     | '/'
     | '/adm'
     | '/cadastrar'
-    | '/carregar'
     | '/dados'
     | '/musicas'
+    | '/sincronizar'
     | '/repertorios'
     | '/repertorios/$id/palco'
     | '/repertorios/$id'
@@ -127,9 +127,9 @@ export interface FileRouteTypes {
     | '/'
     | '/adm'
     | '/cadastrar'
-    | '/carregar'
     | '/dados'
     | '/musicas'
+    | '/sincronizar'
     | '/repertorios/'
     | '/repertorios/$id/palco'
     | '/repertorios/$id/'
@@ -139,9 +139,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdmRoute: typeof AdmRoute
   CadastrarRoute: typeof CadastrarRoute
-  CarregarRoute: typeof CarregarRoute
   DadosRoute: typeof DadosRoute
   MusicasRoute: typeof MusicasRoute
+  SincronizarRoute: typeof SincronizarRoute
   RepertoriosIndexRoute: typeof RepertoriosIndexRoute
   RepertoriosIdPalcoRoute: typeof RepertoriosIdPalcoRoute
   RepertoriosIdIndexRoute: typeof RepertoriosIdIndexRoute
@@ -170,13 +170,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CadastrarRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/carregar': {
-      id: '/carregar'
-      path: '/carregar'
-      fullPath: '/carregar'
-      preLoaderRoute: typeof CarregarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dados': {
       id: '/dados'
       path: '/dados'
@@ -189,6 +182,13 @@ declare module '@tanstack/react-router' {
       path: '/musicas'
       fullPath: '/musicas'
       preLoaderRoute: typeof MusicasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sincronizar': {
+      id: '/sincronizar'
+      path: '/sincronizar'
+      fullPath: '/sincronizar'
+      preLoaderRoute: typeof SincronizarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/repertorios/': {
@@ -219,9 +219,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdmRoute: AdmRoute,
   CadastrarRoute: CadastrarRoute,
-  CarregarRoute: CarregarRoute,
   DadosRoute: DadosRoute,
   MusicasRoute: MusicasRoute,
+  SincronizarRoute: SincronizarRoute,
   RepertoriosIndexRoute: RepertoriosIndexRoute,
   RepertoriosIdPalcoRoute: RepertoriosIdPalcoRoute,
   RepertoriosIdIndexRoute: RepertoriosIdIndexRoute,

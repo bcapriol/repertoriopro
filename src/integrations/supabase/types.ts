@@ -72,6 +72,7 @@ export type Database = {
       }
       cloud_setlists: {
         Row: {
+          atualizado_em: string
           banda_id: string
           criado_em: string
           data: string
@@ -83,6 +84,7 @@ export type Database = {
           song_ids: Json
         }
         Insert: {
+          atualizado_em?: string
           banda_id: string
           criado_em?: string
           data?: string
@@ -94,6 +96,7 @@ export type Database = {
           song_ids?: Json
         }
         Update: {
+          atualizado_em?: string
           banda_id?: string
           criado_em?: string
           data?: string
@@ -118,6 +121,7 @@ export type Database = {
         Row: {
           anexos: Json
           artista: string
+          atualizado_em: string
           banda_id: string
           bpm: string
           criado_em: string
@@ -133,6 +137,7 @@ export type Database = {
         Insert: {
           anexos?: Json
           artista?: string
+          atualizado_em?: string
           banda_id: string
           bpm?: string
           criado_em?: string
@@ -148,6 +153,7 @@ export type Database = {
         Update: {
           anexos?: Json
           artista?: string
+          atualizado_em?: string
           banda_id?: string
           bpm?: string
           criado_em?: string

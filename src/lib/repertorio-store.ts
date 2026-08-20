@@ -18,6 +18,7 @@ export type Song = {
   letra: string;
   anexos?: Anexo[];
   criadoEm: number;
+  atualizadoEm?: number;
 };
 
 export type Setlist = {
@@ -27,6 +28,7 @@ export type Setlist = {
   data: string;
   songIds: string[];
   criadoEm: number;
+  atualizadoEm?: number;
 };
 
 export type AppData = { songs: Song[]; setlists: Setlist[] };
@@ -54,7 +56,27 @@ export function readData(): AppData {
   return cache;
 }
 
-export function writeData(next: AppData) {
+type Carimbavel = { id: string; atualizadoEm?: number };
+
+function carimbar<T extends Carimbavel>(anteriores: T[], proximos: T[], agora: number): T[] {
+  const antes = new Map(anteriores.map((i) => [i.id, i]));
+  return proximos.map((item) => {
+    const velho = antes.get(item.id);
+    const igual =
+      velho &&
+      JSON.stringify({ ...velho, atualizadoEm: 0 }) === JSON.stringify({ ...item, atualizadoEm: 0 });
+    if (igual) return { ...item, atualizadoEm: velho.atualizadoEm } as T;
+    return { ...item, atualizadoEm: agora } as T;
+  });
+}
+
+export function writeData(entrada: AppData) {
+  const anterior = readData();
+  const agora = Date.now();
+  const next: AppData = {
+    songs: carimbar(anterior.songs, entrada.songs, agora),
+    setlists: carimbar(anterior.setlists, entrada.setlists, agora),
+  };
   cache = next;
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEY, JSON.stringify(next));

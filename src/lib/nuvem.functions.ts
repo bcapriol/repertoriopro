@@ -29,15 +29,6 @@ export const admExcluirBanda = createServerFn({ method: "POST" })
     return m.listarBandas();
   });
 
-export const admNovoKeygen = createServerFn({ method: "POST" })
-  .inputValidator((d: { senha: string; id: string }) => d)
-  .handler(async ({ data }) => {
-    const m = await import("./nuvem.server");
-    m.conferirSenhaAdm(data.senha);
-    await m.novoKeygen(data.id);
-    return m.listarBandas();
-  });
-
 export const admCriarUsuario = createServerFn({ method: "POST" })
   .inputValidator((d: { senha: string; bandaId: string; usuario: string; senhaUsuario: string }) => d)
   .handler(async ({ data }) => {
@@ -77,11 +68,11 @@ export const admPublicarShow = createServerFn({ method: "POST" })
     return m.publicarShow(data.bandaId, data.dados);
   });
 
-export const carregarShow = createServerFn({ method: "POST" })
-  .inputValidator((d: { keygen: string }) => d)
+export const sincronizarNuvem = createServerFn({ method: "POST" })
+  .inputValidator((d: { usuario: string; senha: string; dados: AppData }) => d)
   .handler(async ({ data }) => {
     const m = await import("./nuvem.server");
-    return m.baixarShow(data.keygen);
+    return m.sincronizar(data.usuario, data.senha, data.dados);
   });
 
 export const entrarComUsuario = createServerFn({ method: "POST" })
