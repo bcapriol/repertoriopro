@@ -1,0 +1,2 @@
+ALTER TABLE public.cloud_songs ADD COLUMN IF NOT EXISTS atualizado_em timestamptz NOT NULL DEFAULT now();
+ALTER TABLE public.cloud_setlists ADD COLUMN IF NOT EXISTS atualizado_em timestamptz NOT NULL DEFAULT now();
