@@ -1,10 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { AppData, Anexo, Setlist, Song } from "./repertorio-store";
+import { mesclarDados } from "./sync-merge";
 
 export type BandaResumo = {
   id: string;
   nome: string;
-  keygen: string;
   usuarios: { id: string; usuario: string; senha: string }[];
   totalMusicas: number;
   totalRepertorios: number;
@@ -42,7 +42,7 @@ async function admin() {
 export async function listarBandas(): Promise<BandaResumo[]> {
   const db = await admin();
   const [bandas, usuarios, musicas, repertorios] = await Promise.all([
-    db.from("bandas").select("id, nome, keygen, criado_em").order("criado_em", { ascending: false }),
+    db.from("bandas").select("id, nome, criado_em").order("criado_em", { ascending: false }),
     db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id"),
     db.from("cloud_songs").select("banda_id"),
     db.from("cloud_setlists").select("banda_id"),
@@ -53,7 +53,6 @@ export async function listarBandas(): Promise<BandaResumo[]> {
   return (bandas.data ?? []).map((b) => ({
     id: b.id,
     nome: b.nome,
-    keygen: b.keygen,
     usuarios: (usuarios.data ?? [])
       .filter((u) => u.banda_id === b.id)
       .map((u) => ({ id: u.id, usuario: u.usuario, senha: u.senha_visivel ?? "" })),
@@ -71,12 +70,6 @@ export async function criarBanda(nome: string) {
 export async function excluirBanda(id: string) {
   const db = await admin();
   const { error } = await db.from("bandas").delete().eq("id", id);
-  if (error) throw error;
-}
-
-export async function novoKeygen(id: string) {
-  const db = await admin();
-  const { error } = await db.from("bandas").update({ keygen: gerarKeygen() }).eq("id", id);
   if (error) throw error;
 }
 
@@ -123,6 +116,7 @@ export async function publicarShow(bandaId: string, dados: AppData) {
         observacoes: s.observacoes ?? "",
         letra: s.letra ?? "",
         anexos: (s.anexos ?? []) as unknown as never,
+        atualizado_em: new Date(s.atualizadoEm ?? s.criadoEm ?? Date.now()).toISOString(),
         ordem: i,
       })),
     );
@@ -137,6 +131,7 @@ export async function publicarShow(bandaId: string, dados: AppData) {
         local: r.local ?? "",
         data: r.data ?? "",
         song_ids: r.songIds as unknown as never,
+        atualizado_em: new Date(r.atualizadoEm ?? r.criadoEm ?? Date.now()).toISOString(),
         ordem: i,
       })),
     );
@@ -145,15 +140,9 @@ export async function publicarShow(bandaId: string, dados: AppData) {
   return { musicas: dados.songs.length, repertorios: dados.setlists.length };
 }
 
-export async function baixarShow(keygen: string) {
+export async function baixarDaBanda(bandaId: string) {
   const db = await admin();
-  const chave = keygen.trim().toUpperCase();
-  const { data: banda } = await db
-    .from("bandas")
-    .select("id, nome")
-    .eq("keygen", chave)
-    .maybeSingle();
-  if (!banda) throw new Error("Chave não encontrada.");
+  const banda = { id: bandaId };
 
   const [musicas, repertorios] = await Promise.all([
     db.from("cloud_songs").select("*").eq("banda_id", banda.id).order("ordem"),
@@ -171,6 +160,7 @@ export async function baixarShow(keygen: string) {
     letra: m.letra,
     anexos: (m.anexos ?? []) as unknown as Anexo[],
     criadoEm: new Date(m.criado_em).getTime(),
+    atualizadoEm: new Date(m.atualizado_em ?? m.criado_em).getTime(),
   }));
   const setlists: Setlist[] = (repertorios.data ?? []).map((r) => ({
     id: r.setlist_id,
@@ -179,20 +169,30 @@ export async function baixarShow(keygen: string) {
     data: r.data,
     songIds: (r.song_ids ?? []) as unknown as string[],
     criadoEm: new Date(r.criado_em).getTime(),
+    atualizadoEm: new Date(r.atualizado_em ?? r.criado_em).getTime(),
   }));
 
-  return { banda: banda.nome, dados: { songs, setlists } as AppData };
+  return { songs, setlists } as AppData;
 }
 
 export async function entrarUsuario(usuario: string, senha: string) {
   const db = await admin();
   const { data } = await db
     .from("app_usuarios")
-    .select("id, usuario, senha_hash, bandas(nome, keygen)")
+    .select("id, usuario, senha_hash, banda_id, bandas(nome)")
     .eq("usuario", usuario.trim().toLowerCase())
     .maybeSingle();
   if (!data || data.senha_hash !== hashSenha(senha)) throw new Error("Usuário ou senha inválidos.");
-  const banda = data.bandas as unknown as { nome: string; keygen: string } | null;
+  const banda = data.bandas as unknown as { nome: string } | null;
   if (!banda) throw new Error("Usuário sem banda vinculada.");
-  return { banda: banda.nome, keygen: banda.keygen };
+  return { banda: banda.nome, bandaId: data.banda_id as string };
+}
+
+/** Sincronização bidirecional: junta o que veio do aparelho com o que está na nuvem. */
+export async function sincronizar(usuario: string, senha: string, locais: AppData) {
+  const conta = await entrarUsuario(usuario, senha);
+  const nuvem = await baixarDaBanda(conta.bandaId);
+  const mesclado = mesclarDados(locais, nuvem);
+  await publicarShow(conta.bandaId, mesclado);
+  return { banda: conta.banda, dados: mesclado };
 }
