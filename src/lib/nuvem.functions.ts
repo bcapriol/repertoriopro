@@ -60,6 +60,18 @@ export const admExcluirUsuario = createServerFn({ method: "POST" })
     return m.listarBandas();
   });
 
+export const admDefinirPrivilegios = createServerFn({ method: "POST" })
+  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean }) => d)
+  .handler(async ({ data }) => {
+    const m = await import("./nuvem.server");
+    m.conferirSenhaAdm(data.senha);
+    await m.definirPrivilegios(data.id, {
+      podeApagar: data.podeApagar,
+      podeBackup: data.podeBackup,
+    });
+    return m.listarBandas();
+  });
+
 export const admPublicarShow = createServerFn({ method: "POST" })
   .inputValidator((d: { senha: string; bandaId: string; dados: AppData }) => d)
   .handler(async ({ data }) => {

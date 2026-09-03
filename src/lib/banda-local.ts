@@ -37,7 +37,13 @@ export function useBanda() {
 
 const KEY_CONTA = "repertorio-facil-conta";
 
-export type Conta = { usuario: string; senha: string };
+export type Conta = {
+  usuario: string;
+  senha: string;
+  banda?: string;
+  podeApagar: boolean;
+  podeBackup: boolean;
+};
 
 export function lerConta(): Conta | null {
   if (typeof window === "undefined") return null;
@@ -57,4 +63,21 @@ export function salvarConta(conta: Conta | null) {
     // ignora
   }
   ouvintes.forEach((f) => f());
+}
+
+export function useConta() {
+  const [conta, setConta] = useState<Conta | null>(null);
+  const [pronto, setPronto] = useState(false);
+  useEffect(() => {
+    const atualizar = () => {
+      setConta(lerConta());
+      setPronto(true);
+    };
+    atualizar();
+    ouvintes.add(atualizar);
+    return () => {
+      ouvintes.delete(atualizar);
+    };
+  }, []);
+  return { conta, pronto };
 }

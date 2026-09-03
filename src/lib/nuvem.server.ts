@@ -5,7 +5,7 @@ import { mesclarDados } from "./sync-merge";
 export type BandaResumo = {
   id: string;
   nome: string;
-  usuarios: { id: string; usuario: string; senha: string }[];
+  usuarios: { id: string; usuario: string; senha: string; podeApagar: boolean; podeBackup: boolean }[];
   totalMusicas: number;
   totalRepertorios: number;
 };
@@ -43,7 +43,7 @@ export async function listarBandas(): Promise<BandaResumo[]> {
   const db = await admin();
   const [bandas, usuarios, musicas, repertorios] = await Promise.all([
     db.from("bandas").select("id, nome, criado_em").order("criado_em", { ascending: false }),
-    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id"),
+    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id, pode_apagar, pode_backup"),
     db.from("cloud_songs").select("banda_id"),
     db.from("cloud_setlists").select("banda_id"),
   ]);
@@ -55,7 +55,13 @@ export async function listarBandas(): Promise<BandaResumo[]> {
     nome: b.nome,
     usuarios: (usuarios.data ?? [])
       .filter((u) => u.banda_id === b.id)
-      .map((u) => ({ id: u.id, usuario: u.usuario, senha: u.senha_visivel ?? "" })),
+      .map((u) => ({
+        id: u.id,
+        usuario: u.usuario,
+        senha: u.senha_visivel ?? "",
+        podeApagar: u.pode_apagar ?? false,
+        podeBackup: u.pode_backup ?? false,
+      })),
     totalMusicas: conta(musicas.data, b.id),
     totalRepertorios: conta(repertorios.data, b.id),
   }));
@@ -88,6 +94,18 @@ export async function alterarSenhaUsuario(id: string, senha: string) {
   const { error } = await db
     .from("app_usuarios")
     .update({ senha_hash: hashSenha(senha), senha_visivel: senha })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function definirPrivilegios(
+  id: string,
+  privilegios: { podeApagar: boolean; podeBackup: boolean },
+) {
+  const db = await admin();
+  const { error } = await db
+    .from("app_usuarios")
+    .update({ pode_apagar: privilegios.podeApagar, pode_backup: privilegios.podeBackup })
     .eq("id", id);
   if (error) throw error;
 }
@@ -179,13 +197,18 @@ export async function entrarUsuario(usuario: string, senha: string) {
   const db = await admin();
   const { data } = await db
     .from("app_usuarios")
-    .select("id, usuario, senha_hash, banda_id, bandas(nome)")
+    .select("id, usuario, senha_hash, banda_id, pode_apagar, pode_backup, bandas(nome)")
     .eq("usuario", usuario.trim().toLowerCase())
     .maybeSingle();
   if (!data || data.senha_hash !== hashSenha(senha)) throw new Error("Usuário ou senha inválidos.");
   const banda = data.bandas as unknown as { nome: string } | null;
   if (!banda) throw new Error("Usuário sem banda vinculada.");
-  return { banda: banda.nome, bandaId: data.banda_id as string };
+  return {
+    banda: banda.nome,
+    bandaId: data.banda_id as string,
+    podeApagar: data.pode_apagar ?? false,
+    podeBackup: data.pode_backup ?? false,
+  };
 }
 
 /** Sincronização bidirecional: junta o que veio do aparelho com o que está na nuvem. */
@@ -194,5 +217,10 @@ export async function sincronizar(usuario: string, senha: string, locais: AppDat
   const nuvem = await baixarDaBanda(conta.bandaId);
   const mesclado = mesclarDados(locais, nuvem);
   await publicarShow(conta.bandaId, mesclado);
-  return { banda: conta.banda, dados: mesclado };
+  return {
+    banda: conta.banda,
+    podeApagar: conta.podeApagar,
+    podeBackup: conta.podeBackup,
+    dados: mesclado,
+  };
 }
