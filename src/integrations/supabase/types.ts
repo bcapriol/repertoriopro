@@ -19,6 +19,8 @@ export type Database = {
           banda_id: string
           criado_em: string
           id: string
+          pode_apagar: boolean
+          pode_backup: boolean
           senha_hash: string
           senha_visivel: string
           usuario: string
@@ -27,6 +29,8 @@ export type Database = {
           banda_id: string
           criado_em?: string
           id?: string
+          pode_apagar?: boolean
+          pode_backup?: boolean
           senha_hash: string
           senha_visivel?: string
           usuario: string
@@ -35,6 +39,8 @@ export type Database = {
           banda_id?: string
           criado_em?: string
           id?: string
+          pode_apagar?: boolean
+          pode_backup?: boolean
           senha_hash?: string
           senha_visivel?: string
           usuario?: string
