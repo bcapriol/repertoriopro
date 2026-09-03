@@ -37,6 +37,8 @@ function MusicasPage() {
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<Ordem>("titulo");
   const [aberta, setAberta] = useState<string | null>(null);
+  const { conta } = useConta();
+  const podeApagar = conta?.podeApagar ?? false;
   const songAberta = data.songs.find((s) => s.id === aberta) ?? null;
 
   const lista = useMemo(() => {
@@ -139,14 +141,16 @@ function MusicasPage() {
                       <PencilIcon />
                     </Link>
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Excluir música"
-                    onClick={() => excluir(song.id)}
-                  >
-                    <Trash2Icon />
-                  </Button>
+                  {podeApagar ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Excluir música"
+                      onClick={() => excluir(song.id)}
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  ) : null}
                 </div>
               </li>
             ))}
