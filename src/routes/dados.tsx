@@ -13,6 +13,7 @@ import {
   type ImportResult,
 } from "@/lib/backup";
 import { readData, useAppData, writeData } from "@/lib/repertorio-store";
+import { useConta } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/dados")({
   head: () => ({
@@ -37,6 +38,8 @@ const espera = () => new Promise((r) => setTimeout(r, 120));
 
 function DadosPage() {
   const { data } = useAppData();
+  const { conta } = useConta();
+  const podeBackup = conta?.podeBackup ?? false;
   const jsonRef = useRef<HTMLInputElement>(null);
   const csvRef = useRef<HTMLInputElement>(null);
   const [progresso, setProgresso] = useState<number | null>(null);
@@ -209,36 +212,43 @@ function DadosPage() {
           </p>
         </div>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-            Exportar
-          </h2>
-          <Button
-            onClick={exportarJson}
-            disabled={importando}
-            className="h-14 rounded-2xl text-base font-bold"
-          >
-            <DownloadIcon /> Backup completo (.json)
-          </Button>
-          <div className="grid gap-3 sm:grid-cols-2">
+        {podeBackup ? (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              Exportar
+            </h2>
             <Button
-              variant="outline"
-              onClick={exportarCsv}
+              onClick={exportarJson}
               disabled={importando}
-              className="h-12 rounded-xl font-bold"
+              className="h-14 rounded-2xl text-base font-bold"
             >
-              <DownloadIcon /> Músicas (.csv)
+              <DownloadIcon /> Backup completo (.json)
             </Button>
-            <Button
-              variant="outline"
-              onClick={exportarRepertoriosCsv}
-              disabled={importando}
-              className="h-12 rounded-xl font-bold"
-            >
-              <DownloadIcon /> Repertórios (.csv)
-            </Button>
-          </div>
-        </section>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button
+                variant="outline"
+                onClick={exportarCsv}
+                disabled={importando}
+                className="h-12 rounded-xl font-bold"
+              >
+                <DownloadIcon /> Músicas (.csv)
+              </Button>
+              <Button
+                variant="outline"
+                onClick={exportarRepertoriosCsv}
+                disabled={importando}
+                className="h-12 rounded-xl font-bold"
+              >
+                <DownloadIcon /> Repertórios (.csv)
+              </Button>
+            </div>
+          </section>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+            Enviar backup é um privilégio. Peça ao administrador para liberar essa opção na sua
+            conta.
+          </p>
+        )}
 
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
