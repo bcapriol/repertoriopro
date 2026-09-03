@@ -19,7 +19,7 @@ import { readData, writeData, type AppData } from "@/lib/repertorio-store";
 import { mesclarDados } from "@/lib/sync-merge";
 import { enviarPorBluetooth } from "@/lib/bluetooth-sync";
 import { validarBackup } from "@/lib/backup";
-import { lerConta, salvarBanda, salvarConta, useBanda } from "@/lib/banda-local";
+import { lerConta, salvarBanda, salvarConta, useBanda, type Conta } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/sincronizar")({
   head: () => ({
@@ -45,7 +45,7 @@ function SincronizarPage() {
   const banda = useBanda();
   const sincronizar = useServerFn(sincronizarNuvem);
   const arquivoRef = useRef<HTMLInputElement>(null);
-  const [conta, setConta] = useState<{ usuario: string; senha: string } | null>(null);
+  const [conta, setConta] = useState<Conta | null>(null);
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -64,8 +64,15 @@ function SincronizarPage() {
       const r = await sincronizar({ data: { usuario: u, senha: s, dados: readData() } });
       writeData(r.dados);
       salvarBanda(r.banda);
-      salvarConta({ usuario: u, senha: s });
-      setConta({ usuario: u, senha: s });
+      const nova: Conta = {
+        usuario: u,
+        senha: s,
+        banda: r.banda,
+        podeApagar: r.podeApagar,
+        podeBackup: r.podeBackup,
+      };
+      salvarConta(nova);
+      setConta(nova);
       toast.success(
         `Sincronizado: ${r.dados.songs.length} música(s) e ${r.dados.setlists.length} repertório(s).`,
       );
@@ -194,14 +201,21 @@ function SincronizarPage() {
           <p className="text-sm text-muted-foreground">
             Transfere os repertórios direto para um aparelho próximo, sem internet.
           </p>
-          <Button
-            onClick={porBluetooth}
-            disabled={ocupado}
-            variant="secondary"
-            className="h-14 rounded-xl text-base font-bold"
-          >
-            <BluetoothIcon /> SINCRONIZAR REPERTÓRIOS BLUETOOTH
-          </Button>
+          {conta?.podeBackup ? (
+            <Button
+              onClick={porBluetooth}
+              disabled={ocupado}
+              variant="secondary"
+              className="h-14 rounded-xl text-base font-bold"
+            >
+              <BluetoothIcon /> SINCRONIZAR REPERTÓRIOS BLUETOOTH
+            </Button>
+          ) : (
+            <p className="rounded-xl border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
+              Enviar backup é um privilégio liberado pelo administrador. Você ainda pode receber de
+              outro aparelho.
+            </p>
+          )}
           <Button
             onClick={() => arquivoRef.current?.click()}
             disabled={ocupado}
@@ -241,28 +255,31 @@ function SincronizarPage() {
           </Link>
         </section>
 
-        <section className="surface-tile flex flex-col gap-3 rounded-2xl border border-border p-4">
-          <h2 className="flex items-center gap-2 font-bold text-foreground">
-            <EraserIcon className="size-4" /> Trocar de banda
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Limpa todo o conteúdo deste aparelho e deixa o app zerado, pronto para a próxima banda.
-          </p>
-          <Button
-            variant="destructive"
-            className="h-12 rounded-xl font-bold"
-            onClick={() => {
-              if (!window.confirm("Apagar todas as músicas e repertórios deste aparelho?")) return;
-              writeData({ songs: [], setlists: [] });
-              salvarBanda("");
-              salvarConta(null);
-              setConta(null);
-              toast.success("Aparelho limpo.");
-            }}
-          >
-            Limpar este aparelho
-          </Button>
-        </section>
+        {conta?.podeApagar ? (
+          <section className="surface-tile flex flex-col gap-3 rounded-2xl border border-border p-4">
+            <h2 className="flex items-center gap-2 font-bold text-foreground">
+              <EraserIcon className="size-4" /> Trocar de banda
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Limpa todo o conteúdo deste aparelho e deixa o app zerado, pronto para a próxima banda.
+            </p>
+            <Button
+              variant="destructive"
+              className="h-12 rounded-xl font-bold"
+              onClick={() => {
+                if (!window.confirm("Apagar todas as músicas e repertórios deste aparelho?")) return;
+                writeData({ songs: [], setlists: [] });
+                salvarBanda("");
+                salvarConta(null);
+                setConta(null);
+                toast.success("Aparelho limpo.");
+              }}
+            >
+              Limpar este aparelho
+            </Button>
+          </section>
+        ) : null}
+
       </div>
     </PageShell>
   );

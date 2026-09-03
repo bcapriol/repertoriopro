@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useConta } from "@/lib/banda-local";
 import { CheckIcon, ChevronRightIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import { EmptyState, PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,8 @@ export const Route = createFileRoute("/repertorios/")({
 
 function RepertoriosPage() {
   const { data, update } = useAppData();
+  const { conta } = useConta();
+  const podeApagar = conta?.podeApagar ?? false;
   const [nome, setNome] = useState("");
   const [local, setLocal] = useState("");
   const [dataShow, setDataShow] = useState("");
@@ -170,15 +173,17 @@ function RepertoriosPage() {
                 >
                   <PencilIcon />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive"
-                  onClick={() => excluir(r.id)}
-                  aria-label={`Excluir ${r.nome}`}
-                >
-                  <Trash2Icon />
-                </Button>
+                {podeApagar ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive"
+                    onClick={() => excluir(r.id)}
+                    aria-label={`Excluir ${r.nome}`}
+                  >
+                    <Trash2Icon />
+                  </Button>
+                ) : null}
                   </>
                 )}
               </li>
