@@ -4,7 +4,7 @@ import {
   ListMusicIcon,
   LibraryIcon,
   ArrowDownUpIcon,
-  DownloadCloudIcon,
+  RefreshCwIcon,
   LockIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -82,8 +82,9 @@ function Index() {
         <nav className="mt-10 flex flex-col gap-4">
           {!banda && data.songs.length === 0 && data.setlists.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border px-5 py-4 text-center text-sm text-muted-foreground">
-              Aparelho vazio. Use <span className="font-semibold text-foreground">Carregar Show</span>{" "}
-              com a chave da banda (ou um arquivo de backup) para trazer músicas e repertórios.
+              Aparelho vazio. Use{" "}
+              <span className="font-semibold text-foreground">Sincronizar Repertórios</span> para
+              trazer as músicas e repertórios da sua banda.
             </p>
           ) : null}
           <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>
@@ -107,18 +108,18 @@ function Index() {
               Icon={LibraryIcon}
             />
           </Link>
+          <Link to="/sincronizar" className={tileClass}>
+            <TileBody
+              label="Sincronizar Repertórios"
+              hint={banda ? `Banda atual: ${banda}` : "Wi-Fi, Bluetooth ou arquivo"}
+              Icon={RefreshCwIcon}
+            />
+          </Link>
           <Link to="/dados" className={tileClass}>
             <TileBody
               label="Exportar / Importar"
               hint="Faça backup dos seus dados"
               Icon={ArrowDownUpIcon}
-            />
-          </Link>
-          <Link to="/carregar" className={tileClass}>
-            <TileBody
-              label="Carregar Show"
-              hint={banda ? `Banda atual: ${banda}` : "Baixe o repertório pela chave"}
-              Icon={DownloadCloudIcon}
             />
           </Link>
         </nav>

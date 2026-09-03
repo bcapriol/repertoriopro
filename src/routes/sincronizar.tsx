@@ -98,11 +98,11 @@ function SincronizarPage() {
     try {
       const bruto = JSON.parse(await file.text());
       const check = validarBackup(bruto);
-      if (!check.ok || !check.dados) {
+      if (!check.data) {
         toast.error(check.erros[0] ?? "Arquivo inválido.");
         return;
       }
-      const mesclado = mesclarDados(readData(), check.dados as AppData);
+      const mesclado = mesclarDados(readData(), check.data as AppData);
       writeData(mesclado);
       toast.success(
         `Recebido: ${mesclado.songs.length} música(s) e ${mesclado.setlists.length} repertório(s).`,
