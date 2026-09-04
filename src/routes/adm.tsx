@@ -20,6 +20,7 @@ import {
   admCriarBanda,
   admAlterarSenhaUsuario,
   admCriarUsuario,
+  admDefinirPrivilegios,
   admExcluirBanda,
   admExcluirUsuario,
   admPublicarShow,
@@ -29,7 +30,13 @@ import { readData } from "@/lib/repertorio-store";
 type Banda = {
   id: string;
   nome: string;
-  usuarios: { id: string; usuario: string; senha: string }[];
+  usuarios: {
+    id: string;
+    usuario: string;
+    senha: string;
+    podeApagar: boolean;
+    podeBackup: boolean;
+  }[];
   totalMusicas: number;
   totalRepertorios: number;
 };
@@ -67,6 +74,7 @@ function AdmPage() {
   const criarUsuario = useServerFn(admCriarUsuario);
   const excluirUsuario = useServerFn(admExcluirUsuario);
   const alterarSenha = useServerFn(admAlterarSenhaUsuario);
+  const definirPrivilegios = useServerFn(admDefinirPrivilegios);
   const publicar = useServerFn(admPublicarShow);
 
   const rodar = async (fn: () => Promise<Banda[]>, msg?: string) => {
@@ -266,6 +274,48 @@ function AdmPage() {
                                     </Button>
                                   </>
                                 ) : null}
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <p className="text-sm font-semibold text-foreground">Privilégios</p>
+                                {(
+                                  [
+                                    ["podeApagar", "Apagar músicas e repertórios"],
+                                    ["podeBackup", "Enviar backup (exportar/Bluetooth)"],
+                                  ] as const
+                                ).map(([campo, rotulo]) => (
+                                  <label
+                                    key={campo}
+                                    className="flex items-center gap-2 text-sm text-foreground"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="size-4 accent-primary"
+                                      checked={u[campo]}
+                                      disabled={ocupado}
+                                      onChange={(e) =>
+                                        rodar(
+                                          () =>
+                                            definirPrivilegios({
+                                              data: {
+                                                senha,
+                                                id: u.id,
+                                                podeApagar:
+                                                  campo === "podeApagar"
+                                                    ? e.target.checked
+                                                    : u.podeApagar,
+                                                podeBackup:
+                                                  campo === "podeBackup"
+                                                    ? e.target.checked
+                                                    : u.podeBackup,
+                                              },
+                                            }),
+                                          "Privilégios atualizados.",
+                                        )
+                                      }
+                                    />
+                                    {rotulo}
+                                  </label>
+                                ))}
                               </div>
                               <div className="flex gap-2">
                                 <Input
