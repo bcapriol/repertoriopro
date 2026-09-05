@@ -73,9 +73,11 @@ function Index() {
           <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-foreground">
             {banda ? `Repertório ${banda}` : "Repertório Fácil"}
           </h1>
-          <p className="mt-1 text-lg font-semibold text-primary">Bruno Capriolli</p>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-base font-semibold text-muted-foreground">
             Gerenciador de Repertórios Musicais
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground/80">
+            Desenvolvido por Bruno Capriolli | ® Direitos Reservados
           </p>
         </header>
 
