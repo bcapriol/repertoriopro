@@ -59,9 +59,11 @@ function TelaLogin() {
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
             Repertório Fácil
           </h1>
-          <p className="mt-1 font-semibold text-primary">Bruno Capriolli</p>
           <p className="mt-2 text-sm text-muted-foreground">
             Entre com o usuário e a senha que o administrador criou para você.
+          </p>
+          <p className="mt-4 text-xs text-muted-foreground/80">
+            Desenvolvido por Bruno Capriolli | ® Direitos Reservados
           </p>
         </header>
 
