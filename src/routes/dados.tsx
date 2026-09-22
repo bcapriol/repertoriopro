@@ -48,6 +48,27 @@ function DadosPage() {
   const [progresso, setProgresso] = useState<number | null>(null);
   const [etapa, setEtapa] = useState("");
   const [resultado, setResultado] = useState<ImportResult | null>(null);
+  const [versoes, setVersoes] = useState<VersaoBackup[]>([]);
+
+  const recarregarVersoes = useCallback(() => {
+    listarVersoes()
+      .then(setVersoes)
+      .catch(() => setVersoes([]));
+  }, []);
+
+  useEffect(() => {
+    recarregarVersoes();
+  }, [recarregarVersoes]);
+
+  const guardarVersao = async (origem: string, avisar = true) => {
+    try {
+      await salvarVersao(readData(), origem);
+      recarregarVersoes();
+      if (avisar) toast.success("Versão salva no histórico.");
+    } catch {
+      if (avisar) toast.error("Não foi possível salvar a versão no histórico.");
+    }
+  };
 
   const exportarJson = () => {
     baixarArquivo(
@@ -55,8 +76,10 @@ function DadosPage() {
       `repertorio-facil-${hoje()}.json`,
       "application/json",
     );
+    void guardarVersao("Exportação em arquivo", false);
     toast.success("Backup JSON exportado!");
   };
+
 
   const exportarCsv = () => {
     const atual = readData();
