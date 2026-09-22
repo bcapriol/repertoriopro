@@ -100,12 +100,30 @@ function RepertorioDetalhe() {
     >
       <div className="flex flex-col gap-5">
         {rep.songIds.length > 0 ? (
-          <Link to="/repertorios/$id/palco" params={{ id }}>
-            <Button className="h-14 w-full rounded-2xl text-base font-bold">
-              <PlayIcon /> Iniciar modo palco
+          <>
+            <Link to="/repertorios/$id/palco" params={{ id }}>
+              <Button className="h-14 w-full rounded-2xl text-base font-bold">
+                <PlayIcon /> Iniciar modo palco
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              className="h-12 rounded-xl font-bold"
+              onClick={async () => {
+                try {
+                  const { exportarRepertorioPdf } = await import("@/lib/pdf-repertorio");
+                  await exportarRepertorioPdf(rep, songsById);
+                  toast.success("PDF do repertório gerado!");
+                } catch {
+                  toast.error("Não foi possível gerar o PDF.");
+                }
+              }}
+            >
+              <FileTextIcon /> Exportar PDF para imprimir
             </Button>
-          </Link>
+          </>
         ) : null}
+
         <div className="grid grid-cols-2 gap-3">
           <Button
             className="h-12 rounded-xl font-bold"
