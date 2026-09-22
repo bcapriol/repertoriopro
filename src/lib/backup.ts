@@ -109,26 +109,74 @@ export function csvToSongs(texto: string): { songs: Song[]; erros: string[] } {
 
 const texto = (v: unknown, max = 5000) => (typeof v === "string" ? v.slice(0, max) : "");
 
+export const LIMITE_ARQUIVO = 10 * 1024 * 1024;
+
+/** Mensagem amigável para um arquivo que nem chega a ser lido. */
+export function checarArquivoJson(file: File): string | null {
+  const nome = file.name.toLowerCase();
+  if (file.size === 0) return "O arquivo está vazio. Escolha um backup gerado pelo app.";
+  if (file.size > LIMITE_ARQUIVO)
+    return "O arquivo é muito grande (acima de 10 MB). Exporte um backup novo pelo app.";
+  if (!nome.endsWith(".json") && file.type && !file.type.includes("json")) {
+    return "Esse arquivo não é um backup .json. Para planilhas use o botão de importar .csv.";
+  }
+  return null;
+}
+
+/** Converte o erro do JSON.parse em algo compreensível. */
+export function explicarJsonInvalido(texto: string, erro: unknown): string {
+  const inicio = texto.trim().slice(0, 1);
+  if (inicio === "<") return "Esse arquivo parece uma página da internet, não um backup do app.";
+  if (inicio && inicio !== "{" && inicio !== "[")
+    return "Esse arquivo não é um backup do app. Escolha o arquivo .json exportado aqui.";
+  const msg = erro instanceof Error ? erro.message : "";
+  const pos = /position (\d+)/.exec(msg)?.[1];
+  const linha = pos ? texto.slice(0, Number(pos)).split("\n").length : null;
+  return linha
+    ? `O arquivo está incompleto ou corrompido (problema na linha ${linha}). Exporte um backup novo.`
+    : "O arquivo está incompleto ou corrompido. Exporte um backup novo.";
+}
+
 export function validarBackup(bruto: unknown): {
   data: AppData | null;
   erros: string[];
 } {
   const erros: string[] = [];
-  if (!bruto || typeof bruto !== "object") {
-    return { data: null, erros: ["Arquivo JSON inválido."] };
+  if (bruto === null || typeof bruto !== "object" || Array.isArray(bruto)) {
+    return {
+      data: null,
+      erros: [
+        "O conteúdo do arquivo não está no formato de backup do app (deve conter músicas e repertórios).",
+      ],
+    };
   }
   const obj = bruto as Record<string, unknown>;
-  if (!Array.isArray(obj['songs']) || !Array.isArray(obj['setlists'])) {
-    return { data: null, erros: ['O arquivo precisa conter as listas "songs" e "setlists".'] };
+  const temSongs = Array.isArray(obj['songs']);
+  const temSetlists = Array.isArray(obj['setlists']);
+  if (!temSongs && !temSetlists) {
+    return {
+      data: null,
+      erros: [
+        "Não encontrei músicas nem repertórios neste arquivo. Ele pode ser de outro aplicativo.",
+      ],
+    };
   }
+  if (!temSongs) erros.push("O arquivo não traz a lista de músicas; só os repertórios foram lidos.");
+  if (!temSetlists)
+    erros.push("O arquivo não traz a lista de repertórios; só as músicas foram lidas.");
 
   const songs: Song[] = [];
-  (obj['songs'] as unknown[]).forEach((item, i) => {
-    if (!item || typeof item !== "object") {
-      erros.push(`Música ${i + 1}: registro inválido — ignorada.`);
+  const brutoSongs = temSongs ? (obj['songs'] as unknown[]) : [];
+  brutoSongs.forEach((item, i) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      erros.push(`Música ${i + 1}: registro danificado — ignorada.`);
       return;
     }
     const s = item as Record<string, unknown>;
+    if (s['titulo'] !== undefined && typeof s['titulo'] !== "string") {
+      erros.push(`Música ${i + 1}: o título não está em formato de texto — ignorada.`);
+      return;
+    }
     const titulo = texto(s['titulo'], 200).trim();
     if (!titulo) {
       erros.push(`Música ${i + 1}: sem título — ignorada.`);
@@ -139,7 +187,7 @@ export function validarBackup(bruto: unknown): {
       titulo,
       artista: texto(s['artista'], 200),
       tom: texto(s['tom'], 20),
-      bpm: texto(s['bpm'], 10),
+      bpm: typeof s['bpm'] === "number" ? String(s['bpm']) : texto(s['bpm'], 10),
       ritmo: texto(s['ritmo'], 60),
       observacoes: texto(s['observacoes']),
       letra: texto(s['letra'], 20000),
@@ -149,23 +197,33 @@ export function validarBackup(bruto: unknown): {
 
   const idsValidos = new Set(songs.map((s) => s.id));
   const setlists: Setlist[] = [];
-  (obj['setlists'] as unknown[]).forEach((item, i) => {
-    if (!item || typeof item !== "object") {
-      erros.push(`Repertório ${i + 1}: registro inválido — ignorado.`);
+  const brutoSets = temSetlists ? (obj['setlists'] as unknown[]) : [];
+  brutoSets.forEach((item, i) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      erros.push(`Repertório ${i + 1}: registro danificado — ignorado.`);
       return;
     }
     const r = item as Record<string, unknown>;
+    if (r['nome'] !== undefined && typeof r['nome'] !== "string") {
+      erros.push(`Repertório ${i + 1}: o nome não está em formato de texto — ignorado.`);
+      return;
+    }
     const nome = texto(r['nome'], 200).trim();
     if (!nome) {
       erros.push(`Repertório ${i + 1}: sem nome — ignorado.`);
       return;
+    }
+    if (r['songIds'] !== undefined && !Array.isArray(r['songIds'])) {
+      erros.push(`Repertório "${nome}": lista de músicas inválida — ficou vazio.`);
     }
     const songIds = Array.isArray(r['songIds'])
       ? (r['songIds'] as unknown[]).filter((x): x is string => typeof x === "string")
       : [];
     const validos = songIds.filter((x) => idsValidos.has(x));
     if (validos.length !== songIds.length) {
-      erros.push(`Repertório "${nome}": músicas não encontradas foram removidas da lista.`);
+      erros.push(
+        `Repertório "${nome}": ${songIds.length - validos.length} música(s) não vieram no arquivo e foram deixadas de fora.`,
+      );
     }
     setlists.push({
       id: typeof r['id'] === "string" ? r['id'] : newId(),
@@ -177,8 +235,19 @@ export function validarBackup(bruto: unknown): {
     });
   });
 
+  if (songs.length === 0 && setlists.length === 0) {
+    return {
+      data: null,
+      erros: [
+        "Nenhuma música ou repertório válido foi encontrado no arquivo.",
+        ...erros.slice(0, 20),
+      ],
+    };
+  }
+
   return { data: { songs, setlists }, erros };
 }
+
 
 export function baixarArquivo(conteudo: string, nome: string, mime: string) {
   const blob = new Blob([conteudo], { type: `${mime};charset=utf-8;` });
