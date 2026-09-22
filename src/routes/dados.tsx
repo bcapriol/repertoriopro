@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   baixarArquivo,
+  checarArquivoJson,
   csvToSongs,
+  explicarJsonInvalido,
   songsToCsv,
   validarBackup,
   type ImportResult,
 } from "@/lib/backup";
+
 import { readData, useAppData, writeData } from "@/lib/repertorio-store";
 import { useConta } from "@/lib/banda-local";
 
@@ -97,6 +100,21 @@ function DadosPage() {
     tipo: "json" | "csv",
   ) => {
     setResultado(null);
+
+    if (tipo === "json") {
+      const problema = checarArquivoJson(file);
+      if (problema) {
+        setResultado({
+          songsAdicionadas: 0,
+          repertoriosAdicionados: 0,
+          ignorados: 0,
+          erros: [problema],
+        });
+        toast.error(problema);
+        return;
+      }
+    }
+
     setProgresso(5);
     setEtapa("Lendo arquivo…");
     await espera();
@@ -110,9 +128,18 @@ function DadosPage() {
       return;
     }
 
+    if (!texto.trim()) {
+      setProgresso(null);
+      const msg = "O arquivo está vazio. Escolha um backup gerado pelo app.";
+      setResultado({ songsAdicionadas: 0, repertoriosAdicionados: 0, ignorados: 0, erros: [msg] });
+      toast.error(msg);
+      return;
+    }
+
     setProgresso(35);
     setEtapa("Validando registros…");
     await espera();
+
 
     const atual = readData();
     let resumo: ImportResult = {
@@ -150,19 +177,21 @@ function DadosPage() {
       let bruto: unknown;
       try {
         bruto = JSON.parse(texto);
-      } catch {
+      } catch (e) {
         setProgresso(null);
-        setResultado({ ...resumo, erros: ["O arquivo não é um JSON válido."] });
-        toast.error("Arquivo JSON inválido.");
+        const msg = explicarJsonInvalido(texto, e);
+        setResultado({ ...resumo, erros: [msg] });
+        toast.error(msg);
         return;
       }
       const { data: validado, erros } = validarBackup(bruto);
       if (!validado) {
         setProgresso(null);
         setResultado({ ...resumo, erros });
-        toast.error("Arquivo inválido.");
+        toast.error(erros[0] ?? "Arquivo incompatível com o app.");
         return;
       }
+
       setProgresso(70);
       setEtapa("Mesclando com seus dados…");
       await espera();
