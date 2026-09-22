@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   baixarArquivo,
+  checarArquivoJson,
   csvToSongs,
+  explicarJsonInvalido,
   songsToCsv,
   validarBackup,
   type ImportResult,
 } from "@/lib/backup";
+
 import { readData, useAppData, writeData } from "@/lib/repertorio-store";
 import { useConta } from "@/lib/banda-local";
 
