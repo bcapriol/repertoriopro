@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangleIcon, CheckCircle2Icon, DownloadIcon, UploadIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  CheckCircle2Icon,
+  DownloadIcon,
+  HistoryIcon,
+  RotateCcwIcon,
+  SaveIcon,
+  Trash2Icon,
+  UploadIcon,
+} from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -14,9 +23,18 @@ import {
   validarBackup,
   type ImportResult,
 } from "@/lib/backup";
+import {
+  formatarMomento,
+  limparVersoes,
+  listarVersoes,
+  removerVersao,
+  salvarVersao,
+  type VersaoBackup,
+} from "@/lib/backup-history";
 
 import { readData, useAppData, writeData } from "@/lib/repertorio-store";
 import { useConta } from "@/lib/banda-local";
+
 
 export const Route = createFileRoute("/dados")({
   head: () => ({
