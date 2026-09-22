@@ -174,19 +174,21 @@ function DadosPage() {
       let bruto: unknown;
       try {
         bruto = JSON.parse(texto);
-      } catch {
+      } catch (e) {
         setProgresso(null);
-        setResultado({ ...resumo, erros: ["O arquivo não é um JSON válido."] });
-        toast.error("Arquivo JSON inválido.");
+        const msg = explicarJsonInvalido(texto, e);
+        setResultado({ ...resumo, erros: [msg] });
+        toast.error(msg);
         return;
       }
       const { data: validado, erros } = validarBackup(bruto);
       if (!validado) {
         setProgresso(null);
         setResultado({ ...resumo, erros });
-        toast.error("Arquivo inválido.");
+        toast.error(erros[0] ?? "Arquivo incompatível com o app.");
         return;
       }
+
       setProgresso(70);
       setEtapa("Mesclando com seus dados…");
       await espera();
