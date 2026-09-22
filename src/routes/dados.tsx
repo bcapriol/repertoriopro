@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangleIcon, CheckCircle2Icon, DownloadIcon, UploadIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  CheckCircle2Icon,
+  DownloadIcon,
+  HistoryIcon,
+  RotateCcwIcon,
+  SaveIcon,
+  Trash2Icon,
+  UploadIcon,
+} from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -14,9 +23,18 @@ import {
   validarBackup,
   type ImportResult,
 } from "@/lib/backup";
+import {
+  formatarMomento,
+  limparVersoes,
+  listarVersoes,
+  removerVersao,
+  salvarVersao,
+  type VersaoBackup,
+} from "@/lib/backup-history";
 
 import { readData, useAppData, writeData } from "@/lib/repertorio-store";
 import { useConta } from "@/lib/banda-local";
+
 
 export const Route = createFileRoute("/dados")({
   head: () => ({
@@ -48,6 +66,27 @@ function DadosPage() {
   const [progresso, setProgresso] = useState<number | null>(null);
   const [etapa, setEtapa] = useState("");
   const [resultado, setResultado] = useState<ImportResult | null>(null);
+  const [versoes, setVersoes] = useState<VersaoBackup[]>([]);
+
+  const recarregarVersoes = useCallback(() => {
+    listarVersoes()
+      .then(setVersoes)
+      .catch(() => setVersoes([]));
+  }, []);
+
+  useEffect(() => {
+    recarregarVersoes();
+  }, [recarregarVersoes]);
+
+  const guardarVersao = async (origem: string, avisar = true) => {
+    try {
+      await salvarVersao(readData(), origem);
+      recarregarVersoes();
+      if (avisar) toast.success("Versão salva no histórico.");
+    } catch {
+      if (avisar) toast.error("Não foi possível salvar a versão no histórico.");
+    }
+  };
 
   const exportarJson = () => {
     baixarArquivo(
@@ -55,8 +94,10 @@ function DadosPage() {
       `repertorio-facil-${hoje()}.json`,
       "application/json",
     );
+    void guardarVersao("Exportação em arquivo", false);
     toast.success("Backup JSON exportado!");
   };
+
 
   const exportarCsv = () => {
     const atual = readData();
