@@ -97,6 +97,21 @@ function DadosPage() {
     tipo: "json" | "csv",
   ) => {
     setResultado(null);
+
+    if (tipo === "json") {
+      const problema = checarArquivoJson(file);
+      if (problema) {
+        setResultado({
+          songsAdicionadas: 0,
+          repertoriosAdicionados: 0,
+          ignorados: 0,
+          erros: [problema],
+        });
+        toast.error(problema);
+        return;
+      }
+    }
+
     setProgresso(5);
     setEtapa("Lendo arquivo…");
     await espera();
@@ -110,9 +125,18 @@ function DadosPage() {
       return;
     }
 
+    if (!texto.trim()) {
+      setProgresso(null);
+      const msg = "O arquivo está vazio. Escolha um backup gerado pelo app.";
+      setResultado({ songsAdicionadas: 0, repertoriosAdicionados: 0, ignorados: 0, erros: [msg] });
+      toast.error(msg);
+      return;
+    }
+
     setProgresso(35);
     setEtapa("Validando registros…");
     await espera();
+
 
     const atual = readData();
     let resumo: ImportResult = {
