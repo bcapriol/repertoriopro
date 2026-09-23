@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  InfoIcon,
   ListIcon,
   MaximizeIcon,
   MinimizeIcon,
@@ -115,82 +114,8 @@ function PalcoPage() {
   }
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-background">
-      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur">
-        <Button variant="ghost" size="icon" aria-label="Sair do modo palco" onClick={sair}>
-          <XIcon />
-        </Button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-foreground">{rep.nome}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {index + 1} de {total}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Diminuir letra"
-          onClick={() => setFonte((f) => Math.max(16, f - 3))}
-        >
-          <MinusIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Aumentar letra"
-          onClick={() => setFonte((f) => Math.min(64, f + 3))}
-        >
-          <PlusIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Lista de músicas"
-          onClick={() => setListaAberta((v) => !v)}
-        >
-          <ListIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={fullscreen ? "Sair da tela cheia" : "Tela cheia"}
-          onClick={alternarFullscreen}
-        >
-          {fullscreen ? <MinimizeIcon /> : <MaximizeIcon />}
-        </Button>
-      </header>
-
-      {atual.observacoes ? (
-        <div className="flex items-start gap-2 border-b border-border bg-card/50 px-3 py-2 text-xs text-muted-foreground">
-          <InfoIcon className="mt-0.5 size-3.5 shrink-0 text-primary" />
-          <span className="leading-snug">{atual.observacoes}</span>
-        </div>
-      ) : null}
-
-      {listaAberta ? (
-        <nav className="border-b border-border bg-card">
-          <ol className="max-h-64 overflow-auto p-2">
-            {musicas.map((s, i) => (
-              <li key={s.id}>
-                <button
-                  onClick={() => {
-                    setIndex(i);
-                    setListaAberta(false);
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left ${
-                    i === index ? "bg-primary/10 font-bold text-primary" : "text-foreground"
-                  }`}
-                >
-                  <span className="w-6 shrink-0 text-sm text-muted-foreground">{i + 1}</span>
-                  <span className="min-w-0 flex-1 truncate">{s.titulo}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        </nav>
-      ) : null}
-
-      <section className="relative flex-1 overflow-hidden">
+    <main className="relative h-dvh overflow-hidden bg-background">
+      <section className="h-full overflow-hidden">
         {anexos.length ? (
           <AnexosViewer key={atual.id} anexos={anexos} />
         ) : (
@@ -216,29 +141,42 @@ function PalcoPage() {
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between px-3 pb-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Música anterior"
-            disabled={index === 0}
-            onClick={() => avancar(-1)}
-            className="pointer-events-auto size-11 rounded-full border border-white/20 bg-black/45 text-white opacity-70 shadow-lg backdrop-blur-sm hover:bg-black/60 hover:opacity-100 disabled:opacity-20"
-          >
-            <ChevronLeftIcon />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Próxima música"
-            disabled={index >= total - 1}
-            onClick={() => avancar(1)}
-            className="pointer-events-auto size-11 rounded-full border border-white/20 bg-black/45 text-white opacity-70 shadow-lg backdrop-blur-sm hover:bg-black/60 hover:opacity-100 disabled:opacity-20"
-          >
-            <ChevronRightIcon />
-          </Button>
-        </div>
       </section>
+
+      {listaAberta ? (
+        <nav aria-label="Lista de músicas" className="absolute inset-x-0 bottom-14 z-20 mx-auto max-w-md border border-border bg-card/95 shadow-lg backdrop-blur">
+          <ol className="max-h-64 overflow-auto p-2">
+            {musicas.map((s, i) => (
+              <li key={s.id}>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setIndex(i);
+                    setListaAberta(false);
+                  }}
+                  className={`h-auto min-h-11 w-full justify-start whitespace-normal px-3 py-2 text-left ${
+                    i === index ? "bg-primary/10 font-bold text-primary" : "text-foreground"
+                  }`}
+                >
+                  {s.titulo}
+                </Button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      ) : null}
+
+      <footer className="absolute inset-x-0 bottom-0 z-20 bg-card/80 pb-[env(safe-area-inset-bottom)] text-foreground backdrop-blur-sm">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-1 px-2 py-1">
+          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Sair do modo palco" aria-label="Sair do modo palco" onClick={sair}><XIcon /></Button>
+          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Diminuir letra" aria-label="Diminuir letra" onClick={() => setFonte((f) => Math.max(16, f - 3))}><MinusIcon /></Button>
+          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Aumentar letra" aria-label="Aumentar letra" onClick={() => setFonte((f) => Math.min(64, f + 3))}><PlusIcon /></Button>
+          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Lista de músicas" aria-label="Lista de músicas" aria-expanded={listaAberta} onClick={() => setListaAberta((v) => !v)}><ListIcon /></Button>
+          <Button variant="ghost" size="icon" className="size-9 shrink-0" title={fullscreen ? "Sair da tela cheia" : "Tela cheia"} aria-label={fullscreen ? "Sair da tela cheia" : "Tela cheia"} onClick={alternarFullscreen}>{fullscreen ? <MinimizeIcon /> : <MaximizeIcon />}</Button>
+          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Música anterior" aria-label="Música anterior" disabled={index === 0} onClick={() => avancar(-1)}><ChevronLeftIcon /></Button>
+          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Próxima música" aria-label="Próxima música" disabled={index >= total - 1} onClick={() => avancar(1)}><ChevronRightIcon /></Button>
+        </div>
+      </footer>
     </main>
   );
 }
