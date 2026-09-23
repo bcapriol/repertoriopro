@@ -49,6 +49,8 @@ export const Route = createFileRoute("/dados")({
         property: "og:description",
         content: "Exporte e importe suas músicas e repertórios em JSON ou CSV com validação.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: DadosPage,

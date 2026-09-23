@@ -26,6 +26,8 @@ export const Route = createFileRoute("/")({
         content:
           "Cadastre músicas, monte repertórios e acesse tudo rapidamente durante suas apresentações.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Index,

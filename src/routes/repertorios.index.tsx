@@ -18,6 +18,8 @@ export const Route = createFileRoute("/repertorios/")({
         property: "og:description",
         content: "Monte listas de músicas para cada show ou ensaio.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: RepertoriosPage,

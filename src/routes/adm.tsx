@@ -52,6 +52,8 @@ export const Route = createFileRoute("/adm")({
         content: "Área restrita de administração do Repertório Fácil.",
       },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AdmPage,

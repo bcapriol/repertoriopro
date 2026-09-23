@@ -19,6 +19,8 @@ export const Route = createFileRoute("/musicas")({
         property: "og:description",
         content: "Sua biblioteca de músicas com tom, andamento e letra.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MusicasPage,

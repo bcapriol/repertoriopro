@@ -26,6 +26,8 @@ export const Route = createFileRoute("/repertorios/$id/")({
         property: "og:description",
         content: "Ordem das músicas do seu show, pronta para o palco.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: RepertorioDetalhe,

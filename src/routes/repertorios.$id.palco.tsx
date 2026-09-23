@@ -27,6 +27,8 @@ export const Route = createFileRoute("/repertorios/$id/palco")({
         property: "og:description",
         content: "Apresentação em tela cheia com letra grande e avanço rápido entre as músicas.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: PalcoPage,
