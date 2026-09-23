@@ -36,6 +36,8 @@ export const Route = createFileRoute("/sincronizar")({
         content:
           "Sincronize seus repertórios por Wi-Fi, envie por Bluetooth para outro aparelho ou use exportar e importar.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SincronizarPage,

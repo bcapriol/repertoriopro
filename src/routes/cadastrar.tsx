@@ -24,6 +24,8 @@ export const Route = createFileRoute("/cadastrar")({
         property: "og:description",
         content: "Cadastre título, artista, tom, andamento e letra das suas músicas.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   validateSearch: (search: Record<string, unknown>) => ({
