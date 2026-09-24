@@ -103,7 +103,7 @@ function CadastrarPage() {
     if (inputFile.current) inputFile.current.value = "";
   };
 
-  const salvar = () => {
+  const salvar = async () => {
     if (!form.titulo.trim()) {
       toast.error("Informe o título da música.");
       return;
@@ -111,18 +111,18 @@ function CadastrarPage() {
     const data = readData();
     try {
       if (id) {
-        writeData({
+        await writeData({
           ...data,
           songs: data.songs.map((s) => (s.id === id ? { ...s, ...form, anexos } : s)),
         });
         toast.success("Música atualizada!");
       } else {
         const song: Song = { id: newId(), criadoEm: Date.now(), ...form, anexos };
-        writeData({ ...data, songs: [song, ...data.songs] });
+        await writeData({ ...data, songs: [song, ...data.songs] });
         toast.success("Música cadastrada!");
       }
     } catch {
-      toast.error("Não foi possível salvar: espaço do dispositivo cheio. Remova alguns anexos.");
+      toast.error("Não foi possível salvar. Libere espaço no aparelho e tente novamente.");
       return;
     }
     navigate({ to: "/musicas" });

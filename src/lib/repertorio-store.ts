@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export type Anexo = {
   id: string;
@@ -39,6 +40,62 @@ const EMPTY: AppData = { songs: [], setlists: [] };
 type Listener = () => void;
 const listeners = new Set<Listener>();
 let cache: AppData | null = null;
+let carregando: Promise<void> | null = null;
+let fila: Promise<void> = Promise.resolve();
+
+function abrirBanco(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("repertorio-facil-dados", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("dados");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error ?? new Error("Não foi possível abrir a memória do aparelho."));
+  });
+}
+
+async function bancoLer(): Promise<AppData | undefined> {
+  const db = await abrirBanco();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("dados", "readonly");
+    const req = tx.objectStore("dados").get("atual");
+    req.onsuccess = () => resolve(req.result as AppData | undefined);
+    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function bancoSalvar(data: AppData): Promise<void> {
+  const db = await abrirBanco();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("dados", "readwrite");
+    tx.objectStore("dados").put(data, "atual");
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+    tx.onabort = () => { db.close(); reject(tx.error); };
+  });
+}
+
+/** Migra os dados antigos sem removê-los antes de confirmar que a cópia foi salva. */
+export function prepararDados(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (!carregando) {
+    carregando = (async () => {
+      const guardado = await bancoLer();
+      if (guardado) {
+        cache = guardado;
+      } else {
+        const antigo = readData();
+        await bancoSalvar(antigo);
+        cache = antigo;
+      }
+      try { window.localStorage.removeItem(KEY); } catch { /* storage indisponível */ }
+      listeners.forEach((l) => l());
+    })().catch(() => {
+      carregando = null;
+      throw new Error("Não foi possível acessar os dados deste aparelho. Tente liberar espaço e abrir novamente.");
+    });
+  }
+  return carregando;
+}
 
 export function readData(): AppData {
   if (typeof window === "undefined") return EMPTY;
@@ -70,18 +127,21 @@ function carimbar<T extends Carimbavel>(anteriores: T[], proximos: T[], agora: n
   });
 }
 
-export function writeData(entrada: AppData) {
+export function writeData(entrada: AppData): Promise<void> {
   const anterior = readData();
   const agora = Date.now();
   const next: AppData = {
     songs: carimbar(anterior.songs, entrada.songs, agora),
     setlists: carimbar(anterior.setlists, entrada.setlists, agora),
   };
-  cache = next;
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(KEY, JSON.stringify(next));
-  }
-  listeners.forEach((l) => l());
+  if (typeof window === "undefined") return Promise.resolve();
+  const salvar = fila.catch(() => {}).then(() => bancoSalvar(next));
+  fila = salvar;
+  return salvar.then(() => {
+    cache = next;
+    try { window.localStorage.removeItem(KEY); } catch { /* storage indisponível */ }
+    listeners.forEach((l) => l());
+  });
 }
 
 export function useAppData() {
@@ -97,7 +157,9 @@ export function useAppData() {
   }, []);
 
   const update = useCallback((fn: (prev: AppData) => AppData) => {
-    writeData(fn(readData()));
+    void writeData(fn(readData())).catch(() => {
+      toast.error("Não foi possível salvar. Libere espaço no aparelho e tente novamente.");
+    });
   }, []);
 
   return { data, update };

@@ -9,7 +9,7 @@ function dataUrlToUint8(dataUrl: string) {
   return arr;
 }
 
-function PdfView({ anexo }: { anexo: Anexo }) {
+function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando");
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -50,7 +50,8 @@ function PdfView({ anexo }: { anexo: Anexo }) {
           const page = await doc.getPage(n);
           const largura = container.clientWidth || window.innerWidth || 800;
           const base = page.getViewport({ scale: 1 });
-          let escala = (largura / base.width) * Math.min(window.devicePixelRatio || 1, 2);
+          const altura = fit ? Math.max(200, window.innerHeight - 65) : Infinity;
+          let escala = Math.min(largura / base.width, altura / base.height) * Math.min(window.devicePixelRatio || 1, 2);
           const ladoMax = Math.max(base.width, base.height) * escala;
           if (ladoMax > 4096) escala *= 4096 / ladoMax;
           const area = base.width * escala * (base.height * escala);
@@ -60,9 +61,12 @@ function PdfView({ anexo }: { anexo: Anexo }) {
           const canvas = document.createElement("canvas");
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
-          canvas.style.width = "100%";
-          canvas.style.height = "auto";
+          canvas.style.width = fit ? "auto" : "100%";
+          canvas.style.maxWidth = "100%";
+          canvas.style.height = fit ? "100%" : "auto";
+          canvas.style.maxHeight = fit ? `${altura}px` : "none";
           canvas.style.display = "block";
+          if (fit) canvas.style.margin = "auto";
           const ctx = canvas.getContext("2d");
           if (!ctx) throw new Error("sem canvas 2d");
           container.appendChild(canvas);
@@ -82,9 +86,9 @@ function PdfView({ anexo }: { anexo: Anexo }) {
   }, [anexo.dados]);
 
   return (
-    <div className="w-full bg-white">
+    <div className="w-full bg-background">
       {estado === "carregando" && (
-        <div className="p-6 text-center text-sm text-slate-500">Carregando PDF…</div>
+        <div className="p-6 text-center text-sm text-muted-foreground">Carregando PDF…</div>
       )}
       {/* container do pdf.js sempre montado */}
       <div ref={containerRef} className={estado === "erro" ? "hidden" : "w-full"} />
@@ -98,7 +102,7 @@ function PdfView({ anexo }: { anexo: Anexo }) {
               href={blobUrl ?? anexo.dados}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
             >
               Abrir {anexo.nome}
             </a>
@@ -109,18 +113,18 @@ function PdfView({ anexo }: { anexo: Anexo }) {
   );
 }
 
-export function AnexoView({ anexo }: { anexo: Anexo }) {
+export function AnexoView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
   if (anexo.tipo.startsWith("image/")) {
-    return <img src={anexo.dados} alt={anexo.nome} className="w-full" />;
+    return <img src={anexo.dados} alt={anexo.nome} className={fit ? "h-full max-h-full w-full object-contain" : "w-full"} />;
   }
-  return <PdfView anexo={anexo} />;
+  return <PdfView anexo={anexo} fit={fit} />;
 }
 
-export function AnexosViewer({ anexos }: { anexos: Anexo[] }) {
+export function AnexosViewer({ anexos, fit = false }: { anexos: Anexo[]; fit?: boolean }) {
   return (
-    <div className="h-full w-full overflow-auto bg-white">
+    <div className={fit ? "h-full w-full overflow-hidden bg-background" : "h-full w-full overflow-auto bg-background"}>
       {anexos.map((a) => (
-        <AnexoView key={a.id} anexo={a} />
+        <AnexoView key={a.id} anexo={a} fit={fit} />
       ))}
     </div>
   );

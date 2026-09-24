@@ -4,10 +4,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ListIcon,
-  MaximizeIcon,
-  MinimizeIcon,
-  MinusIcon,
-  PlusIcon,
   XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,8 +35,6 @@ function PalcoPage() {
   const { data } = useAppData();
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
-  const [fonte, setFonte] = useState(28);
-  const [fullscreen, setFullscreen] = useState(false);
   const [listaAberta, setListaAberta] = useState(false);
 
   const rep = data.setlists.find((r) => r.id === id);
@@ -64,17 +58,6 @@ function PalcoPage() {
     void navigate({ to: "/repertorios/$id", params: { id } });
   }, [navigate, id]);
 
-  const alternarFullscreen = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void document.documentElement.requestFullscreen().catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const onChange = () => setFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
@@ -85,17 +68,16 @@ function PalcoPage() {
         avancar(-1);
       } else if (e.key === "Escape") {
         sair();
-      } else if (e.key.toLowerCase() === "f") {
-        alternarFullscreen();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [avancar, sair, alternarFullscreen]);
+  }, [avancar, sair]);
 
   useEffect(() => {
     const anterior = document.body.style.overscrollBehavior;
     document.body.style.overscrollBehavior = "contain";
+    if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.().catch(() => {});
     return () => {
       document.body.style.overscrollBehavior = anterior;
     };
@@ -117,9 +99,10 @@ function PalcoPage() {
 
   return (
     <main className="relative h-dvh overflow-hidden bg-background">
+      <Button variant="ghost" size="icon" className="absolute top-3 right-3 z-30 size-9 border border-border bg-card/80 backdrop-blur-sm" title="Ir para música" aria-label="Ir para música" aria-expanded={listaAberta} onClick={() => setListaAberta((v) => !v)}><ListIcon /></Button>
       <section className="h-full overflow-hidden">
         {anexos.length ? (
-          <AnexosViewer key={atual.id} anexos={anexos} />
+          <AnexosViewer key={atual.id} anexos={anexos} fit />
         ) : (
           <div className="h-full overflow-auto px-5 py-6">
             <h1 className="text-3xl leading-tight font-black text-foreground">{atual.titulo}</h1>
@@ -134,8 +117,7 @@ function PalcoPage() {
                 .join(" · ") || "—"}
             </p>
             <pre
-              className="mt-5 font-sans leading-relaxed break-words whitespace-pre-wrap text-foreground"
-              style={{ fontSize: `${fonte}px` }}
+              className="mt-5 font-sans text-[28px] leading-relaxed break-words whitespace-pre-wrap text-foreground"
             >
               {atual.letra || "Sem letra nem anexo cadastrado."}
             </pre>
@@ -146,8 +128,8 @@ function PalcoPage() {
       </section>
 
       {listaAberta ? (
-        <nav aria-label="Lista de músicas" className="absolute inset-x-0 bottom-14 z-20 mx-auto max-w-md border border-border bg-card/95 shadow-lg backdrop-blur">
-          <ol className="max-h-64 overflow-auto p-2">
+        <nav aria-label="Lista de músicas" className="absolute inset-x-3 top-14 z-20 mx-auto max-w-md border border-border bg-card/95 shadow-lg backdrop-blur">
+          <ol className="max-h-[60dvh] overflow-auto p-2">
             {musicas.map((s, i) => (
               <li key={s.id}>
                 <Button
@@ -165,18 +147,14 @@ function PalcoPage() {
               </li>
             ))}
           </ol>
+          <div className="border-t border-border p-2"><Button variant="ghost" onClick={sair} className="w-full justify-start"><XIcon /> Sair do modo palco</Button></div>
         </nav>
       ) : null}
 
       <footer className="absolute inset-x-0 bottom-0 z-20 bg-card/80 pb-[env(safe-area-inset-bottom)] text-foreground backdrop-blur-sm">
         <div className="mx-auto flex max-w-md items-center justify-between gap-1 px-2 py-1">
-          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Sair do modo palco" aria-label="Sair do modo palco" onClick={sair}><XIcon /></Button>
-          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Diminuir letra" aria-label="Diminuir letra" onClick={() => setFonte((f) => Math.max(16, f - 3))}><MinusIcon /></Button>
-          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Aumentar letra" aria-label="Aumentar letra" onClick={() => setFonte((f) => Math.min(64, f + 3))}><PlusIcon /></Button>
-          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Lista de músicas" aria-label="Lista de músicas" aria-expanded={listaAberta} onClick={() => setListaAberta((v) => !v)}><ListIcon /></Button>
-          <Button variant="ghost" size="icon" className="size-9 shrink-0" title={fullscreen ? "Sair da tela cheia" : "Tela cheia"} aria-label={fullscreen ? "Sair da tela cheia" : "Tela cheia"} onClick={alternarFullscreen}>{fullscreen ? <MinimizeIcon /> : <MaximizeIcon />}</Button>
-          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Música anterior" aria-label="Música anterior" disabled={index === 0} onClick={() => avancar(-1)}><ChevronLeftIcon /></Button>
-          <Button variant="ghost" size="icon" className="size-9 shrink-0" title="Próxima música" aria-label="Próxima música" disabled={index >= total - 1} onClick={() => avancar(1)}><ChevronRightIcon /></Button>
+          <Button variant="ghost" size="icon" className="size-11 shrink-0" title="Música anterior" aria-label="Música anterior" disabled={index === 0} onClick={() => avancar(-1)}><ChevronLeftIcon /></Button>
+          <Button variant="ghost" size="icon" className="size-11 shrink-0" title="Próxima música" aria-label="Próxima música" disabled={index >= total - 1} onClick={() => avancar(1)}><ChevronRightIcon /></Button>
         </div>
       </footer>
     </main>

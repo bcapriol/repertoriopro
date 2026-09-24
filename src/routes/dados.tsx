@@ -209,7 +209,7 @@ function DadosPage() {
       const novas = songs.filter(
         (s) => !existentes.has(`${s.titulo.toLowerCase()}|${s.artista.toLowerCase()}`),
       );
-      writeData({ ...atual, songs: [...novas, ...atual.songs] });
+      await writeData({ ...atual, songs: [...novas, ...atual.songs] });
       resumo = {
         songsAdicionadas: novas.length,
         repertoriosAdicionados: 0,
@@ -242,7 +242,7 @@ function DadosPage() {
       const setIds = new Set(atual.setlists.map((s) => s.id));
       const novasSongs = validado.songs.filter((s) => !songIds.has(s.id));
       const novosReps = validado.setlists.filter((s) => !setIds.has(s.id));
-      writeData({
+      await writeData({
         songs: [...atual.songs, ...novasSongs],
         setlists: [...atual.setlists, ...novosReps],
       });

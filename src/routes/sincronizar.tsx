@@ -64,7 +64,7 @@ function SincronizarPage() {
     setOcupado(true);
     try {
       const r = await sincronizar({ data: { usuario: u, senha: s, dados: readData() } });
-      writeData(r.dados);
+      await writeData(r.dados);
       salvarBanda(r.banda);
       const nova: Conta = {
         usuario: u,
@@ -79,7 +79,7 @@ function SincronizarPage() {
         `Sincronizado: ${r.dados.songs.length} música(s) e ${r.dados.setlists.length} repertório(s).`,
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível sincronizar.");
+      toast.error(e instanceof DOMException && e.name === "QuotaExceededError" ? "Sem espaço para sincronizar. Libere espaço no aparelho e tente novamente." : e instanceof Error ? e.message : "Não foi possível sincronizar.");
     } finally {
       setOcupado(false);
     }
@@ -112,7 +112,7 @@ function SincronizarPage() {
         return;
       }
       const mesclado = mesclarDados(readData(), check.data as AppData);
-      writeData(mesclado);
+      await writeData(mesclado);
       toast.success(
         `Recebido: ${mesclado.songs.length} música(s) e ${mesclado.setlists.length} repertório(s).`,
       );
@@ -270,7 +270,7 @@ function SincronizarPage() {
               className="h-12 rounded-xl font-bold"
               onClick={() => {
                 if (!window.confirm("Apagar todas as músicas e repertórios deste aparelho?")) return;
-                writeData({ songs: [], setlists: [] });
+                void writeData({ songs: [], setlists: [] }).catch(() => toast.error("Não foi possível limpar os dados."));
                 salvarBanda("");
                 salvarConta(null);
                 setConta(null);
