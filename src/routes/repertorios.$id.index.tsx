@@ -112,7 +112,7 @@ function RepertorioDetalhe() {
       <div className="flex flex-col gap-5">
         {rep.songIds.length > 0 ? (
           <>
-            <Link to="/repertorios/$id/palco" params={{ id }}>
+            <Link to="/repertorios/$id/palco" params={{ id }} onClick={() => { void document.documentElement.requestFullscreen?.().catch(() => {}); }}>
               <Button className="h-14 w-full rounded-2xl text-base font-bold">
                 <PlayIcon /> Iniciar modo palco
               </Button>

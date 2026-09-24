@@ -77,6 +77,7 @@ function PalcoPage() {
   useEffect(() => {
     const anterior = document.body.style.overscrollBehavior;
     document.body.style.overscrollBehavior = "contain";
+    if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.().catch(() => {});
     return () => {
       document.body.style.overscrollBehavior = anterior;
     };

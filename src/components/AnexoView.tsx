@@ -82,9 +82,9 @@ function PdfView({ anexo }: { anexo: Anexo }) {
   }, [anexo.dados]);
 
   return (
-    <div className="w-full bg-white">
+    <div className="w-full bg-background">
       {estado === "carregando" && (
-        <div className="p-6 text-center text-sm text-slate-500">Carregando PDF…</div>
+        <div className="p-6 text-center text-sm text-muted-foreground">Carregando PDF…</div>
       )}
       {/* container do pdf.js sempre montado */}
       <div ref={containerRef} className={estado === "erro" ? "hidden" : "w-full"} />
@@ -98,7 +98,7 @@ function PdfView({ anexo }: { anexo: Anexo }) {
               href={blobUrl ?? anexo.dados}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
             >
               Abrir {anexo.nome}
             </a>
@@ -118,7 +118,7 @@ export function AnexoView({ anexo }: { anexo: Anexo }) {
 
 export function AnexosViewer({ anexos }: { anexos: Anexo[] }) {
   return (
-    <div className="h-full w-full overflow-auto bg-white">
+    <div className="h-full w-full overflow-auto bg-background">
       {anexos.map((a) => (
         <AnexoView key={a.id} anexo={a} />
       ))}
