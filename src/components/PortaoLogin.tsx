@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -7,10 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { entrarComUsuario } from "@/lib/nuvem.functions";
 import { salvarBanda, salvarConta, useConta } from "@/lib/banda-local";
+import { prepararDados } from "@/lib/repertorio-store";
 
 export function PortaoLogin({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { conta, pronto } = useConta();
+  const [dadosProntos, setDadosProntos] = useState(false);
+  const [erroDados, setErroDados] = useState("");
+
+  useEffect(() => {
+    prepararDados().then(() => setDadosProntos(true)).catch((e) => setErroDados(e.message));
+  }, []);
+
+  if (erroDados) return <main className="flex min-h-screen items-center justify-center bg-background p-6 text-center text-foreground">{erroDados}</main>;
+  if (!dadosProntos) return null;
 
   if (pathname.startsWith("/adm")) return <>{children}</>;
   if (!pronto) return null;
