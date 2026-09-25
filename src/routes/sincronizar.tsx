@@ -14,8 +14,9 @@ import {
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { sincronizarNuvem } from "@/lib/nuvem.functions";
+import { enviarAnexo, obterAnexo, sincronizarNuvem } from "@/lib/nuvem.functions";
 import { readData, writeData, type AppData } from "@/lib/repertorio-store";
+import { guardarAnexoOffline, guardarLegadoOffline, lerAnexoOffline } from "@/lib/anexo-cache";
 import { mesclarDados } from "@/lib/sync-merge";
 import { enviarPorBluetooth } from "@/lib/bluetooth-sync";
 import { validarBackup } from "@/lib/backup";
@@ -46,6 +47,8 @@ export const Route = createFileRoute("/sincronizar")({
 function SincronizarPage() {
   const banda = useBanda();
   const sincronizar = useServerFn(sincronizarNuvem);
+  const enviarArquivo = useServerFn(enviarAnexo);
+  const obterArquivo = useServerFn(obterAnexo);
   const arquivoRef = useRef<HTMLInputElement>(null);
   const [conta, setConta] = useState<Conta | null>(null);
   const [usuario, setUsuario] = useState("");
@@ -64,7 +67,39 @@ function SincronizarPage() {
     setOcupado(true);
     try {
       const r = await sincronizar({ data: { usuario: u, senha: s, dados: readData() } });
-      await writeData(r.dados);
+      await guardarLegadoOffline(r.dados);
+      let migrou = false;
+      const songs = [];
+      for (const song of r.dados.songs) {
+        const anexos = [];
+        for (const anexo of song.anexos ?? []) {
+          if (anexo.dados) {
+            const remoto = await enviarArquivo({
+              data: { usuario: u, senha: s, id: anexo.id, nome: anexo.nome, tipo: anexo.tipo, dados: anexo.dados },
+            });
+            anexos.push({ id: anexo.id, nome: anexo.nome, tipo: anexo.tipo, caminho: remoto.caminho });
+            migrou = true;
+          } else {
+            anexos.push(anexo);
+            if (anexo.caminho && !(await lerAnexoOffline(anexo.id))) {
+              try {
+                const { url } = await obterArquivo({ data: { usuario: u, senha: s, caminho: anexo.caminho } });
+                const resposta = await fetch(url);
+                if (resposta.ok) await guardarAnexoOffline(anexo.id, await resposta.blob());
+              } catch {
+                // A sincronização dos repertórios continua mesmo se um anexo não baixar.
+              }
+            }
+          }
+        }
+        songs.push(migrou ? { ...song, anexos, atualizadoEm: Date.now() } : { ...song, anexos });
+      }
+      let dadosFinais = { ...r.dados, songs };
+      if (migrou) {
+        const atualizado = await sincronizar({ data: { usuario: u, senha: s, dados: dadosFinais } });
+        dadosFinais = atualizado.dados;
+      }
+      await writeData(dadosFinais);
       salvarBanda(r.banda);
       const nova: Conta = {
         usuario: u,
@@ -76,7 +111,7 @@ function SincronizarPage() {
       salvarConta(nova);
       setConta(nova);
       toast.success(
-        `Sincronizado: ${r.dados.songs.length} música(s) e ${r.dados.setlists.length} repertório(s).`,
+        `Sincronizado: ${dadosFinais.songs.length} música(s) e ${dadosFinais.setlists.length} repertório(s).`,
       );
     } catch (e) {
       toast.error(e instanceof DOMException && e.name === "QuotaExceededError" ? "Sem espaço para sincronizar. Libere espaço no aparelho e tente novamente." : e instanceof Error ? e.message : "Não foi possível sincronizar.");

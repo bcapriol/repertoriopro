@@ -54,8 +54,7 @@ function useFonteAnexo(anexo: Anexo) {
   return { fonte, falhou };
 }
 
-function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
-  const { fonte, falhou } = useFonteAnexo(anexo);
+function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: string; falhou: boolean; fit?: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando");
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -173,7 +172,7 @@ export function AnexoView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean 
     if (!fonte) return <p className="p-6 text-center text-sm text-muted-foreground">Carregando imagem…</p>;
     return <img src={fonte} alt={anexo.nome} className={fit ? "h-full max-h-full w-full object-contain" : "w-full"} />;
   }
-  return <PdfView anexo={anexo} fit={fit} />;
+  return <PdfView anexo={anexo} fonte={fonte} falhou={falhou} fit={fit} />;
 }
 
 export function AnexosViewer({ anexos, fit = false }: { anexos: Anexo[]; fit?: boolean }) {
