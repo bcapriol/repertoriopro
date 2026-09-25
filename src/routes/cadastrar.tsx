@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FileTextIcon, PaperclipIcon, XIcon } from "lucide-react";
@@ -8,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { newId, readData, writeData, type Anexo, type Song } from "@/lib/repertorio-store";
+import { lerConta } from "@/lib/banda-local";
+import { guardarAnexoOffline } from "@/lib/anexo-cache";
+import { enviarAnexo } from "@/lib/nuvem.functions";
 
 const MAX_BYTES = 3 * 1024 * 1024;
 
@@ -45,6 +49,7 @@ const vazio = {
 };
 
 function CadastrarPage() {
+  const enviar = useServerFn(enviarAnexo);
   const { id } = Route.useSearch();
   const navigate = useNavigate();
   const [form, setForm] = useState(vazio);
@@ -94,7 +99,25 @@ function CadastrarPage() {
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(file);
       });
-      novos.push({ id: newId(), nome: file.name, tipo: file.type, dados });
+      const idAnexo = newId();
+      const conta = lerConta();
+      try {
+        await guardarAnexoOffline(idAnexo, file);
+        if (!conta) throw new Error("Entre novamente para enviar o anexo.");
+        const remoto = await enviar({
+          data: {
+            usuario: conta.usuario,
+            senha: conta.senha,
+            id: idAnexo,
+            nome: file.name,
+            tipo: file.type,
+            dados,
+          },
+        });
+        novos.push({ id: idAnexo, nome: file.name, tipo: file.type, caminho: remoto.caminho });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : `${file.name}: não foi possível enviar.`);
+      }
     }
     if (novos.length) {
       setAnexos((prev) => [...prev, ...novos]);
