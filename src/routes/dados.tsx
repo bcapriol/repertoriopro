@@ -90,6 +90,26 @@ function DadosPage() {
     }
   };
 
+  const restaurarVersao = async (versao: VersaoBackup) => {
+    if (!window.confirm(`Restaurar a versão de ${formatarMomento(versao.criadoEm)}?`)) return;
+    try {
+      await salvarVersao(readData(), "Antes de restaurar");
+      await writeData(versao.dados);
+      recarregarVersoes();
+      toast.success("Versão restaurada.");
+    } catch {
+      toast.error("Não foi possível restaurar esta versão.");
+    }
+  };
+
+  const baixarVersao = (versao: VersaoBackup) => {
+    baixarArquivo(
+      JSON.stringify(versao.dados, null, 2),
+      `repertorio-facil-${new Date(versao.criadoEm).toISOString().slice(0, 10)}.json`,
+      "application/json",
+    );
+  };
+
   const exportarJson = () => {
     baixarArquivo(
       JSON.stringify(readData(), null, 2),
@@ -209,6 +229,7 @@ function DadosPage() {
       const novas = songs.filter(
         (s) => !existentes.has(`${s.titulo.toLowerCase()}|${s.artista.toLowerCase()}`),
       );
+      await salvarVersao(atual, "Antes de importar CSV");
       await writeData({ ...atual, songs: [...novas, ...atual.songs] });
       resumo = {
         songsAdicionadas: novas.length,
@@ -242,6 +263,7 @@ function DadosPage() {
       const setIds = new Set(atual.setlists.map((s) => s.id));
       const novasSongs = validado.songs.filter((s) => !songIds.has(s.id));
       const novosReps = validado.setlists.filter((s) => !setIds.has(s.id));
+      await salvarVersao(atual, "Antes de importar JSON");
       await writeData({
         songs: [...atual.songs, ...novasSongs],
         setlists: [...atual.setlists, ...novosReps],
@@ -262,6 +284,7 @@ function DadosPage() {
     await espera();
     setProgresso(null);
     setResultado(resumo);
+    recarregarVersoes();
     toast.success(
       `Importação concluída: ${resumo.songsAdicionadas} música(s)` +
         (resumo.repertoriosAdicionados
@@ -403,6 +426,63 @@ function DadosPage() {
             ) : null}
           </div>
         ) : null}
+
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              <HistoryIcon className="size-4" /> Histórico de backups
+            </h2>
+            {versoes.length ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (!window.confirm("Excluir todo o histórico de backups deste aparelho?")) return;
+                  void limparVersoes().then(() => {
+                    setVersoes([]);
+                    toast.success("Histórico limpo.");
+                  });
+                }}
+              >
+                <Trash2Icon /> Limpar
+              </Button>
+            ) : null}
+          </div>
+          {versoes.length ? (
+            <ul className="flex flex-col gap-2">
+              {versoes.map((versao) => (
+                <li key={versao.id} className="surface-tile rounded-xl border border-border p-3">
+                  <p className="font-semibold text-foreground">{formatarMomento(versao.criadoEm)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {versao.origem} · {versao.musicas} música(s) · {versao.repertorios} repertório(s)
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <Button type="button" size="sm" onClick={() => void restaurarVersao(versao)}>
+                      <RotateCcwIcon /> Restaurar
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => baixarVersao(versao)}>
+                      <SaveIcon /> Baixar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`Excluir versão de ${formatarMomento(versao.criadoEm)}`}
+                      onClick={() => void removerVersao(versao.id).then(recarregarVersoes)}
+                    >
+                      <Trash2Icon /> Excluir
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+              As versões exportadas e as cópias de segurança antes de importar aparecerão aqui.
+            </p>
+          )}
+        </section>
 
         <p className="text-center text-xs text-muted-foreground">
           A importação adiciona os itens do arquivo sem apagar o que já está salvo. Colunas aceitas

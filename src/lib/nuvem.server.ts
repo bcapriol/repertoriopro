@@ -224,3 +224,39 @@ export async function sincronizar(usuario: string, senha: string, locais: AppDat
     dados: mesclado,
   };
 }
+
+const TIPOS_ANEXO = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+export async function enviarAnexo(entrada: {
+  usuario: string;
+  senha: string;
+  id: string;
+  nome: string;
+  tipo: string;
+  dados: string;
+}) {
+  const conta = await entrarUsuario(entrada.usuario, entrada.senha);
+  if (!TIPOS_ANEXO.has(entrada.tipo)) throw new Error("Envie apenas PDF ou imagem.");
+  const base64 = entrada.dados.includes(",") ? entrada.dados.split(",")[1] : entrada.dados;
+  if (!base64) throw new Error("O arquivo está vazio.");
+  const bytes = Buffer.from(base64, "base64");
+  if (bytes.byteLength > 3 * 1024 * 1024) throw new Error("O arquivo ultrapassa o limite de 3 MB.");
+  const extensao = entrada.tipo === "application/pdf" ? "pdf" : entrada.tipo.split("/")[1]?.replace("jpeg", "jpg") ?? "bin";
+  const caminho = `${conta.bandaId}/${entrada.id}.${extensao}`;
+  const db = await admin();
+  const { error } = await db.storage.from("anexos").upload(caminho, bytes, {
+    contentType: entrada.tipo,
+    upsert: true,
+  });
+  if (error) throw new Error("Não foi possível enviar o anexo para a nuvem.");
+  return { caminho };
+}
+
+export async function obterUrlAnexo(usuario: string, senha: string, caminho: string) {
+  const conta = await entrarUsuario(usuario, senha);
+  if (!caminho.startsWith(`${conta.bandaId}/`)) throw new Error("Anexo não autorizado.");
+  const db = await admin();
+  const { data, error } = await db.storage.from("anexos").createSignedUrl(caminho, 300);
+  if (error || !data?.signedUrl) throw new Error("Não foi possível abrir o anexo.");
+  return { url: data.signedUrl };
+}

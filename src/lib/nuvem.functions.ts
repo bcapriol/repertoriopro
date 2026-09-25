@@ -93,3 +93,17 @@ export const entrarComUsuario = createServerFn({ method: "POST" })
     const m = await import("./nuvem.server");
     return m.entrarUsuario(data.usuario, data.senha);
   });
+
+export const enviarAnexo = createServerFn({ method: "POST" })
+  .inputValidator((d: { usuario: string; senha: string; id: string; nome: string; tipo: string; dados: string }) => d)
+  .handler(async ({ data }) => {
+    const m = await import("./nuvem.server");
+    return m.enviarAnexo(data);
+  });
+
+export const obterAnexo = createServerFn({ method: "POST" })
+  .inputValidator((d: { usuario: string; senha: string; caminho: string }) => d)
+  .handler(async ({ data }) => {
+    const m = await import("./nuvem.server");
+    return m.obterUrlAnexo(data.usuario, data.senha, data.caminho);
+  });

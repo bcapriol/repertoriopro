@@ -5,7 +5,8 @@ export type Anexo = {
   id: string;
   nome: string;
   tipo: string;
-  dados: string;
+  dados?: string;
+  caminho?: string;
 };
 
 export type Song = {

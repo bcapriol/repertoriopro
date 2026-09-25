@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import type { Anexo } from "@/lib/repertorio-store";
+import { lerConta } from "@/lib/banda-local";
+import { guardarAnexoOffline, lerAnexoOffline } from "@/lib/anexo-cache";
+import { obterAnexo } from "@/lib/nuvem.functions";
 
 function dataUrlToUint8(dataUrl: string) {
   const base64 = dataUrl.includes(",") ? dataUrl.split(",")[1]! : dataUrl;
@@ -9,7 +13,49 @@ function dataUrlToUint8(dataUrl: string) {
   return arr;
 }
 
-function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
+function useFonteAnexo(anexo: Anexo) {
+  const obter = useServerFn(obterAnexo);
+  const [fonte, setFonte] = useState(anexo.dados ?? "");
+  const [falhou, setFalhou] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    let urlLocal = "";
+    if (anexo.dados) {
+      setFonte(anexo.dados);
+      return () => {};
+    }
+    void (async () => {
+      try {
+        let blob = await lerAnexoOffline(anexo.id);
+        const caminho = anexo.caminho;
+        if (!blob && caminho) {
+          if (typeof navigator !== "undefined" && !navigator.onLine) throw new Error("offline");
+          const conta = lerConta();
+          if (!conta) throw new Error("sem conta");
+          const { url } = await obter({ data: { usuario: conta.usuario, senha: conta.senha, caminho } });
+          const resposta = await fetch(url);
+          if (!resposta.ok) throw new Error("download");
+          blob = await resposta.blob();
+          await guardarAnexoOffline(anexo.id, blob);
+        }
+        if (!blob || !ativo) return;
+        urlLocal = URL.createObjectURL(blob);
+        setFonte(urlLocal);
+      } catch {
+        if (ativo) setFalhou(true);
+      }
+    })();
+    return () => {
+      ativo = false;
+      if (urlLocal) URL.revokeObjectURL(urlLocal);
+    };
+  }, [anexo, obter]);
+
+  return { fonte, falhou };
+}
+
+function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: string; falhou: boolean; fit?: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando");
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -18,7 +64,12 @@ function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
   useEffect(() => {
     let url: string | null = null;
     try {
-      const bytes = dataUrlToUint8(anexo.dados);
+      if (!fonte) return;
+      const bytes = fonte.startsWith("data:") ? dataUrlToUint8(fonte) : null;
+      if (!bytes) {
+        setBlobUrl(fonte);
+        return;
+      }
       url = URL.createObjectURL(new Blob([bytes as unknown as BlobPart], { type: "application/pdf" }));
       setBlobUrl(url);
     } catch {
@@ -27,7 +78,7 @@ function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
     return () => {
       if (url) URL.revokeObjectURL(url);
     };
-  }, [anexo.dados]);
+  }, [fonte]);
 
   useEffect(() => {
     let cancelado = false;
@@ -44,7 +95,9 @@ function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
         const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
         pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
 
-        const doc = await pdfjs.getDocument({ data: dataUrlToUint8(anexo.dados) }).promise;
+        if (!fonte) return;
+        const entrada = fonte.startsWith("data:") ? { data: dataUrlToUint8(fonte) } : { url: fonte };
+        const doc = await pdfjs.getDocument(entrada).promise;
         for (let n = 1; n <= doc.numPages; n++) {
           if (cancelado) return;
           const page = await doc.getPage(n);
@@ -83,11 +136,11 @@ function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
     return () => {
       cancelado = true;
     };
-  }, [anexo.dados]);
+  }, [fonte, fit]);
 
   return (
     <div className="w-full bg-background">
-      {estado === "carregando" && (
+      {(estado === "carregando" || !fonte) && !falhou && (
         <div className="p-6 text-center text-sm text-muted-foreground">Carregando PDF…</div>
       )}
       {/* container do pdf.js sempre montado */}
@@ -99,7 +152,7 @@ function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
           ) : null}
           <div className="flex justify-center p-4">
             <a
-              href={blobUrl ?? anexo.dados}
+              href={blobUrl ?? fonte}
               target="_blank"
               rel="noreferrer"
               className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
@@ -114,10 +167,13 @@ function PdfView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
 }
 
 export function AnexoView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
+  const { fonte, falhou } = useFonteAnexo(anexo);
   if (anexo.tipo.startsWith("image/")) {
-    return <img src={anexo.dados} alt={anexo.nome} className={fit ? "h-full max-h-full w-full object-contain" : "w-full"} />;
+    if (falhou) return <p className="p-6 text-center text-sm text-muted-foreground">Anexo indisponível offline neste aparelho.</p>;
+    if (!fonte) return <p className="p-6 text-center text-sm text-muted-foreground">Carregando imagem…</p>;
+    return <img src={fonte} alt={anexo.nome} className={fit ? "h-full max-h-full w-full object-contain" : "w-full"} />;
   }
-  return <PdfView anexo={anexo} fit={fit} />;
+  return <PdfView anexo={anexo} fonte={fonte} falhou={falhou} fit={fit} />;
 }
 
 export function AnexosViewer({ anexos, fit = false }: { anexos: Anexo[]; fit?: boolean }) {
