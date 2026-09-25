@@ -233,7 +233,7 @@ function CadastrarPage() {
                     key={a.id}
                     className="flex items-center gap-3 rounded-xl border border-border bg-card p-2"
                   >
-                    {a.tipo.startsWith("image/") ? (
+                    {a.tipo.startsWith("image/") && a.dados ? (
                       <img
                         src={a.dados}
                         alt={a.nome}

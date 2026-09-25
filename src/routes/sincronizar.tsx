@@ -15,7 +15,7 @@ import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { enviarAnexo, obterAnexo, sincronizarNuvem } from "@/lib/nuvem.functions";
-import { readData, writeData, type AppData } from "@/lib/repertorio-store";
+import { readData, writeData, type Anexo, type AppData, type Song } from "@/lib/repertorio-store";
 import { guardarAnexoOffline, guardarLegadoOffline, lerAnexoOffline } from "@/lib/anexo-cache";
 import { mesclarDados } from "@/lib/sync-merge";
 import { enviarPorBluetooth } from "@/lib/bluetooth-sync";
@@ -66,38 +66,51 @@ function SincronizarPage() {
     }
     setOcupado(true);
     try {
-      const r = await sincronizar({ data: { usuario: u, senha: s, dados: readData() } });
-      await guardarLegadoOffline(r.dados);
-      let migrou = false;
-      const songs = [];
-      for (const song of r.dados.songs) {
-        const anexos = [];
+      const migrarAnexos = async (entrada: AppData) => {
+        await guardarLegadoOffline(entrada);
+        let alterou = false;
+        const songs: Song[] = [];
+        for (const song of entrada.songs) {
+          const anexos: Anexo[] = [];
+          let alterouMusica = false;
+          for (const anexo of song.anexos ?? []) {
+            if (anexo.dados) {
+              const remoto = await enviarArquivo({
+                data: { usuario: u, senha: s, id: anexo.id, nome: anexo.nome, tipo: anexo.tipo, dados: anexo.dados },
+              });
+              anexos.push({ id: anexo.id, nome: anexo.nome, tipo: anexo.tipo, caminho: remoto.caminho });
+              alterou = true;
+              alterouMusica = true;
+            } else {
+              anexos.push(anexo);
+            }
+          }
+          songs.push(alterouMusica ? { ...song, anexos, atualizadoEm: Date.now() } : { ...song, anexos });
+        }
+        return { dados: { ...entrada, songs } as AppData, alterou };
+      };
+
+      const localMigrado = await migrarAnexos(readData());
+      const r = await sincronizar({ data: { usuario: u, senha: s, dados: localMigrado.dados } });
+      const remotoMigrado = await migrarAnexos(r.dados);
+      const dadosFinais: AppData = remotoMigrado.dados;
+
+      for (const song of dadosFinais.songs) {
         for (const anexo of song.anexos ?? []) {
-          if (anexo.dados) {
-            const remoto = await enviarArquivo({
-              data: { usuario: u, senha: s, id: anexo.id, nome: anexo.nome, tipo: anexo.tipo, dados: anexo.dados },
-            });
-            anexos.push({ id: anexo.id, nome: anexo.nome, tipo: anexo.tipo, caminho: remoto.caminho });
-            migrou = true;
-          } else {
-            anexos.push(anexo);
-            if (anexo.caminho && !(await lerAnexoOffline(anexo.id))) {
-              try {
-                const { url } = await obterArquivo({ data: { usuario: u, senha: s, caminho: anexo.caminho } });
-                const resposta = await fetch(url);
-                if (resposta.ok) await guardarAnexoOffline(anexo.id, await resposta.blob());
-              } catch {
-                // A sincronização dos repertórios continua mesmo se um anexo não baixar.
-              }
+          const caminho = anexo.caminho;
+          if (caminho && !(await lerAnexoOffline(anexo.id))) {
+            try {
+              const { url } = await obterArquivo({ data: { usuario: u, senha: s, caminho } });
+              const resposta = await fetch(url);
+              if (resposta.ok) await guardarAnexoOffline(anexo.id, await resposta.blob());
+            } catch {
+              // A sincronização dos repertórios continua mesmo se um anexo não baixar.
             }
           }
         }
-        songs.push(migrou ? { ...song, anexos, atualizadoEm: Date.now() } : { ...song, anexos });
       }
-      let dadosFinais = { ...r.dados, songs };
-      if (migrou) {
-        const atualizado = await sincronizar({ data: { usuario: u, senha: s, dados: dadosFinais } });
-        dadosFinais = atualizado.dados;
+      if (localMigrado.alterou || remotoMigrado.alterou) {
+        await sincronizar({ data: { usuario: u, senha: s, dados: dadosFinais } });
       }
       await writeData(dadosFinais);
       salvarBanda(r.banda);

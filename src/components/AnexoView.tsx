@@ -28,11 +28,12 @@ function useFonteAnexo(anexo: Anexo) {
     void (async () => {
       try {
         let blob = await lerAnexoOffline(anexo.id);
-        if (!blob && anexo.caminho) {
+        const caminho = anexo.caminho;
+        if (!blob && caminho) {
           if (typeof navigator !== "undefined" && !navigator.onLine) throw new Error("offline");
           const conta = lerConta();
           if (!conta) throw new Error("sem conta");
-          const { url } = await obter({ data: { usuario: conta.usuario, senha: conta.senha, caminho: anexo.caminho } });
+          const { url } = await obter({ data: { usuario: conta.usuario, senha: conta.senha, caminho } });
           const resposta = await fetch(url);
           if (!resposta.ok) throw new Error("download");
           blob = await resposta.blob();
