@@ -15,6 +15,7 @@ import { EmptyState, PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppData } from "@/lib/repertorio-store";
+import { useConta } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/repertorios/$id/")({
   head: () => ({
@@ -36,6 +37,8 @@ export const Route = createFileRoute("/repertorios/$id/")({
 function RepertorioDetalhe() {
   const { id } = Route.useParams();
   const { data, update } = useAppData();
+  const { conta } = useConta();
+  const podeEditar = conta?.podeEditar ?? false;
   const [busca, setBusca] = useState("");
   const [adicionando, setAdicionando] = useState(false);
   const [editando, setEditando] = useState(false);
@@ -135,7 +138,7 @@ function RepertorioDetalhe() {
           </>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
+        {podeEditar ? <div className="grid grid-cols-2 gap-3">
           <Button
             className="h-12 rounded-xl font-bold"
             variant={editando ? "secondary" : "outline"}
@@ -166,7 +169,7 @@ function RepertorioDetalhe() {
             </>
           )}
           </Button>
-        </div>
+        </div> : null}
 
         {editando ? (
           <section className="surface-tile flex flex-col gap-3 rounded-2xl border border-border p-4">
@@ -264,7 +267,7 @@ function RepertorioDetalhe() {
                         "—"}
                     </span>
                   </span>
-                  <span className="flex shrink-0 items-center">
+                   {podeEditar ? <span className="flex shrink-0 items-center">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -290,7 +293,7 @@ function RepertorioDetalhe() {
                     >
                       <XIcon />
                     </Button>
-                  </span>
+                   </span> : null}
                 </li>
               );
             })}

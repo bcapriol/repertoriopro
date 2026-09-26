@@ -43,6 +43,7 @@ export type Conta = {
   banda?: string;
   podeApagar: boolean;
   podeBackup: boolean;
+  podeEditar: boolean;
 };
 
 export function lerConta(): Conta | null {

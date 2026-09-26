@@ -15,6 +15,13 @@
       "when": 1790305731374,
       "tag": "0001_secure_band_attachment_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790397750685,
+      "tag": "0002_add_editing_privilege",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import { newId, readData, writeData, type Anexo, type Song } from "@/lib/reperto
 import { lerConta } from "@/lib/banda-local";
 import { guardarAnexoOffline } from "@/lib/anexo-cache";
 import { enviarAnexo } from "@/lib/nuvem.functions";
+import { useConta } from "@/lib/banda-local";
 
 const MAX_BYTES = 3 * 1024 * 1024;
 
@@ -52,6 +53,7 @@ function CadastrarPage() {
   const enviar = useServerFn(enviarAnexo);
   const { id } = Route.useSearch();
   const navigate = useNavigate();
+  const { conta, pronto } = useConta();
   const [form, setForm] = useState(vazio);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const inputFile = useRef<HTMLInputElement>(null);
@@ -127,6 +129,10 @@ function CadastrarPage() {
   };
 
   const salvar = async () => {
+    if (id && !conta?.podeEditar) {
+      toast.error("Você não tem privilégio para alterar músicas.");
+      return;
+    }
     if (!form.titulo.trim()) {
       toast.error("Informe o título da música.");
       return;
@@ -150,6 +156,17 @@ function CadastrarPage() {
     }
     navigate({ to: "/musicas" });
   };
+
+  if (!pronto) return null;
+  if (id && !conta?.podeEditar) {
+    return (
+      <PageShell title="Editar Música" subtitle="Acesso restrito">
+        <p className="rounded-xl border border-border p-4 text-sm text-muted-foreground">
+          Você não tem privilégio para alterar nomes ou anexos das músicas.
+        </p>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

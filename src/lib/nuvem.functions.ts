@@ -61,13 +61,14 @@ export const admExcluirUsuario = createServerFn({ method: "POST" })
   });
 
 export const admDefinirPrivilegios = createServerFn({ method: "POST" })
-  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean }) => d)
+  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean }) => d)
   .handler(async ({ data }) => {
     const m = await import("./nuvem.server");
     m.conferirSenhaAdm(data.senha);
     await m.definirPrivilegios(data.id, {
       podeApagar: data.podeApagar,
       podeBackup: data.podeBackup,
+      podeEditar: data.podeEditar,
     });
     return m.listarBandas();
   });
