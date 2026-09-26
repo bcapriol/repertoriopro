@@ -50,6 +50,7 @@ function TelaLogin() {
         banda: r.banda,
         podeApagar: r.podeApagar,
         podeBackup: r.podeBackup,
+        podeEditar: r.podeEditar,
       });
       toast.success(`Bem-vindo! Banda ${r.banda}.`);
     } catch (e) {

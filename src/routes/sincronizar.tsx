@@ -120,6 +120,7 @@ function SincronizarPage() {
         banda: r.banda,
         podeApagar: r.podeApagar,
         podeBackup: r.podeBackup,
+        podeEditar: r.podeEditar,
       };
       salvarConta(nova);
       setConta(nova);

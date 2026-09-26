@@ -41,6 +41,7 @@ function MusicasPage() {
   const [aberta, setAberta] = useState<string | null>(null);
   const { conta } = useConta();
   const podeApagar = conta?.podeApagar ?? false;
+  const podeEditar = conta?.podeEditar ?? false;
   const songAberta = data.songs.find((s) => s.id === aberta) ?? null;
 
   const lista = useMemo(() => {
@@ -138,11 +139,13 @@ function MusicasPage() {
                     </span>
                     </span>
                   </button>
-                  <Button asChild variant="ghost" size="icon" aria-label="Editar música">
-                    <Link to="/cadastrar" search={{ id: song.id }}>
-                      <PencilIcon />
-                    </Link>
-                  </Button>
+                  {podeEditar ? (
+                    <Button asChild variant="ghost" size="icon" aria-label="Editar música">
+                      <Link to="/cadastrar" search={{ id: song.id }}>
+                        <PencilIcon />
+                      </Link>
+                    </Button>
+                  ) : null}
                   {podeApagar ? (
                     <Button
                       variant="ghost"

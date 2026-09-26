@@ -29,6 +29,7 @@ function RepertoriosPage() {
   const { data, update } = useAppData();
   const { conta } = useConta();
   const podeApagar = conta?.podeApagar ?? false;
+  const podeEditar = conta?.podeEditar ?? false;
   const [nome, setNome] = useState("");
   const [local, setLocal] = useState("");
   const [dataShow, setDataShow] = useState("");
@@ -167,14 +168,16 @@ function RepertoriosPage() {
                   </span>
                   <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" />
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => iniciarRenomear(r)}
-                  aria-label={`Renomear ${r.nome}`}
-                >
-                  <PencilIcon />
-                </Button>
+                {podeEditar ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => iniciarRenomear(r)}
+                    aria-label={`Renomear ${r.nome}`}
+                  >
+                    <PencilIcon />
+                  </Button>
+                ) : null}
                 {podeApagar ? (
                   <Button
                     variant="ghost"

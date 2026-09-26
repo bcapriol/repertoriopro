@@ -5,7 +5,7 @@ import { mesclarDados } from "./sync-merge";
 export type BandaResumo = {
   id: string;
   nome: string;
-  usuarios: { id: string; usuario: string; senha: string; podeApagar: boolean; podeBackup: boolean }[];
+  usuarios: { id: string; usuario: string; senha: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean }[];
   totalMusicas: number;
   totalRepertorios: number;
 };
@@ -43,7 +43,7 @@ export async function listarBandas(): Promise<BandaResumo[]> {
   const db = await admin();
   const [bandas, usuarios, musicas, repertorios] = await Promise.all([
     db.from("bandas").select("id, nome, criado_em").order("criado_em", { ascending: false }),
-    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id, pode_apagar, pode_backup"),
+    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id, pode_apagar, pode_backup, pode_editar"),
     db.from("cloud_songs").select("banda_id"),
     db.from("cloud_setlists").select("banda_id"),
   ]);
@@ -61,6 +61,7 @@ export async function listarBandas(): Promise<BandaResumo[]> {
         senha: u.senha_visivel ?? "",
         podeApagar: u.pode_apagar ?? false,
         podeBackup: u.pode_backup ?? false,
+        podeEditar: u.pode_editar ?? false,
       })),
     totalMusicas: conta(musicas.data, b.id),
     totalRepertorios: conta(repertorios.data, b.id),
@@ -100,12 +101,16 @@ export async function alterarSenhaUsuario(id: string, senha: string) {
 
 export async function definirPrivilegios(
   id: string,
-  privilegios: { podeApagar: boolean; podeBackup: boolean },
+  privilegios: { podeApagar: boolean; podeBackup: boolean; podeEditar: boolean },
 ) {
   const db = await admin();
   const { error } = await db
     .from("app_usuarios")
-    .update({ pode_apagar: privilegios.podeApagar, pode_backup: privilegios.podeBackup })
+    .update({
+      pode_apagar: privilegios.podeApagar,
+      pode_backup: privilegios.podeBackup,
+      pode_editar: privilegios.podeEditar,
+    })
     .eq("id", id);
   if (error) throw error;
 }
@@ -197,7 +202,7 @@ export async function entrarUsuario(usuario: string, senha: string) {
   const db = await admin();
   const { data } = await db
     .from("app_usuarios")
-    .select("id, usuario, senha_hash, banda_id, pode_apagar, pode_backup, bandas(nome)")
+    .select("id, usuario, senha_hash, banda_id, pode_apagar, pode_backup, pode_editar, bandas(nome)")
     .eq("usuario", usuario.trim().toLowerCase())
     .maybeSingle();
   if (!data || data.senha_hash !== hashSenha(senha)) throw new Error("Usuário ou senha inválidos.");
@@ -208,6 +213,7 @@ export async function entrarUsuario(usuario: string, senha: string) {
     bandaId: data.banda_id as string,
     podeApagar: data.pode_apagar ?? false,
     podeBackup: data.pode_backup ?? false,
+    podeEditar: data.pode_editar ?? false,
   };
 }
 
@@ -215,12 +221,21 @@ export async function entrarUsuario(usuario: string, senha: string) {
 export async function sincronizar(usuario: string, senha: string, locais: AppData) {
   const conta = await entrarUsuario(usuario, senha);
   const nuvem = await baixarDaBanda(conta.bandaId);
-  const mesclado = mesclarDados(locais, nuvem);
+  const permitidos = conta.podeEditar
+    ? locais
+    : {
+        songs: locais.songs.map((song) => nuvem.songs.find((salva) => salva.id === song.id) ?? song),
+        setlists: locais.setlists.map(
+          (setlist) => nuvem.setlists.find((salvo) => salvo.id === setlist.id) ?? setlist,
+        ),
+      };
+  const mesclado = mesclarDados(permitidos, nuvem);
   await publicarShow(conta.bandaId, mesclado);
   return {
     banda: conta.banda,
     podeApagar: conta.podeApagar,
     podeBackup: conta.podeBackup,
+    podeEditar: conta.podeEditar,
     dados: mesclado,
   };
 }
