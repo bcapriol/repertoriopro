@@ -251,6 +251,7 @@ export async function enviarAnexo(entrada: {
   dados: string;
 }) {
   const conta = await entrarUsuario(entrada.usuario, entrada.senha);
+  if (!conta.podeEditar) throw new Error("Você não tem privilégio para alterar anexos.");
   if (!TIPOS_ANEXO.has(entrada.tipo)) throw new Error("Envie apenas PDF ou imagem.");
   const base64 = entrada.dados.includes(",") ? entrada.dados.split(",")[1] : entrada.dados;
   if (!base64) throw new Error("O arquivo está vazio.");
