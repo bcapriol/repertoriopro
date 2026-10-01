@@ -53,14 +53,15 @@ export function lerConta(): Conta | null {
     if (!raw) return null;
     const conta = JSON.parse(raw) as Partial<Conta>;
     if (!conta.usuario || !conta.senha) return null;
-    return {
+    const normalizada: Conta = {
       usuario: conta.usuario,
       senha: conta.senha,
-      banda: conta.banda,
       podeApagar: conta.podeApagar ?? false,
       podeBackup: conta.podeBackup ?? false,
       podeEditar: conta.podeEditar ?? false,
     };
+    if (conta.banda) normalizada.banda = conta.banda;
+    return normalizada;
   } catch {
     return null;
   }
