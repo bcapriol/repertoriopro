@@ -14,11 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_eventos: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          data: string
+          descricao: string
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          local: string
+          status: string
+          tipo: string
+          usuario_id: string
+          valor: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          data: string
+          descricao?: string
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          local?: string
+          status?: string
+          tipo: string
+          usuario_id: string
+          valor?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          data?: string
+          descricao?: string
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          local?: string
+          status?: string
+          tipo?: string
+          usuario_id?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_eventos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "app_usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_usuarios: {
         Row: {
           banda_id: string
           criado_em: string
           id: string
+          pode_adicionar_shows: boolean
+          pode_agenda: boolean
           pode_apagar: boolean
           pode_backup: boolean
           pode_editar: boolean
@@ -30,6 +85,8 @@ export type Database = {
           banda_id: string
           criado_em?: string
           id?: string
+          pode_adicionar_shows?: boolean
+          pode_agenda?: boolean
           pode_apagar?: boolean
           pode_backup?: boolean
           pode_editar?: boolean
@@ -41,6 +98,8 @@ export type Database = {
           banda_id?: string
           criado_em?: string
           id?: string
+          pode_adicionar_shows?: boolean
+          pode_agenda?: boolean
           pode_apagar?: boolean
           pode_backup?: boolean
           pode_editar?: boolean
