@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { AppData } from "./repertorio-store";
+import type { EventoAgenda } from "./nuvem.server";
 
 export const admBandas = createServerFn({ method: "POST" })
   .inputValidator((d: { senha: string }) => d)
@@ -61,7 +62,7 @@ export const admExcluirUsuario = createServerFn({ method: "POST" })
   });
 
 export const admDefinirPrivilegios = createServerFn({ method: "POST" })
-  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean }) => d)
+  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean }) => d)
   .handler(async ({ data }) => {
     const m = await import("./nuvem.server");
     m.conferirSenhaAdm(data.senha);
@@ -69,6 +70,8 @@ export const admDefinirPrivilegios = createServerFn({ method: "POST" })
       podeApagar: data.podeApagar,
       podeBackup: data.podeBackup,
       podeEditar: data.podeEditar,
+      podeAgenda: data.podeAgenda,
+      podeAdicionarShows: data.podeAdicionarShows,
     });
     return m.listarBandas();
   });
@@ -108,3 +111,21 @@ export const obterAnexo = createServerFn({ method: "POST" })
     const m = await import("./nuvem.server");
     return m.obterUrlAnexo(data.usuario, data.senha, data.caminho);
   });
+
+type Cred = { usuario: string; senha: string };
+
+export const agendaListar = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).listarAgenda(data.usuario, data.senha));
+
+export const agendaSalvar = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { evento: Omit<EventoAgenda, "id" | "status"> & { id?: string } }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).salvarEvento(data.usuario, data.senha, data.evento));
+
+export const agendaExcluir = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).excluirEvento(data.usuario, data.senha, data.id));
+
+export const agendaStatus = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string; status: EventoAgenda["status"] }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).statusEvento(data.usuario, data.senha, data.id, data.status));

@@ -37,6 +37,8 @@ type Banda = {
     podeApagar: boolean;
     podeBackup: boolean;
     podeEditar: boolean;
+    podeAgenda: boolean;
+    podeAdicionarShows: boolean;
   }[];
   totalMusicas: number;
   totalRepertorios: number;
@@ -285,6 +287,8 @@ function AdmPage() {
                                     ["podeApagar", "Apagar músicas e repertórios"],
                                     ["podeBackup", "Enviar backup (exportar/Bluetooth)"],
                                     ["podeEditar", "Alterar sequência, nomes e anexos"],
+                                    ["podeAdicionarShows", "Adicionar shows"],
+                                    ["podeAgenda", "Agenda de shows"],
                                   ] as const
                                 ).map(([campo, rotulo]) => (
                                   <label
@@ -315,6 +319,14 @@ function AdmPage() {
                                                   campo === "podeEditar"
                                                     ? e.target.checked
                                                     : u.podeEditar,
+                                                podeAgenda:
+                                                  campo === "podeAgenda"
+                                                    ? e.target.checked
+                                                    : u.podeAgenda,
+                                                podeAdicionarShows:
+                                                  campo === "podeAdicionarShows"
+                                                    ? e.target.checked
+                                                    : u.podeAdicionarShows,
                                               },
                                             }),
                                           "Privilégios atualizados.",
