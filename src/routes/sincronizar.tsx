@@ -121,6 +121,8 @@ function SincronizarPage() {
         podeApagar: r.podeApagar,
         podeBackup: r.podeBackup,
         podeEditar: r.podeEditar,
+        podeAgenda: r.podeAgenda,
+        podeAdicionarShows: r.podeAdicionarShows,
       };
       salvarConta(nova);
       setConta(nova);

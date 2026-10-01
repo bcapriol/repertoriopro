@@ -6,10 +6,11 @@ import {
   ArrowDownUpIcon,
   RefreshCwIcon,
   LockIcon,
+  CalendarDaysIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
-import { useBanda } from "@/lib/banda-local";
+import { useBanda, useConta } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -55,6 +56,7 @@ function TileBody({ label, hint, Icon }: { label: string; hint: string; Icon: Lu
 function Index() {
   const { data } = useAppData();
   const banda = useBanda();
+  const { conta } = useConta();
 
   return (
     <main className="min-h-screen bg-background px-5 pt-12 pb-14">
@@ -112,6 +114,11 @@ function Index() {
               Icon={LibraryIcon}
             />
           </Link>
+          {conta?.podeAgenda ? (
+            <Link to="/agenda" className={tileClass}>
+              <TileBody label="Agenda" hint="Shows, compromissos e folgas" Icon={CalendarDaysIcon} />
+            </Link>
+          ) : null}
           <Link to="/sincronizar" className={tileClass}>
             <TileBody
               label="Sincronizar Repertórios"

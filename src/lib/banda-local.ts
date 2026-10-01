@@ -44,6 +44,8 @@ export type Conta = {
   podeApagar: boolean;
   podeBackup: boolean;
   podeEditar: boolean;
+  podeAgenda: boolean;
+  podeAdicionarShows: boolean;
 };
 
 export function lerConta(): Conta | null {
@@ -59,6 +61,8 @@ export function lerConta(): Conta | null {
       podeApagar: conta.podeApagar ?? false,
       podeBackup: conta.podeBackup ?? false,
       podeEditar: conta.podeEditar ?? false,
+      podeAgenda: conta.podeAgenda ?? false,
+      podeAdicionarShows: conta.podeAdicionarShows ?? false,
     };
     if (conta.banda) normalizada.banda = conta.banda;
     return normalizada;

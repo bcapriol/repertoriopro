@@ -51,6 +51,8 @@ function TelaLogin() {
         podeApagar: r.podeApagar,
         podeBackup: r.podeBackup,
         podeEditar: r.podeEditar,
+        podeAgenda: r.podeAgenda,
+        podeAdicionarShows: r.podeAdicionarShows,
       });
       toast.success(`Bem-vindo! Banda ${r.banda}.`);
     } catch (e) {

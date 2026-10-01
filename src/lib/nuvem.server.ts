@@ -5,7 +5,7 @@ import { mesclarDados } from "./sync-merge";
 export type BandaResumo = {
   id: string;
   nome: string;
-  usuarios: { id: string; usuario: string; senha: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean }[];
+  usuarios: { id: string; usuario: string; senha: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean }[];
   totalMusicas: number;
   totalRepertorios: number;
 };
@@ -43,7 +43,7 @@ export async function listarBandas(): Promise<BandaResumo[]> {
   const db = await admin();
   const [bandas, usuarios, musicas, repertorios] = await Promise.all([
     db.from("bandas").select("id, nome, criado_em").order("criado_em", { ascending: false }),
-    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id, pode_apagar, pode_backup, pode_editar"),
+    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id, pode_apagar, pode_backup, pode_editar, pode_agenda, pode_adicionar_shows"),
     db.from("cloud_songs").select("banda_id"),
     db.from("cloud_setlists").select("banda_id"),
   ]);
@@ -62,6 +62,8 @@ export async function listarBandas(): Promise<BandaResumo[]> {
         podeApagar: u.pode_apagar ?? false,
         podeBackup: u.pode_backup ?? false,
         podeEditar: u.pode_editar ?? false,
+        podeAgenda: u.pode_agenda ?? false,
+        podeAdicionarShows: u.pode_adicionar_shows ?? false,
       })),
     totalMusicas: conta(musicas.data, b.id),
     totalRepertorios: conta(repertorios.data, b.id),
@@ -101,7 +103,7 @@ export async function alterarSenhaUsuario(id: string, senha: string) {
 
 export async function definirPrivilegios(
   id: string,
-  privilegios: { podeApagar: boolean; podeBackup: boolean; podeEditar: boolean },
+  privilegios: { podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean },
 ) {
   const db = await admin();
   const { error } = await db
@@ -110,6 +112,8 @@ export async function definirPrivilegios(
       pode_apagar: privilegios.podeApagar,
       pode_backup: privilegios.podeBackup,
       pode_editar: privilegios.podeEditar,
+      pode_agenda: privilegios.podeAgenda,
+      pode_adicionar_shows: privilegios.podeAdicionarShows,
     })
     .eq("id", id);
   if (error) throw error;
@@ -202,7 +206,7 @@ export async function entrarUsuario(usuario: string, senha: string) {
   const db = await admin();
   const { data } = await db
     .from("app_usuarios")
-    .select("id, usuario, senha_hash, banda_id, pode_apagar, pode_backup, pode_editar, bandas(nome)")
+    .select("id, usuario, senha_hash, banda_id, pode_apagar, pode_backup, pode_editar, pode_agenda, pode_adicionar_shows, bandas(nome)")
     .eq("usuario", usuario.trim().toLowerCase())
     .maybeSingle();
   if (!data || data.senha_hash !== hashSenha(senha)) throw new Error("Usuário ou senha inválidos.");
@@ -214,6 +218,9 @@ export async function entrarUsuario(usuario: string, senha: string) {
     podeApagar: data.pode_apagar ?? false,
     podeBackup: data.pode_backup ?? false,
     podeEditar: data.pode_editar ?? false,
+    podeAgenda: data.pode_agenda ?? false,
+    podeAdicionarShows: data.pode_adicionar_shows ?? false,
+    usuarioId: data.id as string,
   };
 }
 
@@ -236,6 +243,8 @@ export async function sincronizar(usuario: string, senha: string, locais: AppDat
     podeApagar: conta.podeApagar,
     podeBackup: conta.podeBackup,
     podeEditar: conta.podeEditar,
+    podeAgenda: conta.podeAgenda,
+    podeAdicionarShows: conta.podeAdicionarShows,
     dados: mesclado,
   };
 }
@@ -274,4 +283,107 @@ export async function obterUrlAnexo(usuario: string, senha: string, caminho: str
   const { data, error } = await db.storage.from("anexos").createSignedUrl(caminho, 300);
   if (error || !data?.signedUrl) throw new Error("Não foi possível abrir o anexo.");
   return { url: data.signedUrl };
+}
+
+export type EventoAgenda = {
+  id: string;
+  tipo: "show" | "particular" | "folga";
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  local: string;
+  descricao: string;
+  valor: number | null;
+  status: "agendado" | "concluido" | "cancelado";
+};
+
+async function contaAgenda(usuario: string, senha: string) {
+  const conta = await entrarUsuario(usuario, senha);
+  if (!conta.podeAgenda) throw new Error("Você não tem acesso à agenda.");
+  return conta;
+}
+
+export async function listarAgenda(usuario: string, senha: string) {
+  const conta = await contaAgenda(usuario, senha);
+  const db = await admin();
+  const { data, error } = await db
+    .from("agenda_eventos")
+    .select("*")
+    .eq("usuario_id", conta.usuarioId)
+    .order("data")
+    .order("hora_inicio");
+  if (error) throw error;
+  const eventos: EventoAgenda[] = (data ?? []).map((e) => ({
+    id: e.id,
+    tipo: e.tipo as EventoAgenda["tipo"],
+    data: e.data,
+    horaInicio: e.hora_inicio,
+    horaFim: e.hora_fim,
+    local: e.local,
+    descricao: e.descricao,
+    valor: e.valor === null ? null : Number(e.valor),
+    status: e.status as EventoAgenda["status"],
+  }));
+  return { eventos, podeAgenda: conta.podeAgenda, podeAdicionarShows: conta.podeAdicionarShows };
+}
+
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$|^$/;
+
+export async function salvarEvento(usuario: string, senha: string, ev: Omit<EventoAgenda, "id" | "status"> & { id?: string }) {
+  const conta = await contaAgenda(usuario, senha);
+  const db = await admin();
+  if (!["show", "particular", "folga"].includes(ev.tipo)) throw new Error("Tipo inválido.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ev.data)) throw new Error("Informe a data.");
+  if (!HORA.test(ev.horaInicio) || !HORA.test(ev.horaFim)) throw new Error("Horário inválido.");
+  if (ev.tipo === "show") {
+    if (!conta.podeAdicionarShows) throw new Error("Você não tem privilégio para adicionar shows.");
+    if (!ev.local.trim()) throw new Error("Informe o local do show.");
+  }
+  if (ev.tipo === "particular" && !ev.descricao.trim()) throw new Error("Informe a descrição.");
+  if (ev.id) {
+    const { data: atual } = await db.from("agenda_eventos").select("tipo").eq("id", ev.id).eq("usuario_id", conta.usuarioId).maybeSingle();
+    if (!atual) throw new Error("Evento não encontrado.");
+    if (atual.tipo === "show" && !conta.podeAdicionarShows) throw new Error("Você não tem privilégio para alterar shows.");
+  }
+  const linha = {
+    usuario_id: conta.usuarioId,
+    tipo: ev.tipo,
+    data: ev.data,
+    hora_inicio: ev.tipo === "folga" ? "" : ev.horaInicio,
+    hora_fim: ev.tipo === "folga" ? "" : ev.horaFim,
+    local: ev.tipo === "show" ? ev.local.trim().slice(0, 200) : "",
+    descricao: ev.tipo === "show" ? "" : ev.descricao.trim().slice(0, 500),
+    valor: ev.tipo === "show" && ev.valor !== null && Number.isFinite(ev.valor) ? Math.max(0, ev.valor) : null,
+    atualizado_em: new Date().toISOString(),
+  };
+  const r = ev.id
+    ? await db.from("agenda_eventos").update(linha).eq("id", ev.id).eq("usuario_id", conta.usuarioId)
+    : await db.from("agenda_eventos").insert(linha);
+  if (r.error) throw r.error;
+  return listarAgenda(usuario, senha);
+}
+
+async function eventoDoUsuario(usuario: string, senha: string, id: string) {
+  const conta = await contaAgenda(usuario, senha);
+  const db = await admin();
+  const { data } = await db.from("agenda_eventos").select("tipo").eq("id", id).eq("usuario_id", conta.usuarioId).maybeSingle();
+  if (!data) throw new Error("Evento não encontrado.");
+  if (data.tipo === "show" && !conta.podeAdicionarShows) throw new Error("Você não tem privilégio para alterar shows.");
+  return { conta, db, tipo: data.tipo };
+}
+
+export async function excluirEvento(usuario: string, senha: string, id: string) {
+  const { conta, db } = await eventoDoUsuario(usuario, senha, id);
+  const { error } = await db.from("agenda_eventos").delete().eq("id", id).eq("usuario_id", conta.usuarioId);
+  if (error) throw error;
+  return listarAgenda(usuario, senha);
+}
+
+export async function statusEvento(usuario: string, senha: string, id: string, status: EventoAgenda["status"]) {
+  if (!["agendado", "concluido", "cancelado"].includes(status)) throw new Error("Status inválido.");
+  const { conta, db, tipo } = await eventoDoUsuario(usuario, senha, id);
+  if (tipo !== "show") throw new Error("Status só se aplica a shows.");
+  const { error } = await db.from("agenda_eventos").update({ status, atualizado_em: new Date().toISOString() }).eq("id", id).eq("usuario_id", conta.usuarioId);
+  if (error) throw error;
+  return listarAgenda(usuario, senha);
 }

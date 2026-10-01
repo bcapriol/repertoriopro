@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdmRouteImport } from './routes/adm'
+import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as CadastrarRouteImport } from './routes/cadastrar'
 import { Route as DadosRouteImport } from './routes/dados'
 import { Route as MusicasRouteImport } from './routes/musicas'
@@ -27,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdmRoute = AdmRouteImport.update({
   id: '/adm',
   path: '/adm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendaRoute = AgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CadastrarRoute = CadastrarRouteImport.update({
@@ -68,6 +74,7 @@ const RepertoriosIdPalcoRoute = RepertoriosIdPalcoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/adm': typeof AdmRoute
+  '/agenda': typeof AgendaRoute
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/adm': typeof AdmRoute
+  '/agenda': typeof AgendaRoute
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/adm': typeof AdmRoute
+  '/agenda': typeof AgendaRoute
   '/cadastrar': typeof CadastrarRoute
   '/dados': typeof DadosRoute
   '/musicas': typeof MusicasRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/adm'
+    | '/agenda'
     | '/cadastrar'
     | '/dados'
     | '/musicas'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/adm'
+    | '/agenda'
     | '/cadastrar'
     | '/dados'
     | '/musicas'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/adm'
+    | '/agenda'
     | '/cadastrar'
     | '/dados'
     | '/musicas'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdmRoute: typeof AdmRoute
+  AgendaRoute: typeof AgendaRoute
   CadastrarRoute: typeof CadastrarRoute
   DadosRoute: typeof DadosRoute
   MusicasRoute: typeof MusicasRoute
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/adm'
       fullPath: '/adm'
       preLoaderRoute: typeof AdmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agenda': {
+      id: '/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AgendaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cadastrar': {
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdmRoute: AdmRoute,
+  AgendaRoute: AgendaRoute,
   CadastrarRoute: CadastrarRoute,
   DadosRoute: DadosRoute,
   MusicasRoute: MusicasRoute,
