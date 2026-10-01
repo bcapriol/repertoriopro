@@ -50,7 +50,18 @@ export function lerConta(): Conta | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(KEY_CONTA);
-    return raw ? (JSON.parse(raw) as Conta) : null;
+    if (!raw) return null;
+    const conta = JSON.parse(raw) as Partial<Conta>;
+    if (!conta.usuario || !conta.senha) return null;
+    const normalizada: Conta = {
+      usuario: conta.usuario,
+      senha: conta.senha,
+      podeApagar: conta.podeApagar ?? false,
+      podeBackup: conta.podeBackup ?? false,
+      podeEditar: conta.podeEditar ?? false,
+    };
+    if (conta.banda) normalizada.banda = conta.banda;
+    return normalizada;
   } catch {
     return null;
   }
