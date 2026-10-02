@@ -134,7 +134,7 @@ function AgendaPage() {
   const enviar = async () => {
     if (!form || !cred) return;
     const valor = form.valor.trim() ? Number(form.valor.replace(/\./g, "").replace(",", ".")) : null;
-    if (valor !== null && !Number.isFinite(valor)) return toast.error("Valor inválido.");
+    if (valor !== null && !Number.isFinite(valor)) { toast.error("Valor inválido."); return; }
     const ok = await rodar(
       () =>
         salvar({

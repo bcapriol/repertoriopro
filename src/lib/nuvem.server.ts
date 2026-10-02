@@ -329,7 +329,7 @@ export async function listarAgenda(usuario: string, senha: string) {
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$|^$/;
 
-export async function salvarEvento(usuario: string, senha: string, ev: Omit<EventoAgenda, "id" | "status"> & { id?: string }) {
+export async function salvarEvento(usuario: string, senha: string, ev: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined }) {
   const conta = await contaAgenda(usuario, senha);
   const db = await admin();
   if (!["show", "particular", "folga"].includes(ev.tipo)) throw new Error("Tipo inválido.");
