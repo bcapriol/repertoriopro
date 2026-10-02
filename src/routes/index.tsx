@@ -114,11 +114,13 @@ function Index() {
               Icon={LibraryIcon}
             />
           </Link>
-          {conta?.podeAgenda ? (
-            <Link to="/agenda" className={tileClass}>
-              <TileBody label="Agenda" hint="Shows, compromissos e folgas" Icon={CalendarDaysIcon} />
-            </Link>
-          ) : null}
+          <Link to="/agenda" className={tileClass}>
+            <TileBody
+              label="Agenda"
+              hint={conta?.podeAgenda ? "Shows, compromissos e folgas" : "Requer liberação do administrador"}
+              Icon={CalendarDaysIcon}
+            />
+          </Link>
           <Link to="/sincronizar" className={tileClass}>
             <TileBody
               label="Sincronizar Repertórios"
