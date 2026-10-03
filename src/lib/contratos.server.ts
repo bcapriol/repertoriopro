@@ -1,7 +1,7 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin as db } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
-import { configInicial, contratoInicial, validarContrato, type ConfigContratos, type ContratoDados } from "./contratos";
+import { configInicial, contratoInicial, validarContrato, TRANSICOES_CONTRATO, type StatusContrato, type ConfigContratos, type ContratoDados } from "./contratos";
 import { gerarPdfContrato } from "./contratos-pdf.server";
 
 type Cred = { usuario: string; senha: string };
@@ -15,9 +15,13 @@ async function autenticar(cred: Cred) {
 }
 export async function listarContratos(cred: Cred) {
   const usuario = await autenticar(cred);
-  const { data, error } = await db.from("contratos_eventos").select("id, numero, status, criado_em, atualizado_em, dados, pdf_caminho, pdf_emissao").eq("banda_id", usuario.banda_id).order("criado_em", { ascending: false });
+  const { data, error } = await db.from("contratos_eventos").select("id, numero, versao, status, criado_em, atualizado_em, dados, pdf_caminho, pdf_emissao, usuario_id").eq("banda_id", usuario.banda_id).order("criado_em", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row) => ({ id: row.id, numero: row.numero, status: row.status, criadoEm: row.criado_em, atualizadoEm: row.atualizado_em, dados: row.dados as unknown as ContratoDados, pdfCaminho: row.pdf_caminho, pdfEmissao: row.pdf_emissao }));
+  const responsaveis = [...new Set((data ?? []).map((r) => r.usuario_id))];
+  const { data: contas, error: erroContas } = responsaveis.length ? await db.from("app_usuarios").select("id, usuario").eq("banda_id", usuario.banda_id).in("id", responsaveis) : { data: [], error: null };
+  if (erroContas) throw erroContas;
+  const nomes = new Map((contas ?? []).map((c) => [c.id, c.usuario]));
+  return (data ?? []).map((row) => ({ id: row.id, numero: row.numero, versao: row.versao, status: row.status, criadoEm: row.criado_em, atualizadoEm: row.atualizado_em, responsavel: nomes.get(row.usuario_id) ?? "—", dados: row.dados as unknown as ContratoDados, pdfCaminho: row.pdf_caminho, pdfEmissao: row.pdf_emissao }));
 }
 export async function lerConfiguracao(cred: Cred) {
   const usuario = await autenticar(cred);
@@ -41,7 +45,7 @@ export async function salvarRascunho(cred: Cred, dados: ContratoDados, id?: stri
   if (!usuario.pode_editar) throw new Error("Você não tem permissão para criar ou editar contratos.");
   if (!dados || JSON.stringify(dados).length > 200000) throw new Error("Dados do contrato muito grandes.");
   if (id) {
-    const { data, error } = await db.from("contratos_eventos").update({ dados: dados as unknown as Json, atualizado_em: new Date().toISOString() }).eq("id", id).eq("banda_id", usuario.banda_id).eq("status", "Rascunho").select("id, numero").maybeSingle();
+    const { data, error } = await db.from("contratos_eventos").update({ dados: dados as unknown as Json, usuario_id: usuario.id, atualizado_em: new Date().toISOString() }).eq("id", id).eq("banda_id", usuario.banda_id).in("status", ["Rascunho", "Aguardando revisão"]).is("pdf_caminho", null).select("id, numero").maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("Rascunho não encontrado ou não editável.");
     return data;
@@ -68,9 +72,9 @@ export async function novoContrato(cred: Cred) {
 export async function gerarContrato(cred: Cred, id: string) {
   const usuario = await autenticar(cred);
   if (!usuario.pode_editar) throw new Error("Você não tem permissão para gerar contratos.");
-  const { data: contrato, error } = await db.from("contratos_eventos").select("id, numero, status, dados, pdf_caminho").eq("id", id).eq("banda_id", usuario.banda_id).maybeSingle();
+  const { data: contrato, error } = await db.from("contratos_eventos").select("id, numero, status, dados, pdf_caminho, atualizado_em").eq("id", id).eq("banda_id", usuario.banda_id).maybeSingle();
   if (error) throw error;
-  if (!contrato || contrato.status !== "Rascunho" || contrato.pdf_caminho) throw new Error("Apenas rascunhos ainda não gerados podem ser finalizados.");
+  if (!contrato || !["Rascunho", "Aguardando revisão"].includes(contrato.status) || contrato.pdf_caminho) throw new Error("Apenas contratos ainda não gerados podem ser finalizados.");
   const dados = contrato.dados as unknown as ContratoDados;
   const pendencias = validarContrato(dados);
   if (pendencias.length) throw new Error(`Confira o contrato antes de gerar: ${pendencias.join(" ")}`);
@@ -80,7 +84,7 @@ export async function gerarContrato(cred: Cred, id: string) {
   const caminho = `${usuario.banda_id}/contratos/${id}/${randomUUID()}.pdf`;
   const { error: erroUpload } = await db.storage.from("anexos").upload(caminho, bytes, { contentType: "application/pdf", upsert: false });
   if (erroUpload) throw new Error("Não foi possível guardar o PDF. Tente novamente.");
-  const { data: salvo, error: erroSalvar } = await db.from("contratos_eventos").update({ status: "Pronto para envio", pdf_caminho: caminho, pdf_emissao: emissao, atualizado_em: new Date().toISOString() }).eq("id", id).eq("banda_id", usuario.banda_id).eq("status", "Rascunho").is("pdf_caminho", null).select("id").maybeSingle();
+  const { data: salvo, error: erroSalvar } = await db.from("contratos_eventos").update({ status: "Pronto para envio", pdf_caminho: caminho, pdf_emissao: emissao, usuario_id: usuario.id, atualizado_em: new Date().toISOString() }).eq("id", id).eq("banda_id", usuario.banda_id).eq("atualizado_em", contrato.atualizado_em).in("status", ["Rascunho", "Aguardando revisão"]).is("pdf_caminho", null).select("id").maybeSingle();
   if (erroSalvar || !salvo) {
     await db.storage.from("anexos").remove([caminho]);
     throw new Error("O contrato foi alterado enquanto era gerado. Atualize a página e tente novamente.");
@@ -96,4 +100,59 @@ export async function urlPdfContrato(cred: Cred, id: string) {
   const { data, error: erroUrl } = await db.storage.from("anexos").createSignedUrl(contrato.pdf_caminho, 300);
   if (erroUrl || !data?.signedUrl) throw new Error("Não foi possível abrir o PDF.");
   return { url: data.signedUrl, nome: `${contrato.numero}.pdf` };
+}
+
+export async function alterarStatusContrato(cred: Cred, id: string, destino: StatusContrato) {
+  const usuario = await autenticar(cred);
+  if (!usuario.pode_editar) throw new Error("Você não tem permissão para alterar contratos.");
+  const { data: atual, error } = await db.from("contratos_eventos").select("status, pdf_caminho").eq("id", id).eq("banda_id", usuario.banda_id).maybeSingle();
+  if (error) throw error;
+  if (!atual || !(TRANSICOES_CONTRATO[atual.status as StatusContrato] ?? []).includes(destino)) throw new Error("Transição de status não permitida.");
+  if (["Pronto para envio", "Enviado", "Aceito", "Concluído"].includes(destino) && !atual.pdf_caminho) throw new Error("Gere o PDF antes de avançar o contrato.");
+  const { data: salvo, error: erroSalvar } = await db.from("contratos_eventos").update({ status: destino, usuario_id: usuario.id, atualizado_em: new Date().toISOString() }).eq("id", id).eq("banda_id", usuario.banda_id).eq("status", atual.status).select("id").maybeSingle();
+  if (erroSalvar) throw erroSalvar;
+  if (!salvo) throw new Error("O status mudou durante a operação. Atualize a página.");
+  return true;
+}
+
+export async function iniciarNovaVersao(cred: Cred, id: string) {
+  const usuario = await autenticar(cred);
+  if (!usuario.pode_editar) throw new Error("Você não tem permissão para editar contratos.");
+  const { data, error } = await db.rpc("contratos_proxima_versao", { p_id: id, p_banda: usuario.banda_id, p_usuario: usuario.id });
+  if (error) throw error;
+  if (!data) throw new Error("Somente contratos aceitos, com versão anterior preservada, podem iniciar uma nova versão.");
+  return true;
+}
+
+export async function historicoContrato(cred: Cred, id: string) {
+  const usuario = await autenticar(cred);
+  const { data: contrato, error } = await db.from("contratos_eventos").select("id, numero").eq("id", id).eq("banda_id", usuario.banda_id).maybeSingle();
+  if (error) throw error;
+  if (!contrato) throw new Error("Contrato não encontrado.");
+  const [versoes, alteracoes, contas] = await Promise.all([
+    db.from("contratos_versoes").select("versao, dados, pdf_caminho, pdf_emissao, criado_em").eq("contrato_id", id).eq("banda_id", usuario.banda_id).order("versao", { ascending: false }),
+    db.from("contratos_historico").select("versao, status_anterior, status_novo, criado_em, usuario_id").eq("contrato_id", id).eq("banda_id", usuario.banda_id).order("criado_em", { ascending: false }),
+    db.from("app_usuarios").select("id, usuario").eq("banda_id", usuario.banda_id),
+  ]);
+  if (versoes.error) throw versoes.error;
+  if (alteracoes.error) throw alteracoes.error;
+  if (contas.error) throw contas.error;
+  const nomes = new Map((contas.data ?? []).map((c) => [c.id, c.usuario]));
+  return {
+    versoes: (versoes.data ?? []).map((v) => ({ versao: v.versao, dados: v.dados as unknown as ContratoDados, pdfCaminho: v.pdf_caminho, pdfEmissao: v.pdf_emissao, criadoEm: v.criado_em })),
+    historico: (alteracoes.data ?? []).map((h) => ({ versao: h.versao, anterior: h.status_anterior, novo: h.status_novo, criadoEm: h.criado_em, usuario: nomes.get(h.usuario_id) ?? "—" })),
+  };
+}
+
+export async function urlPdfVersao(cred: Cred, id: string, versao: number) {
+  const usuario = await autenticar(cred);
+  const { data: contrato, error } = await db.from("contratos_eventos").select("numero").eq("id", id).eq("banda_id", usuario.banda_id).maybeSingle();
+  if (error) throw error;
+  if (!contrato) throw new Error("Contrato não encontrado.");
+  const { data: anterior, error: erroVersao } = await db.from("contratos_versoes").select("pdf_caminho").eq("contrato_id", id).eq("banda_id", usuario.banda_id).eq("versao", versao).maybeSingle();
+  if (erroVersao) throw erroVersao;
+  if (!anterior?.pdf_caminho.startsWith(`${usuario.banda_id}/contratos/${id}/`)) throw new Error("PDF desta versão não encontrado.");
+  const { data, error: erroUrl } = await db.storage.from("anexos").createSignedUrl(anterior.pdf_caminho, 300);
+  if (erroUrl || !data?.signedUrl) throw new Error("Não foi possível abrir o PDF.");
+  return { url: data.signedUrl, nome: `${contrato.numero}-v${versao}.pdf` };
 }

@@ -3,12 +3,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useConta } from "@/lib/banda-local";
-import { contratosPdfUrl } from "@/lib/nuvem.functions";
+import { contratosPdfUrl, contratosPdfVersaoUrl } from "@/lib/nuvem.functions";
 
 type Acao = "visualizar" | "baixar" | "imprimir" | "enviar";
-export function ContratoPdfAcoes({ id, numero }: { id: string; numero: string }) {
+export function ContratoPdfAcoes({ id, numero, versao }: { id: string; numero: string; versao?: number }) {
   const { conta } = useConta();
   const urlPdf = useServerFn(contratosPdfUrl);
+  const urlVersao = useServerFn(contratosPdfVersaoUrl);
   const [ocupado, setOcupado] = useState<Acao | null>(null);
   const agir = async (acao: Acao) => {
     if (!conta || ocupado) return;
@@ -16,7 +17,9 @@ export function ContratoPdfAcoes({ id, numero }: { id: string; numero: string })
     const aba = acao === "visualizar" || acao === "imprimir" ? window.open("", "_blank") : null;
     setOcupado(acao);
     try {
-      const { url, nome } = await urlPdf({ data: { usuario: conta.usuario, senha: conta.senha, id } });
+      const { url, nome } = versao === undefined
+        ? await urlPdf({ data: { usuario: conta.usuario, senha: conta.senha, id } })
+        : await urlVersao({ data: { usuario: conta.usuario, senha: conta.senha, id, versao } });
       if (acao === "visualizar" || acao === "imprimir") {
         if (!aba) { toast.error("Permita janelas adicionais para abrir o PDF."); return; }
         aba.location.href = url;

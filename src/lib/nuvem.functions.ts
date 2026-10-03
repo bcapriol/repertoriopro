@@ -142,6 +142,22 @@ export const contratosPdfUrl = createServerFn({ method: "POST" })
   .inputValidator((d: Cred & { id: string }) => d)
   .handler(async ({ data }) => (await import("./contratos.server")).urlPdfContrato(data, data.id));
 
+export const contratosStatus = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string; status: import("./contratos").StatusContrato }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).alterarStatusContrato(data, data.id, data.status));
+
+export const contratosNovaVersao = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).iniciarNovaVersao(data, data.id));
+
+export const contratosHistorico = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).historicoContrato(data, data.id));
+
+export const contratosPdfVersaoUrl = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string; versao: number }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).urlPdfVersao(data, data.id, data.versao));
+
 export const agendaListar = createServerFn({ method: "POST" })
   .inputValidator((d: Cred) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).listarAgenda(data.usuario, data.senha));

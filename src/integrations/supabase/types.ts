@@ -148,12 +148,31 @@ export type Database = {
         Relationships: [{ foreignKeyName: "contratos_configuracoes_banda_id_fkey"; columns: ["banda_id"]; isOneToOne: true; referencedRelation: "bandas"; referencedColumns: ["id"] }]
       }
       contratos_eventos: {
-        Row: { id: string; banda_id: string; usuario_id: string; numero: string; ano: number; sequencia: number; status: string; dados: Json; pdf_caminho: string | null; pdf_emissao: string | null; criado_em: string; atualizado_em: string }
-        Insert: { id?: string; banda_id: string; usuario_id: string; numero: string; ano: number; sequencia: number; status?: string; dados?: Json; pdf_caminho?: string | null; pdf_emissao?: string | null; criado_em?: string; atualizado_em?: string }
-        Update: { id?: string; banda_id?: string; usuario_id?: string; numero?: string; ano?: number; sequencia?: number; status?: string; dados?: Json; pdf_caminho?: string | null; pdf_emissao?: string | null; criado_em?: string; atualizado_em?: string }
+        Row: { id: string; banda_id: string; usuario_id: string; numero: string; ano: number; sequencia: number; versao: number; status: string; dados: Json; pdf_caminho: string | null; pdf_emissao: string | null; criado_em: string; atualizado_em: string }
+        Insert: { id?: string; banda_id: string; usuario_id: string; numero: string; ano: number; sequencia: number; versao?: number; status?: string; dados?: Json; pdf_caminho?: string | null; pdf_emissao?: string | null; criado_em?: string; atualizado_em?: string }
+        Update: { id?: string; banda_id?: string; usuario_id?: string; numero?: string; ano?: number; sequencia?: number; versao?: number; status?: string; dados?: Json; pdf_caminho?: string | null; pdf_emissao?: string | null; criado_em?: string; atualizado_em?: string }
         Relationships: [
           { foreignKeyName: "contratos_eventos_banda_id_fkey"; columns: ["banda_id"]; isOneToOne: false; referencedRelation: "bandas"; referencedColumns: ["id"] },
           { foreignKeyName: "contratos_eventos_usuario_id_fkey"; columns: ["usuario_id"]; isOneToOne: false; referencedRelation: "app_usuarios"; referencedColumns: ["id"] },
+        ]
+      }
+      contratos_versoes: {
+        Row: { id: string; contrato_id: string; banda_id: string; versao: number; dados: Json; pdf_caminho: string; pdf_emissao: string; criado_em: string }
+        Insert: { id?: string; contrato_id: string; banda_id: string; versao: number; dados: Json; pdf_caminho: string; pdf_emissao: string; criado_em?: string }
+        Update: { id?: string; contrato_id?: string; banda_id?: string; versao?: number; dados?: Json; pdf_caminho?: string; pdf_emissao?: string; criado_em?: string }
+        Relationships: [
+          { foreignKeyName: "contratos_versoes_contrato_id_fkey"; columns: ["contrato_id"]; isOneToOne: false; referencedRelation: "contratos_eventos"; referencedColumns: ["id"] },
+          { foreignKeyName: "contratos_versoes_banda_id_fkey"; columns: ["banda_id"]; isOneToOne: false; referencedRelation: "bandas"; referencedColumns: ["id"] },
+        ]
+      }
+      contratos_historico: {
+        Row: { id: string; contrato_id: string; banda_id: string; usuario_id: string; versao: number; status_anterior: string; status_novo: string; criado_em: string }
+        Insert: { id?: string; contrato_id: string; banda_id: string; usuario_id: string; versao: number; status_anterior: string; status_novo: string; criado_em?: string }
+        Update: { id?: string; contrato_id?: string; banda_id?: string; usuario_id?: string; versao?: number; status_anterior?: string; status_novo?: string; criado_em?: string }
+        Relationships: [
+          { foreignKeyName: "contratos_historico_contrato_id_fkey"; columns: ["contrato_id"]; isOneToOne: false; referencedRelation: "contratos_eventos"; referencedColumns: ["id"] },
+          { foreignKeyName: "contratos_historico_banda_id_fkey"; columns: ["banda_id"]; isOneToOne: false; referencedRelation: "bandas"; referencedColumns: ["id"] },
+          { foreignKeyName: "contratos_historico_usuario_id_fkey"; columns: ["usuario_id"]; isOneToOne: false; referencedRelation: "app_usuarios"; referencedColumns: ["id"] },
         ]
       }
       cloud_setlists: {
@@ -267,7 +286,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      contratos_proxima_versao: { Args: { p_id: string; p_banda: string; p_usuario: string }; Returns: boolean }
+      contratos_registrar_versao: { Args: Record<PropertyKey, never>; Returns: unknown }
+      contratos_versoes_imutaveis: { Args: Record<PropertyKey, never>; Returns: unknown }
     }
     Enums: {
       [_ in never]: never

@@ -50,7 +50,7 @@ function EditarContrato() {
     const carregar = async () => {
       if (id) {
         const contrato = (await listar({ data: cred })).find((c) => c.id === id);
-        if (!contrato || contrato.status !== "Rascunho") throw new Error("Rascunho não encontrado ou não editável.");
+        if (!contrato || !["Rascunho", "Aguardando revisão"].includes(contrato.status) || contrato.pdfCaminho) throw new Error("Rascunho não encontrado ou não editável.");
         if (ativo) { setNumero(contrato.numero); setDados(contrato.dados); }
       } else {
         const inicial = await novo({ data: cred });

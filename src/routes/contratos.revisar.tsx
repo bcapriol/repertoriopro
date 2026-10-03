@@ -62,10 +62,10 @@ function RevisaoContrato() {
   };
   if (!pronto || carregando) return <PageShell title="Revisão do contrato"><p>Carregando…</p></PageShell>;
   if (!conta || !contrato || !documento) return <PageShell title="Revisão do contrato"><EmptyState title="Contrato não encontrado" hint="Volte à lista para selecionar um contrato da sua banda." /></PageShell>;
-  const rascunho = contrato.status === "Rascunho";
+  const rascunho = ["Rascunho", "Aguardando revisão"].includes(contrato.status) && !contrato.pdfCaminho;
   return <PageShell title={`Revisão do contrato ${contrato.numero}`} subtitle="Confira a redação completa antes de gerar o PDF" wide>
     <div className="space-y-5 pb-12">
-      <Link to="/contratos" className="text-sm text-primary underline">Voltar à lista</Link>
+      <div className="flex flex-wrap gap-4"><Link to="/contratos" className="text-sm text-primary underline">Voltar à lista</Link><Link to="/contratos/historico" search={{ id: contrato.id }} className="text-sm text-primary underline">Histórico e versões</Link></div>
       <div className="rounded-lg border border-border bg-muted p-4 text-sm">
         <p>Repertório selecionado: <strong>{contrato.dados.repertorio.length} músicas</strong></p>
         <p>Músicas não autorizadas: <strong>{contarRestricoes(contrato.dados.musicasVetadas)}</strong></p>

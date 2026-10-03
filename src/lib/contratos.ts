@@ -29,7 +29,20 @@ export const contratoInicial = (config: ConfigContratos = configInicial()): Cont
   alteraData: "", autorizacaoImagem: "", finalidades: [], observacoes: config.observacoesPadrao,
   repertorio: [], musicasVetadas: "", artistasVetados: "", observacoesRepertorio: "",
 });
-export type ResumoContrato = { id: string; numero: string; status: string; criadoEm: string; atualizadoEm: string; dados: ContratoDados; pdfCaminho: string | null; pdfEmissao: string | null };
+export const STATUS_CONTRATO = ["Rascunho", "Aguardando revisão", "Pronto para envio", "Enviado", "Aceito", "Cancelado", "Concluído"] as const;
+export type StatusContrato = typeof STATUS_CONTRATO[number];
+export const TRANSICOES_CONTRATO: Record<StatusContrato, readonly StatusContrato[]> = {
+  "Rascunho": ["Aguardando revisão", "Cancelado"],
+  "Aguardando revisão": ["Rascunho", "Cancelado"],
+  "Pronto para envio": ["Enviado", "Cancelado"],
+  "Enviado": ["Aceito", "Cancelado"],
+  "Aceito": ["Concluído"],
+  "Cancelado": [],
+  "Concluído": [],
+};
+export type VersaoContrato = { versao: number; dados: ContratoDados; pdfCaminho: string; pdfEmissao: string; criadoEm: string };
+export type HistoricoContrato = { versao: number; anterior: string; novo: string; criadoEm: string; usuario: string };
+export type ResumoContrato = { id: string; numero: string; versao: number; status: string; criadoEm: string; atualizadoEm: string; responsavel: string; dados: ContratoDados; pdfCaminho: string | null; pdfEmissao: string | null };
 export function numeroValido(documento: string): boolean {
   const s = documento.replace(/\D/g, "");
   if (s.length === 11 && !/^(\d)\1+$/.test(s)) {
