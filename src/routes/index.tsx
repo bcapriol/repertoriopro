@@ -7,6 +7,7 @@ import {
   RefreshCwIcon,
   LockIcon,
   CalendarDaysIcon,
+  FileTextIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
@@ -122,6 +123,9 @@ function Index() {
               hint={conta?.podeAgenda ? "Shows, compromissos e folgas" : "Requer liberação do administrador"}
               Icon={CalendarDaysIcon}
             />
+          </Link>
+          <Link to="/contratos" className={tileClass}>
+            <TileBody label="Contratos de Eventos" hint="Contratos de Prestação de Serviços — Banda Multivibe" Icon={FileTextIcon} />
           </Link>
           <Link to="/sincronizar" className={tileClass}>
             <TileBody

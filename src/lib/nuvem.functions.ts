@@ -114,6 +114,26 @@ export const obterAnexo = createServerFn({ method: "POST" })
 
 type Cred = { usuario: string; senha: string };
 
+export const contratosListar = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).listarContratos(data));
+
+export const contratosConfigLer = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).lerConfiguracao(data));
+
+export const contratosConfigSalvar = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { config: import("./contratos").ConfigContratos }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).salvarConfiguracao(data, data.config));
+
+export const contratosSalvar = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { dados: import("./contratos").ContratoDados; id?: string }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).salvarRascunho(data, data.dados, data.id));
+
+export const contratosNovo = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).novoContrato(data));
+
 export const agendaListar = createServerFn({ method: "POST" })
   .inputValidator((d: Cred) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).listarAgenda(data.usuario, data.senha));

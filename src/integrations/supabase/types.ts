@@ -141,6 +141,21 @@ export type Database = {
         }
         Relationships: []
       }
+      contratos_configuracoes: {
+        Row: { banda_id: string; dados: Json; atualizado_em: string }
+        Insert: { banda_id: string; dados?: Json; atualizado_em?: string }
+        Update: { banda_id?: string; dados?: Json; atualizado_em?: string }
+        Relationships: [{ foreignKeyName: "contratos_configuracoes_banda_id_fkey"; columns: ["banda_id"]; isOneToOne: true; referencedRelation: "bandas"; referencedColumns: ["id"] }]
+      }
+      contratos_eventos: {
+        Row: { id: string; banda_id: string; usuario_id: string; numero: string; ano: number; sequencia: number; status: string; dados: Json; criado_em: string; atualizado_em: string }
+        Insert: { id?: string; banda_id: string; usuario_id: string; numero: string; ano: number; sequencia: number; status?: string; dados?: Json; criado_em?: string; atualizado_em?: string }
+        Update: { id?: string; banda_id?: string; usuario_id?: string; numero?: string; ano?: number; sequencia?: number; status?: string; dados?: Json; criado_em?: string; atualizado_em?: string }
+        Relationships: [
+          { foreignKeyName: "contratos_eventos_banda_id_fkey"; columns: ["banda_id"]; isOneToOne: false; referencedRelation: "bandas"; referencedColumns: ["id"] },
+          { foreignKeyName: "contratos_eventos_usuario_id_fkey"; columns: ["usuario_id"]; isOneToOne: false; referencedRelation: "app_usuarios"; referencedColumns: ["id"] },
+        ]
+      }
       cloud_setlists: {
         Row: {
           atualizado_em: string
