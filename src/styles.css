@@ -140,3 +140,12 @@
 @utility gradient-accent {
   background-image: var(--gradient-accent);
 }
+
+/* Keep icon and bold-text colors consistent across every page. */
+svg.lucide {
+  color: oklch(0.46 0.15 48) !important;
+}
+
+:is(.font-semibold, .font-bold, .font-extrabold, .font-black, b, strong) {
+  color: oklch(0 0 0) !important;
+}
