@@ -73,8 +73,8 @@ function Index() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-background px-5 pt-10 pb-14">
-      <div className="mx-auto w-full max-w-4xl">
+    <main className="flex min-h-screen flex-col bg-background px-5 pt-10 pb-8">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
         <div className="flex justify-end">
           <Link
             to="/adm"
@@ -161,6 +161,9 @@ function Index() {
             />
           </Link>
         </nav>
+        <footer className="mt-auto pt-10 text-center text-[11px] text-muted-foreground/70">
+          V 1.01
+        </footer>
       </div>
     </main>
   );

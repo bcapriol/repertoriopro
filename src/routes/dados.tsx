@@ -6,6 +6,7 @@ import {
   CheckCircle2Icon,
   DownloadIcon,
   HistoryIcon,
+  RefreshCwIcon,
   RotateCcwIcon,
   SaveIcon,
   Trash2Icon,
@@ -69,6 +70,36 @@ function DadosPage() {
   const [etapa, setEtapa] = useState("");
   const [resultado, setResultado] = useState<ImportResult | null>(null);
   const [versoes, setVersoes] = useState<VersaoBackup[]>([]);
+  const [atualizando, setAtualizando] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("rf-atualizacao-concluida") === "1") {
+      sessionStorage.removeItem("rf-atualizacao-concluida");
+      window.alert("Atualizado com sucesso.");
+    }
+  }, []);
+
+  const atualizarApp = async () => {
+    if (!navigator.onLine) {
+      window.alert("Conecte-se primeiro à internet.");
+      return;
+    }
+    setAtualizando(true);
+    try {
+      // Esta requisição não é uma navegação: o service worker não a atende pelo cache offline.
+      const resposta = await fetch(window.location.href, { cache: "no-store" });
+      if (!resposta.ok) throw new Error("Sem acesso à versão atual do aplicativo.");
+      if ("serviceWorker" in navigator) {
+        const registro = await navigator.serviceWorker.getRegistration();
+        await registro?.update();
+      }
+      sessionStorage.setItem("rf-atualizacao-concluida", "1");
+      window.location.reload();
+    } catch {
+      setAtualizando(false);
+      window.alert("Não foi possível atualizar. Verifique sua conexão e tente novamente.");
+    }
+  };
 
   const recarregarVersoes = useCallback(() => {
     listarVersoes()
@@ -306,6 +337,17 @@ function DadosPage() {
             salvos neste dispositivo.
           </p>
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void atualizarApp()}
+          disabled={importando || atualizando}
+          className="h-12 rounded-xl font-bold"
+        >
+          <RefreshCwIcon className={atualizando ? "animate-spin" : ""} />
+          {atualizando ? "ATUALIZANDO…" : "ATUALIZAR"}
+        </Button>
 
         {podeBackup ? (
           <section className="flex flex-col gap-3">
