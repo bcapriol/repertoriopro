@@ -6,6 +6,7 @@ self.addEventListener('install', (event) => {
     const home = await fetch('/');
     if (!home.ok) throw new Error('Não foi possível preparar o modo offline.');
     await cache.put('/', home.clone());
+    await Promise.allSettled(['/manifest.webmanifest', '/app-icon.png', '/icon-192.svg', '/icon-512.svg'].map((url) => cache.add(url)));
     const html = await home.text();
     const assets = [...html.matchAll(/(?:src|href)=["'](\/[^"']+\.(?:js|css|png|jpg|svg|ico|woff2?)(?:\?[^"']*)?)["']/g)].map((m) => m[1]);
     await Promise.allSettled([...new Set(assets)].map((url) => cache.add(url)));

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 192 192" role="img" aria-label="Repertório Fácil">
+  <rect width="192" height="192" rx="34" fill="#193d91"/>
+  <rect x="40" y="40" width="112" height="112" rx="12" fill="#ffffff"/>
+  <path d="M64 65h64M64 83h49M64 101h29" fill="none" stroke="#193d91" stroke-linecap="round" stroke-width="7"/>
+  <path d="M123 91v35a10 10 0 1 1-7-9V99l22-6v24a10 10 0 1 1-7-9V88z" fill="#193d91"/>
+</svg>

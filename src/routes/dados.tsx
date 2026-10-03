@@ -60,6 +60,16 @@ export const Route = createFileRoute("/dados")({
 const hoje = () => new Date().toISOString().slice(0, 10);
 const espera = () => new Promise((r) => setTimeout(r, 120));
 
+// Os nomes dos arquivos compilados mudam quando uma nova versão é publicada.
+function assinaturaDoApp(pagina: Document): string[] {
+  return Array.from(pagina.querySelectorAll("script[src], link[rel='stylesheet'][href], link[rel='modulepreload'][href]"))
+    .map((elemento) => elemento.getAttribute("src") ?? elemento.getAttribute("href") ?? "")
+    .map((endereco) => new URL(endereco, window.location.origin))
+    .filter((url) => url.origin === window.location.origin && /\.(js|css)$/.test(url.pathname))
+    .map((url) => url.pathname)
+    .sort();
+}
+
 function DadosPage() {
   const { data } = useAppData();
   const { conta } = useConta();
@@ -73,9 +83,13 @@ function DadosPage() {
   const [atualizando, setAtualizando] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem("rf-atualizacao-concluida") === "1") {
-      sessionStorage.removeItem("rf-atualizacao-concluida");
+    const versaoEsperada = sessionStorage.getItem("rf-atualizacao-pendente");
+    if (!versaoEsperada) return;
+    sessionStorage.removeItem("rf-atualizacao-pendente");
+    if (assinaturaDoApp(document).includes(versaoEsperada)) {
       window.alert("Atualizado com sucesso.");
+    } else {
+      window.alert("A nova versão ainda não carregou. Conecte-se à internet e tente novamente.");
     }
   }, []);
 
@@ -86,18 +100,32 @@ function DadosPage() {
     }
     setAtualizando(true);
     try {
-      // Esta requisição não é uma navegação: o service worker não a atende pelo cache offline.
-      const resposta = await fetch(window.location.href, { cache: "no-store" });
-      if (!resposta.ok) throw new Error("Sem acesso à versão atual do aplicativo.");
+      // Fetch normal, sem navegação: o service worker não serve esta checagem pelo cache.
+      const resposta = await fetch(`/dados?verificar-atualizacao=${Date.now()}`, { cache: "no-store" });
+      if (!resposta.ok || !resposta.headers.get("content-type")?.includes("text/html")) {
+        throw new Error("Sem acesso à versão atual do aplicativo.");
+      }
+      const paginaNova = new DOMParser().parseFromString(await resposta.text(), "text/html");
+      const versaoAtual = assinaturaDoApp(document);
+      const versaoNova = assinaturaDoApp(paginaNova);
+      if (!versaoAtual.length || !versaoNova.length) {
+        throw new Error("Não foi possível identificar a versão do aplicativo.");
+      }
+      const novoArquivo = versaoNova.find((url) => !versaoAtual.includes(url));
+      if (!novoArquivo) {
+        window.alert("O aplicativo já está na versão mais recente.");
+        return;
+      }
       if ("serviceWorker" in navigator) {
         const registro = await navigator.serviceWorker.getRegistration();
         await registro?.update();
       }
-      sessionStorage.setItem("rf-atualizacao-concluida", "1");
-      window.location.reload();
+      sessionStorage.setItem("rf-atualizacao-pendente", novoArquivo);
+      window.location.assign("/dados?atualizado=1");
     } catch {
+      window.alert("Não foi possível verificar a atualização. Verifique sua conexão e tente novamente.");
+    } finally {
       setAtualizando(false);
-      window.alert("Não foi possível atualizar. Verifique sua conexão e tente novamente.");
     }
   };
 
