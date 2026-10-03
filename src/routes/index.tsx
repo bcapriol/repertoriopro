@@ -35,16 +35,16 @@ export const Route = createFileRoute("/")({
 });
 
 const tileClass =
-  "surface-tile group flex w-full items-center gap-4 rounded-2xl border border-border px-5 py-5 text-left transition-transform duration-150 active:scale-[0.98] hover:border-primary/40";
+  "surface-tile group flex min-h-36 w-full flex-col items-start justify-between gap-5 rounded-lg border border-border px-5 py-5 text-left transition-all duration-150 active:scale-[0.98] hover:border-primary/50 hover:shadow-md";
 
 function TileBody({ label, hint, Icon }: { label: string; hint: string; Icon: LucideIcon }) {
   return (
     <>
-      <span className="gradient-stage flex size-12 shrink-0 items-center justify-center rounded-xl text-primary-foreground shadow-sm">
+      <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
         <Icon className="size-6" strokeWidth={2.2} />
       </span>
       <span className="min-w-0">
-        <span className="block text-base font-bold tracking-wide text-foreground uppercase">
+        <span className="block text-base font-bold text-primary uppercase">
           {label}
         </span>
         <span className="block text-sm text-muted-foreground">{hint}</span>
@@ -59,22 +59,22 @@ function Index() {
   const { conta } = useConta();
 
   return (
-    <main className="min-h-screen bg-background px-5 pt-12 pb-14">
-      <div className="mx-auto w-full max-w-md">
+    <main className="min-h-screen bg-background px-5 pt-10 pb-14">
+      <div className="mx-auto w-full max-w-4xl">
         <div className="flex justify-end">
           <Link
             to="/adm"
             aria-label="Área do administrador"
-            className="flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground"
+            className="flex size-10 items-center justify-center rounded-lg border border-border text-primary transition-colors hover:bg-accent"
           >
             <LockIcon className="size-4" />
           </Link>
         </div>
         <header className="text-center">
-          <span className="gradient-accent mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl text-accent-foreground">
+          <span className="mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
             <MusicIcon className="size-7" strokeWidth={2.4} />
           </span>
-          <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-foreground">
+          <h1 className="text-3xl leading-tight font-extrabold text-primary">
             {banda ? `Repertório ${banda}` : "Repertório Fácil"}
           </h1>
           <p className="mt-2 text-base font-semibold text-muted-foreground">
@@ -85,9 +85,9 @@ function Index() {
           </p>
         </header>
 
-        <nav className="mt-10 flex flex-col gap-4">
+        <nav className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {!banda && data.songs.length === 0 && data.setlists.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border px-5 py-4 text-center text-sm text-muted-foreground">
+            <p className="rounded-lg border border-dashed border-border px-5 py-4 text-center text-sm text-muted-foreground sm:col-span-2">
               Aparelho vazio. Use{" "}
               <span className="font-semibold text-foreground">Sincronizar Repertórios</span> para
               trazer as músicas e repertórios da sua banda.

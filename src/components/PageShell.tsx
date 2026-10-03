@@ -15,19 +15,19 @@ export function PageShell({
 }) {
   return (
     <main className="min-h-screen bg-background pb-16">
-      <header className="gradient-stage sticky top-0 z-10 px-5 pt-6 pb-6 text-primary-foreground">
+      <header className="sticky top-0 z-10 border-b border-border bg-background px-5 pt-6 pb-6 text-foreground">
         <div className="mx-auto w-full max-w-md">
           <Link
             to="/"
-            className="inline-flex items-center gap-1 text-sm font-medium opacity-90 hover:opacity-100"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
           >
             <ChevronLeftIcon className="size-4" />
             Início
           </Link>
           <div className="mt-3 flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="truncate text-2xl font-extrabold tracking-tight">{title}</h1>
-              {subtitle ? <p className="mt-1 text-sm opacity-85">{subtitle}</p> : null}
+              <h1 className="truncate text-2xl font-extrabold">{title}</h1>
+              {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
             </div>
             {action}
           </div>

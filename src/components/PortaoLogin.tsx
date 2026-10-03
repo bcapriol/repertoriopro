@@ -63,14 +63,15 @@ function TelaLogin() {
   };
 
   return (
-    <main className="flex min-h-screen items-center bg-background px-5 py-12">
-      <div className="mx-auto w-full max-w-sm">
+    <main className="flex min-h-screen items-center bg-muted/40 px-5 py-12">
+      <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+        <div className="px-6 pt-10 pb-6 sm:px-8">
         <header className="text-center">
-          <span className="gradient-accent mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl text-accent-foreground">
+          <span className="mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
             <MusicIcon className="size-7" strokeWidth={2.4} />
           </span>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            Repertório Fácil
+          <h1 className="text-2xl font-extrabold text-primary">
+            Repertório Fácil Pro
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Entre com o usuário e a senha que o administrador criou para você.
@@ -80,13 +81,13 @@ function TelaLogin() {
           </p>
         </header>
 
-        <div className="surface-tile mt-8 flex flex-col gap-3 rounded-2xl border border-border p-5">
+        <div className="mt-8 flex flex-col gap-4">
           <Input
             value={usuario}
             onChange={(e) => setUsuario(e.target.value)}
             placeholder="Usuário"
             autoComplete="username"
-            className="h-12 text-base"
+            className="h-12 rounded-lg bg-background text-base text-foreground"
           />
           <div className="relative">
             <Input
@@ -98,7 +99,7 @@ function TelaLogin() {
               }}
               placeholder="Senha"
               autoComplete="current-password"
-              className="h-12 pr-12 text-base"
+              className="h-12 rounded-lg bg-background pr-12 text-base text-foreground"
             />
             <button
               type="button"
@@ -112,15 +113,16 @@ function TelaLogin() {
           <Button
             onClick={acessar}
             disabled={ocupado}
-            className="h-13 rounded-xl py-4 text-base font-bold"
+            className="h-13 rounded-lg py-4 text-base font-bold shadow-md"
           >
             ENTRAR
           </Button>
         </div>
 
+        </div>
         <Link
           to="/adm"
-          className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="flex items-center justify-center gap-2 border-t border-border bg-muted/50 px-6 py-4 text-sm text-foreground transition-colors hover:text-primary"
         >
           <LockIcon className="size-4" /> Área do administrador
         </Link>
