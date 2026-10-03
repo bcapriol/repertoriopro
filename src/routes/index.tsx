@@ -74,7 +74,7 @@ function Index() {
           <span className="mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
             <MusicIcon className="size-7" strokeWidth={2.4} />
           </span>
-          <h1 className="text-3xl leading-tight font-extrabold text-primary">
+          <h1 className="text-3xl leading-tight font-extrabold text-[oklch(0.62_0.24_250)]">
             {banda ? `Repertório ${banda}` : "Repertório Fácil"}
           </h1>
           <p className="mt-2 text-base font-semibold text-muted-foreground">
