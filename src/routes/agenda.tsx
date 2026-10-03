@@ -210,15 +210,15 @@ function AgendaPage() {
   const podeMexer = (e: EventoAgenda) => e.tipo !== "show" || podeShows;
 
   return (
-    <PageShell title="Agenda" subtitle={`${shows.length} show(s) cadastrado(s)`}>
-      <Tabs defaultValue="calendario">
-        <TabsList className="mb-5 grid w-full grid-cols-2">
-          <TabsTrigger value="calendario">Calendário</TabsTrigger>
-          <TabsTrigger value="relatorio">Relatório de Shows</TabsTrigger>
+    <PageShell title="Agenda" subtitle={`${shows.length} show(s) cadastrado(s)`} wide>
+      <Tabs defaultValue="calendario" className="min-w-0">
+        <TabsList className="mb-5 grid w-full min-w-0 grid-cols-2">
+          <TabsTrigger value="calendario" className="min-w-0 px-1 text-xs sm:text-sm">Calendário</TabsTrigger>
+          <TabsTrigger value="relatorio" className="min-w-0 px-1 text-xs sm:text-sm">Relatório de Shows</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="calendario" className="flex flex-col gap-5">
-          <section className="surface-tile rounded-2xl border border-border p-3">
+        <TabsContent value="calendario" className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+          <section className="surface-tile min-w-0 rounded-2xl border border-border p-3">
             <div className="mb-3 flex items-center justify-between">
               <Button variant="ghost" size="icon" aria-label="Mês anterior" onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}>
                 <ChevronLeftIcon />
@@ -269,7 +269,7 @@ function AgendaPage() {
                 .map((t) => {
                   const { Icon, rotulo } = TIPOS[t];
                   return (
-                    <Button key={t} variant="outline" className="h-auto flex-col gap-1 rounded-xl py-3 text-xs font-bold" disabled={t === "show" && diaDeFolga} title={t === "show" && diaDeFolga ? "Data bloqueada por folga" : undefined} onClick={() => novo(t)}>
+                    <Button key={t} variant="outline" className="h-auto min-w-0 flex-col gap-1 whitespace-normal rounded-xl px-1 py-3 text-center text-xs font-bold" disabled={t === "show" && diaDeFolga} title={t === "show" && diaDeFolga ? "Data bloqueada por folga" : undefined} onClick={() => novo(t)}>
                       <PlusIcon className="size-4" /><Icon className="size-5" />{t === "particular" ? "Compromisso" : rotulo}
                     </Button>
                   );
@@ -379,7 +379,7 @@ function AgendaPage() {
       </Tabs>
 
       <Dialog open={!!form && !conflitoShow} onOpenChange={(o) => !o && !conflitoShow && setForm(null)}>
-        <DialogContent>
+        <DialogContent className={form?.tipo === "show" ? "w-[calc(100%-2rem)] max-w-2xl" : "w-[calc(100%-2rem)]"}>
           {form ? (
             <>
               <DialogHeader><DialogTitle>{form.id ? "Alterar" : "Novo"}: {TIPOS[form.tipo].rotulo}</DialogTitle></DialogHeader>
@@ -395,9 +395,9 @@ function AgendaPage() {
                   <Campo rotulo="Data final"><Input type="date" min={form.data} value={form.dataFim} onChange={(e) => setForm({ ...form, dataFim: e.target.value })} className="h-11 text-base" /></Campo>
                 ) : null}
                 {form.tipo !== "folga" ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Campo rotulo="Hora de início"><Input type="time" value={form.horaInicio} onChange={(e) => setForm({ ...form, horaInicio: e.target.value })} className="h-11 text-base" /></Campo>
-                    <Campo rotulo="Hora de fim"><Input type="time" value={form.horaFim} onChange={(e) => setForm({ ...form, horaFim: e.target.value })} className="h-11 text-base" /></Campo>
+                  <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Campo rotulo="Hora de início"><Input type="time" value={form.horaInicio} onChange={(e) => setForm({ ...form, horaInicio: e.target.value })} className="h-11 min-w-0 text-base" /></Campo>
+                    <Campo rotulo="Hora de fim"><Input type="time" value={form.horaFim} onChange={(e) => setForm({ ...form, horaFim: e.target.value })} className="h-11 min-w-0 text-base" /></Campo>
                   </div>
                 ) : null}
                 {form.tipo === "show" ? (
