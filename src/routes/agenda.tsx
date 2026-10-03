@@ -14,6 +14,7 @@ import {
   PencilIcon,
   Trash2Icon,
   RotateCcwIcon,
+  FilterIcon,
   type LucideIcon,
 } from "lucide-react";
 import { PageShell, EmptyState } from "@/components/PageShell";
@@ -22,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { agendaExcluir, agendaListar, agendaSalvar, agendaStatus } from "@/lib/nuvem.functions";
 import { salvarConta, useConta } from "@/lib/banda-local";
 import type { EventoAgenda } from "@/lib/nuvem.server";
@@ -56,6 +58,16 @@ const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-B
 const horario = (e: EventoAgenda) => (e.horaInicio ? `${e.horaInicio}${e.horaFim ? `–${e.horaFim}` : ""}` : "—");
 
 type Form = { id?: string; tipo: Tipo; data: string; dataFim: string; horaInicio: string; horaFim: string; local: string; descricao: string; valor: string };
+type ColunaRelatorio = "data" | "horario" | "local" | "valor" | "status";
+type FiltrosRelatorio = { dataInicio: string; dataFim: string; horaInicio: string; horaFim: string; local: string; valorMin: string; valorMax: string; status: string };
+const FILTROS_VAZIOS: FiltrosRelatorio = { dataInicio: "", dataFim: "", horaInicio: "", horaFim: "", local: "", valorMin: "", valorMax: "", status: "" };
+const COLUNAS_RELATORIO: { chave: ColunaRelatorio; rotulo: string; campos: (keyof FiltrosRelatorio)[] }[] = [
+  { chave: "data", rotulo: "Data", campos: ["dataInicio", "dataFim"] },
+  { chave: "horario", rotulo: "Horário", campos: ["horaInicio", "horaFim"] },
+  { chave: "local", rotulo: "Local", campos: ["local"] },
+  { chave: "valor", rotulo: "Valor", campos: ["valorMin", "valorMax"] },
+  { chave: "status", rotulo: "Status", campos: ["status"] },
+];
 
 function AgendaPage() {
   const { conta, pronto } = useConta();
@@ -74,6 +86,7 @@ function AgendaPage() {
   const [dia, setDia] = useState(iso(hoje));
   const [form, setForm] = useState<Form | null>(null);
   const [conflitoShow, setConflitoShow] = useState(false);
+  const [filtros, setFiltros] = useState<FiltrosRelatorio>(FILTROS_VAZIOS);
 
   const cred = conta ? { usuario: conta.usuario, senha: conta.senha } : null;
 
@@ -125,6 +138,19 @@ function AgendaPage() {
   }, [mes]);
 
   const shows = eventos.filter((e) => e.tipo === "show");
+  const showsFiltrados = shows.filter((e) => {
+    const valor = e.valor;
+    const minimo = Number(filtros.valorMin.replace(",", "."));
+    const maximo = Number(filtros.valorMax.replace(",", "."));
+    return (!filtros.dataInicio || e.data >= filtros.dataInicio) &&
+      (!filtros.dataFim || e.data <= filtros.dataFim) &&
+      (!filtros.horaInicio || e.horaInicio >= filtros.horaInicio) &&
+      (!filtros.horaFim || (e.horaInicio && e.horaInicio <= filtros.horaFim)) &&
+      (!filtros.local || e.local.toLocaleLowerCase("pt-BR").includes(filtros.local.trim().toLocaleLowerCase("pt-BR"))) &&
+      (!filtros.valorMin || (Number.isFinite(minimo) && valor !== null && valor >= minimo)) &&
+      (!filtros.valorMax || (Number.isFinite(maximo) && valor !== null && valor <= maximo)) &&
+      (!filtros.status || e.status === filtros.status);
+  });
   const doDia = eventosNoDia(dia);
   const diaDeFolga = doDia.some((e) => e.tipo === "folga");
 
@@ -295,10 +321,41 @@ function AgendaPage() {
             <div className="surface-tile overflow-x-auto rounded-2xl border border-border">
               <table className="w-full text-left text-sm">
                 <thead className="text-xs uppercase text-muted-foreground">
-                  <tr>{["Data", "Horário", "Local", "Valor", "Status"].map((h) => <th key={h} className="px-3 py-2 font-semibold">{h}</th>)}</tr>
+                  <tr>{COLUNAS_RELATORIO.map(({ chave, rotulo, campos }) => (
+                    <th key={chave} scope="col" className="px-3 py-2 font-semibold">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button type="button" aria-label={`Filtrar por ${rotulo}`} className={`inline-flex items-center gap-1 rounded px-1 py-1 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary ${campos.some((campo) => filtros[campo]) ? "text-primary" : ""}`}>
+                            {rotulo}<FilterIcon className="size-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-64 space-y-3 text-sm normal-case">
+                          <p className="font-semibold text-foreground">Filtrar por {rotulo.toLowerCase()}</p>
+                          {chave === "data" ? <>
+                            <Campo rotulo="De"><Input type="date" value={filtros.dataInicio} onChange={(ev) => setFiltros((f) => ({ ...f, dataInicio: ev.target.value }))} /></Campo>
+                            <Campo rotulo="Até"><Input type="date" value={filtros.dataFim} onChange={(ev) => setFiltros((f) => ({ ...f, dataFim: ev.target.value }))} /></Campo>
+                          </> : null}
+                          {chave === "horario" ? <>
+                            <Campo rotulo="A partir de"><Input type="time" value={filtros.horaInicio} onChange={(ev) => setFiltros((f) => ({ ...f, horaInicio: ev.target.value }))} /></Campo>
+                            <Campo rotulo="Até"><Input type="time" value={filtros.horaFim} onChange={(ev) => setFiltros((f) => ({ ...f, horaFim: ev.target.value }))} /></Campo>
+                          </> : null}
+                          {chave === "local" ? <Campo rotulo="Local"><Input placeholder="Buscar local" value={filtros.local} onChange={(ev) => setFiltros((f) => ({ ...f, local: ev.target.value }))} /></Campo> : null}
+                          {chave === "valor" ? <>
+                            <Campo rotulo="Valor mínimo (R$)"><Input type="number" min="0" step="0.01" value={filtros.valorMin} onChange={(ev) => setFiltros((f) => ({ ...f, valorMin: ev.target.value }))} /></Campo>
+                            <Campo rotulo="Valor máximo (R$)"><Input type="number" min="0" step="0.01" value={filtros.valorMax} onChange={(ev) => setFiltros((f) => ({ ...f, valorMax: ev.target.value }))} /></Campo>
+                          </> : null}
+                          {chave === "status" ? <Campo rotulo="Status"><select className="h-9 w-full rounded-md border border-input bg-background px-3 text-foreground" value={filtros.status} onChange={(ev) => setFiltros((f) => ({ ...f, status: ev.target.value }))}>
+                            <option value="">Todos</option>
+                            {Object.entries(STATUS).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
+                          </select></Campo> : null}
+                          <Button type="button" size="sm" variant="outline" className="w-full" disabled={!campos.some((campo) => filtros[campo])} onClick={() => setFiltros((f) => ({ ...f, ...Object.fromEntries(campos.map((campo) => [campo, ""])) }))}>Limpar filtro</Button>
+                        </PopoverContent>
+                      </Popover>
+                    </th>
+                  ))}</tr>
                 </thead>
                 <tbody>
-                  {shows.map((e) => (
+                  {showsFiltrados.map((e) => (
                     <tr key={e.id} className="border-t border-border text-foreground">
                       <td className="px-3 py-2 whitespace-nowrap">{dataBR(e.data)}</td>
                       <td className="px-3 py-2 whitespace-nowrap">{horario(e)}</td>
@@ -307,11 +364,12 @@ function AgendaPage() {
                       <td className="px-3 py-2 whitespace-nowrap">{STATUS[e.status]}</td>
                     </tr>
                   ))}
+                  {showsFiltrados.length === 0 ? <tr><td colSpan={5} className="border-t border-border px-3 py-5 text-center text-muted-foreground">Nenhum show corresponde aos filtros.</td></tr> : null}
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border font-bold text-primary">
                     <td className="px-3 py-2" colSpan={3}>Total concluído</td>
-                    <td className="px-3 py-2 whitespace-nowrap" colSpan={2}>{moeda(shows.filter((s) => s.status === "concluido").reduce((a, s) => a + (s.valor ?? 0), 0))}</td>
+                    <td className="px-3 py-2 whitespace-nowrap" colSpan={2}>{moeda(showsFiltrados.filter((s) => s.status === "concluido").reduce((a, s) => a + (s.valor ?? 0), 0))}</td>
                   </tr>
                 </tfoot>
               </table>
