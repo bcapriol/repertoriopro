@@ -35,6 +35,9 @@ import {
 
 import { readData, useAppData, writeData } from "@/lib/repertorio-store";
 import { useConta } from "@/lib/banda-local";
+import { useServerFn } from "@tanstack/react-start";
+import { obterAnexo } from "@/lib/nuvem.functions";
+import { prepararCopiaOffline } from "@/lib/anexo-cache";
 
 
 export const Route = createFileRoute("/dados")({
@@ -73,6 +76,7 @@ function assinaturaDoApp(pagina: Document): string[] {
 function DadosPage() {
   const { data } = useAppData();
   const { conta } = useConta();
+  const obterArquivo = useServerFn(obterAnexo);
   const podeBackup = conta?.podeBackup ?? false;
   const jsonRef = useRef<HTMLInputElement>(null);
   const csvRef = useRef<HTMLInputElement>(null);
@@ -100,6 +104,20 @@ function DadosPage() {
     }
     setAtualizando(true);
     try {
+      const dadosLocais = readData();
+      await writeData(dadosLocais, true);
+      const copia = await prepararCopiaOffline(dadosLocais, async (anexo) => {
+        if (!conta) throw new Error("Entre na sua conta para baixar os arquivos.");
+        const { url } = await obterArquivo({ data: { usuario: conta.usuario, senha: conta.senha, caminho: anexo.caminho! } });
+        const arquivo = await fetch(url);
+        if (!arquivo.ok) throw new Error("Não foi possível baixar o arquivo.");
+        return arquivo.blob();
+      });
+      if (copia.pendentes) {
+        window.alert(`As músicas foram salvas neste aparelho, mas faltam ${copia.pendentes} arquivo(s) para consulta offline. Verifique a internet e toque em ATUALIZAR novamente para concluir.`);
+        return;
+      }
+      toast.success(`Cópia offline pronta: músicas, repertórios e ${copia.disponiveis} arquivo(s) salvos neste aparelho.`);
       // Fetch normal, sem navegação: o service worker não serve esta checagem pelo cache.
       const resposta = await fetch(`/dados?verificar-atualizacao=${Date.now()}`, { cache: "no-store" });
       if (!resposta.ok || !resposta.headers.get("content-type")?.includes("text/html")) {
@@ -122,8 +140,10 @@ function DadosPage() {
       }
       sessionStorage.setItem("rf-atualizacao-pendente", novoArquivo);
       window.location.assign("/dados?atualizado=1");
-    } catch {
-      window.alert("Não foi possível verificar a atualização. Verifique sua conexão e tente novamente.");
+    } catch (e) {
+      window.alert(e instanceof DOMException && e.name === "QuotaExceededError"
+        ? "Não há espaço suficiente para concluir a cópia offline. Libere espaço neste aparelho e tente novamente."
+        : "Não foi possível concluir a cópia offline ou verificar a atualização. Verifique sua conexão e o espaço livre e tente novamente.");
     } finally {
       setAtualizando(false);
     }
@@ -374,8 +394,13 @@ function DadosPage() {
           className="h-12 rounded-xl font-bold"
         >
           <RefreshCwIcon className={atualizando ? "animate-spin" : ""} />
-          {atualizando ? "ATUALIZANDO…" : "ATUALIZAR"}
+          {atualizando ? "SALVANDO CÓPIA E ATUALIZANDO…" : "ATUALIZAR"}
         </Button>
+        <p className="text-sm text-muted-foreground">
+          Ao atualizar, o app também baixa os anexos das músicas deste aparelho para consulta offline.
+          Aguarde a confirmação antes de desconectar a internet. Para receber mudanças de outros aparelhos,
+          use Sincronizar Repertórios Wi-Fi.
+        </p>
 
         {podeBackup ? (
           <section className="flex flex-col gap-3">

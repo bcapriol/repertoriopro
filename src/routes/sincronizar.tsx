@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { enviarAnexo, obterAnexo, sincronizarNuvem } from "@/lib/nuvem.functions";
 import { readData, writeData, type Anexo, type AppData, type Song } from "@/lib/repertorio-store";
-import { guardarAnexoOffline, guardarLegadoOffline, lerAnexoOffline } from "@/lib/anexo-cache";
+import { guardarLegadoOffline, prepararCopiaOffline, type CopiaOffline } from "@/lib/anexo-cache";
 import { mesclarDados } from "@/lib/sync-merge";
 import { enviarPorBluetooth } from "@/lib/bluetooth-sync";
 import { validarBackup } from "@/lib/backup";
@@ -54,6 +54,7 @@ function SincronizarPage() {
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [copiaOffline, setCopiaOffline] = useState<CopiaOffline | null>(null);
 
   useEffect(() => {
     setConta(lerConta());
@@ -93,26 +94,19 @@ function SincronizarPage() {
       const localMigrado = await migrarAnexos(readData());
       const r = await sincronizar({ data: { usuario: u, senha: s, dados: localMigrado.dados } });
       const remotoMigrado = await migrarAnexos(r.dados);
-      const dadosFinais: AppData = remotoMigrado.dados;
-
-      for (const song of dadosFinais.songs) {
-        for (const anexo of song.anexos ?? []) {
-          const caminho = anexo.caminho;
-          if (caminho && !(await lerAnexoOffline(anexo.id))) {
-            try {
-              const { url } = await obterArquivo({ data: { usuario: u, senha: s, caminho } });
-              const resposta = await fetch(url);
-              if (resposta.ok) await guardarAnexoOffline(anexo.id, await resposta.blob());
-            } catch {
-              // A sincronização dos repertórios continua mesmo se um anexo não baixar.
-            }
-          }
-        }
-      }
+      let dadosFinais: AppData = remotoMigrado.dados;
       if (localMigrado.alterou || remotoMigrado.alterou) {
-        await sincronizar({ data: { usuario: u, senha: s, dados: dadosFinais } });
+        const atualizado = await sincronizar({ data: { usuario: u, senha: s, dados: dadosFinais } });
+        dadosFinais = atualizado.dados;
       }
       await writeData(dadosFinais, true);
+      const copia = await prepararCopiaOffline(dadosFinais, async (anexo) => {
+        const { url } = await obterArquivo({ data: { usuario: u, senha: s, caminho: anexo.caminho! } });
+        const resposta = await fetch(url);
+        if (!resposta.ok) throw new Error("Não foi possível baixar o anexo.");
+        return resposta.blob();
+      });
+      setCopiaOffline(copia);
       salvarBanda(r.banda);
       const nova: Conta = {
         usuario: u,
@@ -126,9 +120,11 @@ function SincronizarPage() {
       };
       salvarConta(nova);
       setConta(nova);
-      toast.success(
-        `Sincronizado: ${dadosFinais.songs.length} música(s) e ${dadosFinais.setlists.length} repertório(s).`,
-      );
+      if (copia.pendentes) {
+        toast.warning(`Músicas sincronizadas. Faltam ${copia.pendentes} arquivo(s) para uso offline; sincronize novamente com internet.`);
+      } else {
+        toast.success(`Sincronizado e salvo neste aparelho: ${dadosFinais.songs.length} música(s), ${dadosFinais.setlists.length} repertório(s) e ${copia.disponiveis} arquivo(s).`);
+      }
     } catch (e) {
       toast.error(e instanceof DOMException && e.name === "QuotaExceededError" ? "Sem espaço para sincronizar. Libere espaço no aparelho e tente novamente." : e instanceof Error ? e.message : "Não foi possível sincronizar.");
     } finally {
@@ -147,7 +143,7 @@ function SincronizarPage() {
       );
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
-      toast.error("Não foi possível iniciar o envio.");
+      toast.error(e instanceof Error ? e.message : "Não foi possível iniciar o envio.");
     } finally {
       setOcupado(false);
     }
@@ -164,9 +160,13 @@ function SincronizarPage() {
       }
       const mesclado = mesclarDados(readData(), check.data as AppData);
       await writeData(mesclado, true);
-      toast.success(
-        `Recebido: ${mesclado.songs.length} música(s) e ${mesclado.setlists.length} repertório(s).`,
-      );
+      const copia = await prepararCopiaOffline(mesclado);
+      setCopiaOffline(copia);
+      if (copia.pendentes) {
+        toast.warning(`Músicas recebidas e salvas. Faltam ${copia.pendentes} arquivo(s) neste aparelho; sincronize por Wi-Fi para baixá-los.`);
+      } else {
+        toast.success(`Recebido e salvo para consulta offline: ${mesclado.songs.length} música(s), ${mesclado.setlists.length} repertório(s) e ${copia.disponiveis} arquivo(s).`);
+      }
     } catch {
       toast.error("Não foi possível ler o arquivo recebido.");
     } finally {
@@ -189,8 +189,17 @@ function SincronizarPage() {
             <WifiIcon className="size-4" /> Sincronizar repertórios Wi-Fi
           </h2>
           <p className="text-sm text-muted-foreground">
-            Envia o que mudou neste aparelho e baixa o que mudou nos outros. Vale a versão mais
-            recente de cada música e repertório.
+            Envia as mudanças e salva músicas, repertórios e anexos na memória deste aparelho
+            para consulta sem internet. Exclusões também são sincronizadas e removem a cópia local.
+          </p>
+          <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
+            {ocupado
+              ? "Aguarde a conclusão da transferência e da cópia offline…"
+              : copiaOffline
+                ? copiaOffline.pendentes
+                  ? `Cópia incompleta: ${copiaOffline.disponiveis} de ${copiaOffline.total} arquivos disponíveis offline. Sincronize novamente com internet para concluir.`
+                  : `Cópia offline pronta neste aparelho: músicas, repertórios e ${copiaOffline.disponiveis} arquivo(s).`
+                : "Aguarde a confirmação de cópia offline pronta antes de desconectar a internet."}
           </p>
           {conta ? (
             <>
@@ -289,8 +298,8 @@ function SincronizarPage() {
           />
           <p className="text-xs text-muted-foreground">
             No aparelho que envia toque em Bluetooth e escolha o outro celular; no aparelho que
-            recebe toque em "Receber de outro aparelho" e abra o que chegou. Nada é perdido: os dois
-            aparelhos ficam com tudo.
+            recebe toque em "Receber de outro aparelho" e abra o que chegou. Os anexos seguem no
+            arquivo para consulta offline; exclusões também são aplicadas ao receber.
           </p>
         </section>
 
@@ -319,13 +328,22 @@ function SincronizarPage() {
             <Button
               variant="destructive"
               className="h-12 rounded-xl font-bold"
-              onClick={() => {
+              disabled={ocupado}
+              onClick={async () => {
                 if (!window.confirm("Apagar todas as músicas e repertórios deste aparelho?")) return;
-                void writeData({ songs: [], setlists: [], deletedSongs: [], deletedSetlists: [] }, true).catch(() => toast.error("Não foi possível limpar os dados."));
-                salvarBanda("");
-                salvarConta(null);
-                setConta(null);
-                toast.success("Aparelho limpo.");
+                setOcupado(true);
+                try {
+                  await writeData({ songs: [], setlists: [], deletedSongs: [], deletedSetlists: [] }, true);
+                  salvarBanda("");
+                  salvarConta(null);
+                  setConta(null);
+                  setCopiaOffline(null);
+                  toast.success("Aparelho limpo.");
+                } catch {
+                  toast.error("Não foi possível limpar os dados.");
+                } finally {
+                  setOcupado(false);
+                }
               }}
             >
               Limpar este aparelho

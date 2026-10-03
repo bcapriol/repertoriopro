@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { guardarLegadoOffline, limparAnexosOffline } from "./anexo-cache";
 
 export type Anexo = {
   id: string;
@@ -153,10 +154,16 @@ export function writeData(entrada: AppData, preservarVersoes = false): Promise<v
   };
   if (typeof window === "undefined") return Promise.resolve();
   const salvar = fila.catch(() => {}).then(async () => {
+    await guardarLegadoOffline(next);
     await bancoSalvar(next);
     cache = next;
     try { window.localStorage.removeItem(KEY); } catch { /* storage indisponível */ }
     listeners.forEach((l) => l());
+    try {
+      await limparAnexosOffline(next);
+    } catch {
+      toast.warning("Músicas salvas, mas não foi possível remover os arquivos antigos deste aparelho. Tente novamente ao atualizar ou sincronizar.");
+    }
   });
   fila = salvar;
   return salvar;

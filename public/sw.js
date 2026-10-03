@@ -26,7 +26,7 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/_server') || url.pathname.startsWith('/api/')) return;
-  if (request.mode !== 'navigate' && request.destination !== 'script' && request.destination !== 'style' && request.destination !== 'image' && request.destination !== 'font') return;
+  if (request.mode !== 'navigate' && request.destination !== 'script' && request.destination !== 'worker' && request.destination !== 'sharedworker' && request.destination !== 'style' && request.destination !== 'image' && request.destination !== 'font') return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     try {

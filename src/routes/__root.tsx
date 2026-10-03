@@ -143,7 +143,16 @@ function RootComponent() {
           await new Promise<void>((resolve) => navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true }));
         }
         if (navigator.onLine) {
-          void Promise.allSettled(Object.values(import.meta.glob("./*.tsx")).map((carregar) => carregar()));
+          void Promise.allSettled([
+            ...Object.values(import.meta.glob("./*.tsx")).map((carregar) => carregar()),
+            (async () => {
+              // Prepara também o leitor de PDF, mesmo sem abrir um anexo antes.
+              await import("pdfjs-dist");
+              const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+              const cache = await caches.open("repertorio-offline-v1");
+              await cache.add(worker.default);
+            })(),
+          ]);
         }
       }).catch(() => {
         // O app continua funcionando online se o navegador não permitir o cache offline.

@@ -21,6 +21,8 @@ function useFonteAnexo(anexo: Anexo) {
   useEffect(() => {
     let ativo = true;
     let urlLocal = "";
+    setFalhou(false);
+    setFonte("");
     if (anexo.dados) {
       setFonte(anexo.dados);
       return () => {};
@@ -39,7 +41,8 @@ function useFonteAnexo(anexo: Anexo) {
           blob = await resposta.blob();
           await guardarAnexoOffline(anexo.id, blob);
         }
-        if (!blob || !ativo) return;
+        if (!ativo) return;
+        if (!blob) throw new Error("Arquivo não disponível neste aparelho.");
         urlLocal = URL.createObjectURL(blob);
         setFonte(urlLocal);
       } catch {
@@ -168,8 +171,8 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
 
 export function AnexoView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
   const { fonte, falhou } = useFonteAnexo(anexo);
+  if (falhou) return <p className="p-6 text-center text-sm text-muted-foreground">Arquivo indisponível neste aparelho. Conecte-se à internet e sincronize novamente para concluir a cópia offline.</p>;
   if (anexo.tipo.startsWith("image/")) {
-    if (falhou) return <p className="p-6 text-center text-sm text-muted-foreground">Anexo indisponível offline neste aparelho.</p>;
     if (!fonte) return <p className="p-6 text-center text-sm text-muted-foreground">Carregando imagem…</p>;
     return <img src={fonte} alt={anexo.nome} className={fit ? "h-full max-h-full w-full object-contain" : "w-full"} />;
   }
