@@ -287,6 +287,42 @@ export type Database = {
           },
         ]
       }
+      presencas_online: {
+        Row: {
+          usuario_id: string
+          sessao_id: string
+          banda_id: string
+          visto_em: string
+        }
+        Insert: {
+          usuario_id: string
+          sessao_id: string
+          banda_id: string
+          visto_em?: string
+        }
+        Update: {
+          usuario_id?: string
+          sessao_id?: string
+          banda_id?: string
+          visto_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presencas_online_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "app_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presencas_online_banda_id_fkey"
+            columns: ["banda_id"]
+            isOneToOne: false
+            referencedRelation: "bandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

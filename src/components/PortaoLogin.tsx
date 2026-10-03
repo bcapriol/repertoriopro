@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { EyeIcon, EyeOffIcon, LockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { entrarComUsuario } from "@/lib/nuvem.functions";
-import { salvarBanda, salvarConta, useConta } from "@/lib/banda-local";
+import { entrarComUsuario, marcarPresenca, removerPresenca } from "@/lib/nuvem.functions";
+import { salvarBanda, salvarConta, useConta, type Conta } from "@/lib/banda-local";
 import { prepararDados } from "@/lib/repertorio-store";
 
 export function PortaoLogin({ children }: { children: ReactNode }) {
@@ -24,8 +24,40 @@ export function PortaoLogin({ children }: { children: ReactNode }) {
 
   if (pathname.startsWith("/adm")) return <>{children}</>;
   if (!pronto) return null;
-  if (conta) return <>{children}</>;
+  if (conta) return <><Presenca conta={conta} />{children}</>;
   return <TelaLogin />;
+}
+
+function Presenca({ conta }: { conta: Conta }) {
+  const marcar = useServerFn(marcarPresenca);
+  const remover = useServerFn(removerPresenca);
+
+  useEffect(() => {
+    const sessaoId = crypto.randomUUID();
+    const credenciais = { usuario: conta.usuario, senha: conta.senha, sessaoId };
+    const atualizar = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        void marcar({ data: credenciais }).catch(() => {});
+      }
+    };
+    const visibilidade = () => {
+      if (document.visibilityState === "hidden") {
+        void remover({ data: credenciais }).catch(() => {});
+      } else atualizar();
+    };
+    atualizar();
+    const intervalo = window.setInterval(atualizar, 30_000);
+    document.addEventListener("visibilitychange", visibilidade);
+    window.addEventListener("online", atualizar);
+    return () => {
+      window.clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", visibilidade);
+      window.removeEventListener("online", atualizar);
+      void remover({ data: credenciais }).catch(() => {});
+    };
+  }, [conta.usuario, conta.senha, marcar, remover]);
+
+  return null;
 }
 
 function TelaLogin() {

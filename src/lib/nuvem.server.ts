@@ -211,6 +211,46 @@ export async function baixarDaBanda(bandaId: string) {
   } as AppData;
 }
 
+const PRESENCA_VALIDADE_MS = 75_000;
+
+/** O acesso à presença passa sempre pela conta do aplicativo, nunca pelo cliente público. */
+export async function atualizarPresenca(usuario: string, senha: string, sessaoId: string) {
+  const conta = await entrarUsuario(usuario, senha);
+  const db = await admin();
+  const agora = new Date();
+  const { error } = await db.from("presencas_online").upsert({
+    usuario_id: conta.usuarioId,
+    banda_id: conta.bandaId,
+    sessao_id: sessaoId,
+    visto_em: agora.toISOString(),
+  });
+  if (error) throw error;
+  await db.from("presencas_online").delete()
+    .eq("banda_id", conta.bandaId)
+    .lt("visto_em", new Date(agora.getTime() - PRESENCA_VALIDADE_MS).toISOString());
+}
+
+export async function sairDaPresenca(usuario: string, senha: string, sessaoId: string) {
+  const conta = await entrarUsuario(usuario, senha);
+  const db = await admin();
+  const { error } = await db.from("presencas_online").delete()
+    .eq("usuario_id", conta.usuarioId).eq("sessao_id", sessaoId);
+  if (error) throw error;
+}
+
+export async function listarPresencas(usuario: string, senha: string): Promise<string[]> {
+  const conta = await entrarUsuario(usuario, senha);
+  const db = await admin();
+  const { data, error } = await db.from("presencas_online")
+    .select("usuario_id, app_usuarios(usuario)")
+    .eq("banda_id", conta.bandaId)
+    .gte("visto_em", new Date(Date.now() - PRESENCA_VALIDADE_MS).toISOString());
+  if (error) throw error;
+  return [...new Set((data ?? []).map((linha) =>
+    (linha.app_usuarios as unknown as { usuario: string } | null)?.usuario,
+  ).filter((nome): nome is string => Boolean(nome)))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
 export async function entrarUsuario(usuario: string, senha: string) {
   const db = await admin();
   const { data } = await db

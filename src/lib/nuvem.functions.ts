@@ -98,6 +98,18 @@ export const entrarComUsuario = createServerFn({ method: "POST" })
     return m.entrarUsuario(data.usuario, data.senha);
   });
 
+export const marcarPresenca = createServerFn({ method: "POST" })
+  .inputValidator((d: { usuario: string; senha: string; sessaoId: string }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).atualizarPresenca(data.usuario, data.senha, data.sessaoId));
+
+export const removerPresenca = createServerFn({ method: "POST" })
+  .inputValidator((d: { usuario: string; senha: string; sessaoId: string }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).sairDaPresenca(data.usuario, data.senha, data.sessaoId));
+
+export const usuariosOnline = createServerFn({ method: "POST" })
+  .inputValidator((d: { usuario: string; senha: string }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).listarPresencas(data.usuario, data.senha));
+
 export const enviarAnexo = createServerFn({ method: "POST" })
   .inputValidator((d: { usuario: string; senha: string; id: string; nome: string; tipo: string; dados: string }) => d)
   .handler(async ({ data }) => {
