@@ -41,10 +41,10 @@ export const Route = createFileRoute("/agenda")({
 });
 
 type Tipo = EventoAgenda["tipo"];
-const TIPOS: Record<Tipo, { rotulo: string; Icon: LucideIcon; ponto: string; chip: string }> = {
-  show: { rotulo: "Show", Icon: MicVocalIcon, ponto: "bg-primary", chip: "border-primary/60 bg-primary/15 text-primary" },
-  particular: { rotulo: "Compromisso Particular", Icon: PinIcon, ponto: "bg-foreground", chip: "border-foreground/40 bg-foreground/10 text-foreground" },
-  folga: { rotulo: "Folga", Icon: PalmtreeIcon, ponto: "bg-muted-foreground", chip: "border-dashed border-muted-foreground/60 bg-muted/40 text-muted-foreground" },
+const TIPOS: Record<Tipo, { rotulo: string; Icon: LucideIcon; corCalendario: string; chip: string }> = {
+  show: { rotulo: "Show", Icon: MicVocalIcon, corCalendario: "oklch(0.89 0.07 240)", chip: "border-primary/60 bg-primary/15 text-primary" },
+  particular: { rotulo: "Compromisso Particular", Icon: PinIcon, corCalendario: "oklch(0.90 0.06 25)", chip: "border-foreground/40 bg-foreground/10 text-foreground" },
+  folga: { rotulo: "Folga", Icon: PalmtreeIcon, corCalendario: "oklch(0.89 0.07 305)", chip: "border-dashed border-muted-foreground/60 bg-muted/40 text-muted-foreground" },
 };
 const STATUS: Record<EventoAgenda["status"], string> = { agendado: "Agendado", concluido: "Concluído", cancelado: "Cancelado" };
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -186,7 +186,8 @@ function AgendaPage() {
             <div className="mt-1 grid grid-cols-7 gap-1">
               {celulas.map((d) => {
                 const k = iso(d);
-                const evs = porDia.get(k) ?? [];
+                const tiposDoDia = (["show", "particular", "folga"] as Tipo[]).filter((t) => porDia.get(k)?.some((e) => e.tipo === t));
+                const cores = tiposDoDia.map((t) => TIPOS[t].corCalendario);
                 const fora = d.getMonth() !== mes.getMonth();
                 const sel = k === dia;
                 return (
@@ -194,23 +195,20 @@ function AgendaPage() {
                     key={k}
                     type="button"
                     onClick={() => setDia(k)}
-                    className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border text-sm transition-colors ${
-                      sel ? "border-primary bg-primary/15 font-bold text-foreground" : "border-transparent hover:bg-muted/50"
-                    } ${fora ? "text-muted-foreground/50" : "text-foreground"} ${k === iso(hoje) && !sel ? "underline decoration-primary underline-offset-4" : ""}`}
+                    aria-label={`${dataBR(k)}${tiposDoDia.length ? `: ${tiposDoDia.map((t) => TIPOS[t].rotulo).join(", ")}` : ""}`}
+                    style={cores.length ? { background: cores.length === 1 ? cores[0] : `linear-gradient(90deg, ${cores.map((cor, i) => `${cor} ${i * 100 / cores.length}% ${(i + 1) * 100 / cores.length}%`).join(", ")})` } : undefined}
+                    className={`flex aspect-square items-center justify-center rounded-lg border text-sm transition-colors ${
+                      sel ? "border-primary font-bold" : cores.length ? "border-transparent hover:brightness-95" : "border-transparent hover:bg-muted/50"
+                    } ${fora ? "text-muted-foreground" : "text-foreground"} ${k === iso(hoje) && !sel ? "underline decoration-primary underline-offset-4" : ""}`}
                   >
                     {d.getDate()}
-                    <span className="flex h-1.5 gap-0.5">
-                      {(["show", "particular", "folga"] as Tipo[])
-                        .filter((t) => evs.some((e) => e.tipo === t))
-                        .map((t) => <span key={t} className={`size-1.5 rounded-full ${TIPOS[t].ponto}`} />)}
-                    </span>
                   </button>
                 );
               })}
             </div>
             <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
               {(Object.keys(TIPOS) as Tipo[]).map((t) => (
-                <span key={t} className="flex items-center gap-1"><span className={`size-2 rounded-full ${TIPOS[t].ponto}`} />{TIPOS[t].rotulo}</span>
+                <span key={t} className="flex items-center gap-1"><span className="size-3 rounded-sm" style={{ backgroundColor: TIPOS[t].corCalendario }} />{TIPOS[t].rotulo}</span>
               ))}
             </div>
           </section>
