@@ -258,7 +258,7 @@ function RepertorioDetalhe() {
                   key={songId}
                   className="surface-tile flex items-center gap-3 rounded-2xl border border-border px-3 py-3"
                 >
-                  <span className="gradient-accent flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-accent-foreground">
+                  <span className="gradient-accent flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-primary-foreground">
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1">
