@@ -119,8 +119,8 @@ export const agendaListar = createServerFn({ method: "POST" })
   .handler(async ({ data }) => (await import("./nuvem.server")).listarAgenda(data.usuario, data.senha));
 
 export const agendaSalvar = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { evento: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined } }) => d)
-  .handler(async ({ data }) => (await import("./nuvem.server")).salvarEvento(data.usuario, data.senha, data.evento));
+  .inputValidator((d: Cred & { evento: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined }; confirmarConflito?: boolean }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).salvarEvento(data.usuario, data.senha, data.evento, data.confirmarConflito));
 
 export const agendaExcluir = createServerFn({ method: "POST" })
   .inputValidator((d: Cred & { id: string }) => d)

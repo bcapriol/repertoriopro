@@ -19,6 +19,7 @@ export type Database = {
           atualizado_em: string
           criado_em: string
           data: string
+          data_fim: string | null
           descricao: string
           hora_fim: string
           hora_inicio: string
@@ -33,6 +34,7 @@ export type Database = {
           atualizado_em?: string
           criado_em?: string
           data: string
+          data_fim?: string | null
           descricao?: string
           hora_fim?: string
           hora_inicio?: string
@@ -47,6 +49,7 @@ export type Database = {
           atualizado_em?: string
           criado_em?: string
           data?: string
+          data_fim?: string | null
           descricao?: string
           hora_fim?: string
           hora_inicio?: string

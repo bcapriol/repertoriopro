@@ -289,6 +289,7 @@ export type EventoAgenda = {
   id: string;
   tipo: "show" | "particular" | "folga";
   data: string;
+  dataFim: string;
   horaInicio: string;
   horaFim: string;
   local: string;
@@ -317,6 +318,7 @@ export async function listarAgenda(usuario: string, senha: string) {
     id: e.id,
     tipo: e.tipo as EventoAgenda["tipo"],
     data: e.data,
+    dataFim: e.data_fim ?? e.data,
     horaInicio: e.hora_inicio,
     horaFim: e.hora_fim,
     local: e.local,
@@ -329,26 +331,45 @@ export async function listarAgenda(usuario: string, senha: string) {
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$|^$/;
 
-export async function salvarEvento(usuario: string, senha: string, ev: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined }) {
+export async function salvarEvento(usuario: string, senha: string, ev: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined }, confirmarConflito = false) {
   const conta = await contaAgenda(usuario, senha);
   const db = await admin();
   if (!["show", "particular", "folga"].includes(ev.tipo)) throw new Error("Tipo inválido.");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ev.data)) throw new Error("Informe a data.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ev.data) || !Number.isFinite(Date.parse(`${ev.data}T00:00:00Z`))) throw new Error("Informe a data.");
+  if (ev.tipo === "folga" && (!/^\d{4}-\d{2}-\d{2}$/.test(ev.dataFim) || !Number.isFinite(Date.parse(`${ev.dataFim}T00:00:00Z`)) || ev.dataFim < ev.data)) throw new Error("A data final da folga deve ser igual ou posterior à inicial.");
   if (!HORA.test(ev.horaInicio) || !HORA.test(ev.horaFim)) throw new Error("Horário inválido.");
   if (ev.tipo === "show") {
     if (!conta.podeAdicionarShows) throw new Error("Você não tem privilégio para adicionar shows.");
     if (!ev.local.trim()) throw new Error("Informe o local do show.");
   }
   if (ev.tipo === "particular" && !ev.descricao.trim()) throw new Error("Informe a descrição.");
+  let dataAnterior: string | null = null;
   if (ev.id) {
-    const { data: atual } = await db.from("agenda_eventos").select("tipo").eq("id", ev.id).eq("usuario_id", conta.usuarioId).maybeSingle();
+    const { data: atual, error } = await db.from("agenda_eventos").select("tipo, data").eq("id", ev.id).eq("usuario_id", conta.usuarioId).maybeSingle();
+    if (error) throw error;
     if (!atual) throw new Error("Evento não encontrado.");
     if (atual.tipo === "show" && !conta.podeAdicionarShows) throw new Error("Você não tem privilégio para alterar shows.");
+    dataAnterior = atual.data;
+  }
+  if (ev.tipo === "show") {
+    const { data: folgas, error: erroFolgas } = await db.from("agenda_eventos")
+      .select("data, data_fim").eq("usuario_id", conta.usuarioId).eq("tipo", "folga").lte("data", ev.data);
+    if (erroFolgas) throw erroFolgas;
+    if (folgas?.some((folga) => (folga.data_fim ?? folga.data) >= ev.data)) {
+      throw new Error("Esta data está bloqueada por uma folga. Não é possível agendar shows.");
+    }
+    if (dataAnterior !== ev.data) {
+      const { data: showsDoDia, error: erroShows } = await db.from("agenda_eventos")
+        .select("id").eq("usuario_id", conta.usuarioId).eq("tipo", "show").eq("data", ev.data).eq("status", "agendado").limit(2);
+      if (erroShows) throw erroShows;
+      if (!confirmarConflito && showsDoDia?.some((show) => show.id !== ev.id)) throw new Error("CONFLITO_SHOW");
+    }
   }
   const linha = {
     usuario_id: conta.usuarioId,
     tipo: ev.tipo,
     data: ev.data,
+    data_fim: ev.tipo === "folga" ? ev.dataFim : null,
     hora_inicio: ev.tipo === "folga" ? "" : ev.horaInicio,
     hora_fim: ev.tipo === "folga" ? "" : ev.horaFim,
     local: ev.tipo === "show" ? ev.local.trim().slice(0, 200) : "",
