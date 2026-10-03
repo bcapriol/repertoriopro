@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useConta } from "@/lib/banda-local";
+import { useAtualizarPrivilegios, useConta } from "@/lib/banda-local";
 import { PencilIcon, PlusIcon, SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { EmptyState, PageShell } from "@/components/PageShell";
 import { AnexosViewer } from "@/components/AnexoView";
@@ -40,6 +40,7 @@ function MusicasPage() {
   const [ordem, setOrdem] = useState<Ordem>("titulo");
   const [aberta, setAberta] = useState<string | null>(null);
   const { conta } = useConta();
+  useAtualizarPrivilegios();
   const podeApagar = conta?.podeApagar ?? false;
   const podeEditar = conta?.podeEditar ?? false;
   const songAberta = data.songs.find((s) => s.id === aberta) ?? null;

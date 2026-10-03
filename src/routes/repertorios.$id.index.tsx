@@ -15,7 +15,7 @@ import { EmptyState, PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppData } from "@/lib/repertorio-store";
-import { useConta } from "@/lib/banda-local";
+import { useAtualizarPrivilegios, useConta } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/repertorios/$id/")({
   head: () => ({
@@ -38,6 +38,7 @@ function RepertorioDetalhe() {
   const { id } = Route.useParams();
   const { data, update } = useAppData();
   const { conta } = useConta();
+  useAtualizarPrivilegios();
   const podeEditar = conta?.podeEditar ?? false;
   const [busca, setBusca] = useState("");
   const [adicionando, setAdicionando] = useState(false);

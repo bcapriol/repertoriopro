@@ -97,3 +97,35 @@ export function useConta() {
   }, []);
   return { conta, pronto };
 }
+
+/** Atualiza os privilégios da conta salva no aparelho, sem pedir login de novo. */
+export function useAtualizarPrivilegios() {
+  const { conta, pronto } = useConta();
+  useEffect(() => {
+    if (!pronto || !conta) return;
+    let vivo = true;
+    import("./nuvem.functions")
+      .then((m) => m.entrarComUsuario({ data: { usuario: conta.usuario, senha: conta.senha } }))
+      .then((r) => {
+        if (!vivo) return;
+        const atual = lerConta();
+        if (!atual) return;
+        salvarConta({
+          ...atual,
+          banda: r.banda,
+          podeApagar: r.podeApagar,
+          podeBackup: r.podeBackup,
+          podeEditar: r.podeEditar,
+          podeAgenda: r.podeAgenda,
+          podeAdicionarShows: r.podeAdicionarShows,
+        });
+      })
+      .catch(() => {
+        // sem internet ou sessão inválida: mantém os privilégios já salvos
+      });
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pronto]);
+}
