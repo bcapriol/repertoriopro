@@ -73,13 +73,18 @@ function EditarContrato() {
   const mudarMusica = (i: number, changes: Partial<MusicaContrato>) => setDados((d) => d ? { ...d, repertorio: d.repertorio.map((m, index) => index === i ? { ...m, ...changes } : m) } : d);
   const mover = (i: number, direction: number) => setDados((d) => { if (!d || i + direction < 0 || i + direction >= d.repertorio.length) return d; const arr = [...d.repertorio]; const atual = arr[i], vizinha = arr[i + direction]; if (!atual || !vizinha) return d; arr[i] = vizinha; arr[i + direction] = atual; return { ...d, repertorio: arr.map((m, index) => ({ ...m, ordem: index + 1 })) }; });
   const remover = (i: number) => setDados((d) => d ? { ...d, repertorio: d.repertorio.filter((_, index) => index !== i).map((m, index) => ({ ...m, ordem: index + 1 })) } : d);
-  const gravar = async () => {
+  const gravar = async (revisar = false) => {
     if (!dados || !conta || ocupado) return;
+    if (revisar) {
+      const problemas = validarContrato(dados);
+      setErros(problemas);
+      if (problemas.length) { toast.error("Corrija as pendências antes de revisar."); return; }
+    }
     setOcupado(true);
     try {
       const salvo = await salvar({ data: { usuario: conta.usuario, senha: conta.senha, dados, ...(id ? { id } : {}) } });
       setNumero(salvo.numero); toast.success("Rascunho salvo. Número: " + salvo.numero);
-      window.location.assign(`/contratos/editar?id=${encodeURIComponent(salvo.id)}`);
+      window.location.assign(`${revisar ? "/contratos/revisar" : "/contratos/editar"}?id=${encodeURIComponent(salvo.id)}`);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao salvar contrato."); }
     finally { setOcupado(false); }
   };
@@ -139,7 +144,7 @@ function EditarContrato() {
         {texto("artistasVetados", "Artistas/cantores que não deverão ser tocados (um por linha)")}
         {texto("observacoesRepertorio", "Observações especiais sobre o repertório")}
       </section>
-      <div className="flex flex-wrap gap-3"><Button onClick={gravar} disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar rascunho"}</Button><Button type="button" variant="outline" onClick={() => { const problemas = validarContrato(dados); setErros(problemas); if (!problemas.length) toast.success("Dados completos para a etapa de revisão, disponível na próxima fase."); }}>{"Verificar dados"}</Button></div>
+      <div className="flex flex-wrap gap-3"><Button onClick={() => void gravar()} disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar rascunho"}</Button><Button type="button" variant="outline" disabled={ocupado} onClick={() => void gravar(true)}>Revisar contrato</Button></div>
       {erros.length > 0 && <div role="alert" className="rounded-lg border border-destructive p-4 text-sm"><p className="font-bold">Pendências para gerar o contrato:</p><ul className="mt-2 list-disc pl-5">{erros.map((e) => <li key={e}>{e}</li>)}</ul></div>}
     </div>
   </PageShell>;

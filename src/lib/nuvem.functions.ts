@@ -134,6 +134,14 @@ export const contratosNovo = createServerFn({ method: "POST" })
   .inputValidator((d: Cred) => d)
   .handler(async ({ data }) => (await import("./contratos.server")).novoContrato(data));
 
+export const contratosGerar = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).gerarContrato(data, data.id));
+
+export const contratosPdfUrl = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).urlPdfContrato(data, data.id));
+
 export const agendaListar = createServerFn({ method: "POST" })
   .inputValidator((d: Cred) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).listarAgenda(data.usuario, data.senha));

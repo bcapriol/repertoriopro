@@ -29,7 +29,7 @@ export const contratoInicial = (config: ConfigContratos = configInicial()): Cont
   alteraData: "", autorizacaoImagem: "", finalidades: [], observacoes: config.observacoesPadrao,
   repertorio: [], musicasVetadas: "", artistasVetados: "", observacoesRepertorio: "",
 });
-export type ResumoContrato = { id: string; numero: string; status: string; criadoEm: string; atualizadoEm: string; dados: ContratoDados };
+export type ResumoContrato = { id: string; numero: string; status: string; criadoEm: string; atualizadoEm: string; dados: ContratoDados; pdfCaminho: string | null; pdfEmissao: string | null };
 export function numeroValido(documento: string): boolean {
   const s = documento.replace(/\D/g, "");
   if (s.length === 11 && !/^(\d)\1+$/.test(s)) {
