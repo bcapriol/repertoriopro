@@ -71,9 +71,11 @@ function Index() {
           </Link>
         </div>
         <header className="text-center">
-          <span className="mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-            <MusicIcon className="size-7" strokeWidth={2.4} />
-          </span>
+          <img
+            src="/multivibe-logo.jpg"
+            alt="Logotipo Multivibe"
+            className="mx-auto mb-5 size-32 object-contain"
+          />
           <h1 className="text-3xl leading-tight font-extrabold text-[oklch(0.62_0.24_250)]">
             {banda ? `Repertório ${banda}` : "Repertório Fácil"}
           </h1>

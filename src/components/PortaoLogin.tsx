@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { EyeIcon, EyeOffIcon, LockIcon, MusicIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, LockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { entrarComUsuario } from "@/lib/nuvem.functions";
@@ -67,9 +67,11 @@ function TelaLogin() {
       <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
         <div className="px-6 pt-10 pb-6 sm:px-8">
         <header className="text-center">
-          <span className="mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-            <MusicIcon className="size-7" strokeWidth={2.4} />
-          </span>
+          <img
+            src="/multivibe-logo.jpg"
+            alt="Logotipo Multivibe"
+            className="mx-auto mb-5 size-32 object-contain"
+          />
           <h1 className="text-2xl font-extrabold text-primary">
             Repertório Fácil Pro
           </h1>
