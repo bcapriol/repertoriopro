@@ -40,6 +40,7 @@ function MusicasPage() {
   const [ordem, setOrdem] = useState<Ordem>("titulo");
   const [aberta, setAberta] = useState<string | null>(null);
   const { conta } = useConta();
+  useAtualizarPrivilegios();
   const podeApagar = conta?.podeApagar ?? false;
   const podeEditar = conta?.podeEditar ?? false;
   const songAberta = data.songs.find((s) => s.id === aberta) ?? null;

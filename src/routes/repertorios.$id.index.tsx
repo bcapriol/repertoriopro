@@ -38,6 +38,7 @@ function RepertorioDetalhe() {
   const { id } = Route.useParams();
   const { data, update } = useAppData();
   const { conta } = useConta();
+  useAtualizarPrivilegios();
   const podeEditar = conta?.podeEditar ?? false;
   const [busca, setBusca] = useState("");
   const [adicionando, setAdicionando] = useState(false);
