@@ -120,9 +120,6 @@
 
   :root { color-scheme: light; }
 
-  /* Royal blue icons keep actions easy to scan throughout the app. */
-  svg.lucide { color: var(--color-primary); }
-
   h1,
   h2,
   h3 {
@@ -137,7 +134,7 @@
 }
 
 @utility gradient-stage {
-  background-image: var(--gradient-stage);
+  background-color: var(--color-background);
 }
 
 @utility gradient-accent {
