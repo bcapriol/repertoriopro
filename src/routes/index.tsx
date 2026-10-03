@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import {
   MusicIcon,
@@ -8,13 +7,13 @@ import {
   ArrowDownUpIcon,
   RefreshCwIcon,
   LockIcon,
+  LogOutIcon,
   CalendarDaysIcon,
   FileTextIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
-import { useBanda, useConta } from "@/lib/banda-local";
-import { usuariosOnline } from "@/lib/nuvem.functions";
+import { salvarConta, useBanda, useConta } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -61,33 +60,7 @@ function Index() {
   const { data } = useAppData();
   const banda = useBanda();
   const { conta } = useConta();
-  const listarOnline = useServerFn(usuariosOnline);
-  const [usuarios, setUsuarios] = useState<string[]>([]);
   const [online, setOnline] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!conta) return;
-    let ativo = true;
-    const atualizar = () => {
-      if (!navigator.onLine) {
-        setUsuarios([]);
-        return;
-      }
-      void listarOnline({ data: { usuario: conta.usuario, senha: conta.senha } })
-        .then((nomes) => { if (ativo) setUsuarios(nomes); })
-        .catch(() => { if (ativo) setUsuarios([]); });
-    };
-    atualizar();
-    const intervalo = window.setInterval(atualizar, 15_000);
-    window.addEventListener("online", atualizar);
-    window.addEventListener("offline", atualizar);
-    return () => {
-      ativo = false;
-      window.clearInterval(intervalo);
-      window.removeEventListener("online", atualizar);
-      window.removeEventListener("offline", atualizar);
-    };
-  }, [conta?.usuario, conta?.senha, listarOnline]);
 
   useEffect(() => {
     const atualizar = () => setOnline(navigator.onLine);
@@ -103,7 +76,7 @@ function Index() {
   return (
     <main className="flex min-h-screen flex-col bg-background px-5 pt-10 pb-8">
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
-        <div className="flex justify-end">
+        <div className="flex flex-col items-end gap-2">
           <Link
             to="/adm"
             aria-label="Área do administrador"
@@ -111,6 +84,13 @@ function Index() {
           >
             <LockIcon className="size-4" />
           </Link>
+          <button
+            type="button"
+            onClick={() => salvarConta(null)}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-accent"
+          >
+            <LogOutIcon className="size-4" /> SAIR
+          </button>
         </div>
         <header className="text-center">
           {online !== null && (
@@ -132,10 +112,6 @@ function Index() {
           </p>
           <p className="mt-1 text-xs text-muted-foreground/80">
             Desenvolvido por Bruno Capriolli | ® Direitos Reservados
-          </p>
-          <p className="mt-4 text-sm text-muted-foreground" aria-live="polite">
-            <span className="font-semibold text-foreground">Usuários Online:</span>{" "}
-            {online === false ? "Sem conexão" : usuarios.length ? usuarios.join(", ") : "Nenhum no momento"}
           </p>
         </header>
 
