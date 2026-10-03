@@ -133,6 +133,20 @@ function RootComponent() {
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").then(async () => {
+        await navigator.serviceWorker.ready;
+        // Na primeira instalação, aguarda o controle da página antes de baixar as telas.
+        if (!navigator.serviceWorker.controller) {
+          await new Promise<void>((resolve) => navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true }));
+        }
+        if (navigator.onLine) {
+          void Promise.allSettled(Object.values(import.meta.glob("./*.tsx")).map((carregar) => carregar()));
+        }
+      }).catch(() => {
+        // O app continua funcionando online se o navegador não permitir o cache offline.
+      });
+    }
     try {
       localStorage.removeItem("rf-theme");
     } catch {

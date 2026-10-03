@@ -33,7 +33,8 @@ export type Setlist = {
   atualizadoEm?: number;
 };
 
-export type AppData = { songs: Song[]; setlists: Setlist[] };
+export type Exclusao = { id: string; atualizadoEm: number };
+export type AppData = { songs: Song[]; setlists: Setlist[]; deletedSongs?: Exclusao[]; deletedSetlists?: Exclusao[] };
 
 const KEY = "repertorio-facil-data";
 const EMPTY: AppData = { songs: [], setlists: [] };
@@ -107,6 +108,8 @@ export function readData(): AppData {
     cache = {
       songs: Array.isArray(parsed.songs) ? parsed.songs : [],
       setlists: Array.isArray(parsed.setlists) ? parsed.setlists : [],
+      deletedSongs: Array.isArray(parsed.deletedSongs) ? parsed.deletedSongs : [],
+      deletedSetlists: Array.isArray(parsed.deletedSetlists) ? parsed.deletedSetlists : [],
     };
   } catch {
     cache = EMPTY;
@@ -128,21 +131,35 @@ function carimbar<T extends Carimbavel>(anteriores: T[], proximos: T[], agora: n
   });
 }
 
-export function writeData(entrada: AppData): Promise<void> {
+export function writeData(entrada: AppData, preservarVersoes = false): Promise<void> {
   const anterior = readData();
   const agora = Date.now();
+  const excluidas = (anteriores: { id: string }[], proximos: { id: string }[], atuais: Exclusao[] = [], recebidas: Exclusao[] = []) => {
+    const mapa = new Map<string, Exclusao>();
+    for (const item of [...atuais, ...recebidas]) {
+      if (!mapa.has(item.id) || mapa.get(item.id)!.atualizadoEm < item.atualizadoEm) mapa.set(item.id, item);
+    }
+    const ids = new Set(proximos.map((item) => item.id));
+    for (const item of anteriores) {
+      if (!ids.has(item.id)) mapa.set(item.id, { id: item.id, atualizadoEm: agora });
+    }
+    return [...mapa.values()];
+  };
   const next: AppData = {
-    songs: carimbar(anterior.songs, entrada.songs, agora),
-    setlists: carimbar(anterior.setlists, entrada.setlists, agora),
+    songs: preservarVersoes ? entrada.songs : carimbar(anterior.songs, entrada.songs, agora),
+    setlists: preservarVersoes ? entrada.setlists : carimbar(anterior.setlists, entrada.setlists, agora),
+    deletedSongs: preservarVersoes ? entrada.deletedSongs ?? [] : excluidas(anterior.songs, entrada.songs, anterior.deletedSongs, entrada.deletedSongs),
+    deletedSetlists: preservarVersoes ? entrada.deletedSetlists ?? [] : excluidas(anterior.setlists, entrada.setlists, anterior.deletedSetlists, entrada.deletedSetlists),
   };
   if (typeof window === "undefined") return Promise.resolve();
-  const salvar = fila.catch(() => {}).then(() => bancoSalvar(next));
-  fila = salvar;
-  return salvar.then(() => {
+  const salvar = fila.catch(() => {}).then(async () => {
+    await bancoSalvar(next);
     cache = next;
     try { window.localStorage.removeItem(KEY); } catch { /* storage indisponível */ }
     listeners.forEach((l) => l());
   });
+  fila = salvar;
+  return salvar;
 }
 
 export function useAppData() {

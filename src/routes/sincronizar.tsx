@@ -112,7 +112,7 @@ function SincronizarPage() {
       if (localMigrado.alterou || remotoMigrado.alterou) {
         await sincronizar({ data: { usuario: u, senha: s, dados: dadosFinais } });
       }
-      await writeData(dadosFinais);
+      await writeData(dadosFinais, true);
       salvarBanda(r.banda);
       const nova: Conta = {
         usuario: u,
@@ -163,7 +163,7 @@ function SincronizarPage() {
         return;
       }
       const mesclado = mesclarDados(readData(), check.data as AppData);
-      await writeData(mesclado);
+      await writeData(mesclado, true);
       toast.success(
         `Recebido: ${mesclado.songs.length} música(s) e ${mesclado.setlists.length} repertório(s).`,
       );
@@ -321,7 +321,7 @@ function SincronizarPage() {
               className="h-12 rounded-xl font-bold"
               onClick={() => {
                 if (!window.confirm("Apagar todas as músicas e repertórios deste aparelho?")) return;
-                void writeData({ songs: [], setlists: [] }).catch(() => toast.error("Não foi possível limpar os dados."));
+                void writeData({ songs: [], setlists: [], deletedSongs: [], deletedSetlists: [] }, true).catch(() => toast.error("Não foi possível limpar os dados."));
                 salvarBanda("");
                 salvarConta(null);
                 setConta(null);

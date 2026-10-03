@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   MusicIcon,
   ListMusicIcon,
@@ -58,6 +59,18 @@ function Index() {
   const { data } = useAppData();
   const banda = useBanda();
   const { conta } = useConta();
+  const [online, setOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const atualizar = () => setOnline(navigator.onLine);
+    atualizar();
+    window.addEventListener("online", atualizar);
+    window.addEventListener("offline", atualizar);
+    return () => {
+      window.removeEventListener("online", atualizar);
+      window.removeEventListener("offline", atualizar);
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-background px-5 pt-10 pb-14">
@@ -72,6 +85,12 @@ function Index() {
           </Link>
         </div>
         <header className="text-center">
+          {online !== null && (
+            <div role="status" className="mb-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground">
+              <span className={`size-2 rounded-full ${online ? "bg-green-600" : "bg-red-600"}`} aria-hidden="true" />
+              {online ? "ONLINE" : "OFFLINE"}
+            </div>
+          )}
           <img
             src="/multivibe-logo.jpg"
             alt="Logotipo Multivibe"

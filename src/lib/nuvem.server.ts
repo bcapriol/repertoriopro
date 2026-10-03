@@ -171,10 +171,14 @@ export async function baixarDaBanda(bandaId: string) {
   const db = await admin();
   const banda = { id: bandaId };
 
-  const [musicas, repertorios] = await Promise.all([
+  const [musicas, repertorios, exclusoes] = await Promise.all([
     db.from("cloud_songs").select("*").eq("banda_id", banda.id).order("ordem"),
     db.from("cloud_setlists").select("*").eq("banda_id", banda.id).order("ordem"),
+    db.from("cloud_exclusoes").select("tipo, item_id, atualizado_em").eq("banda_id", banda.id),
   ]);
+  if (musicas.error) throw musicas.error;
+  if (repertorios.error) throw repertorios.error;
+  if (exclusoes.error) throw exclusoes.error;
 
   const songs: Song[] = (musicas.data ?? []).map((m) => ({
     id: m.song_id,
@@ -199,7 +203,12 @@ export async function baixarDaBanda(bandaId: string) {
     atualizadoEm: new Date(r.atualizado_em ?? r.criado_em).getTime(),
   }));
 
-  return { songs, setlists } as AppData;
+  return {
+    songs,
+    setlists,
+    deletedSongs: (exclusoes.data ?? []).filter((e) => e.tipo === "song").map((e) => ({ id: e.item_id, atualizadoEm: new Date(e.atualizado_em).getTime() })),
+    deletedSetlists: (exclusoes.data ?? []).filter((e) => e.tipo === "setlist").map((e) => ({ id: e.item_id, atualizadoEm: new Date(e.atualizado_em).getTime() })),
+  } as AppData;
 }
 
 export async function entrarUsuario(usuario: string, senha: string) {
@@ -228,16 +237,59 @@ export async function entrarUsuario(usuario: string, senha: string) {
 export async function sincronizar(usuario: string, senha: string, locais: AppData) {
   const conta = await entrarUsuario(usuario, senha);
   const nuvem = await baixarDaBanda(conta.bandaId);
-  const permitidos = conta.podeEditar
-    ? locais
-    : {
-        songs: locais.songs.map((song) => nuvem.songs.find((salva) => salva.id === song.id) ?? song),
-        setlists: locais.setlists.map(
-          (setlist) => nuvem.setlists.find((salvo) => salvo.id === setlist.id) ?? setlist,
-        ),
-      };
+  const permitidos: AppData = {
+    songs: conta.podeEditar
+      ? locais.songs
+      : locais.songs.map((song) => nuvem.songs.find((salva) => salva.id === song.id) ?? song),
+    setlists: conta.podeEditar
+      ? locais.setlists
+      : locais.setlists.map((setlist) => nuvem.setlists.find((salvo) => salvo.id === setlist.id) ?? setlist),
+    deletedSongs: conta.podeApagar ? locais.deletedSongs : [],
+    deletedSetlists: conta.podeApagar ? locais.deletedSetlists : [],
+  };
   const mesclado = mesclarDados(permitidos, nuvem);
-  await publicarShow(conta.bandaId, mesclado);
+  {
+    const db = await admin();
+    const musicasRemovidas = nuvem.songs.filter((s) => !mesclado.songs.some((item) => item.id === s.id));
+    const listasRemovidas = nuvem.setlists.filter((s) => !mesclado.setlists.some((item) => item.id === s.id));
+    if (musicasRemovidas.length) {
+      const { error } = await db.from("cloud_songs").delete().eq("banda_id", conta.bandaId).in("song_id", musicasRemovidas.map((s) => s.id));
+      if (error) throw error;
+    }
+    if (listasRemovidas.length) {
+      const { error } = await db.from("cloud_setlists").delete().eq("banda_id", conta.bandaId).in("setlist_id", listasRemovidas.map((s) => s.id));
+      if (error) throw error;
+    }
+    const alteradas = mesclado.songs.filter((s) => !nuvem.songs.some((n) => n.id === s.id && (n.atualizadoEm ?? n.criadoEm) >= (s.atualizadoEm ?? s.criadoEm)));
+    if (alteradas.length) {
+      const { error } = await db.from("cloud_songs").upsert(alteradas.map((s, i) => ({
+        banda_id: conta.bandaId, song_id: s.id, titulo: s.titulo, artista: s.artista ?? "", tom: s.tom ?? "",
+        bpm: s.bpm ?? "", ritmo: s.ritmo ?? "", observacoes: s.observacoes ?? "", letra: s.letra ?? "",
+        anexos: (s.anexos ?? []) as unknown as never, ordem: i,
+        atualizado_em: new Date(s.atualizadoEm ?? s.criadoEm).toISOString(),
+      })), { onConflict: "banda_id,song_id" });
+      if (error) throw error;
+    }
+    const listasAlteradas = mesclado.setlists.filter((s) => !nuvem.setlists.some((n) => n.id === s.id && (n.atualizadoEm ?? n.criadoEm) >= (s.atualizadoEm ?? s.criadoEm)));
+    if (listasAlteradas.length) {
+      const { error } = await db.from("cloud_setlists").upsert(listasAlteradas.map((s, i) => ({
+        banda_id: conta.bandaId, setlist_id: s.id, nome: s.nome, local: s.local ?? "", data: s.data ?? "",
+        song_ids: s.songIds as unknown as never, ordem: i,
+        atualizado_em: new Date(s.atualizadoEm ?? s.criadoEm).toISOString(),
+      })), { onConflict: "banda_id,setlist_id" });
+      if (error) throw error;
+    }
+  }
+  if (conta.podeApagar) {
+    const exclusoes = [
+      ...(mesclado.deletedSongs ?? []).map((e) => ({ banda_id: conta.bandaId, tipo: "song", item_id: e.id, atualizado_em: new Date(e.atualizadoEm).toISOString() })),
+      ...(mesclado.deletedSetlists ?? []).map((e) => ({ banda_id: conta.bandaId, tipo: "setlist", item_id: e.id, atualizado_em: new Date(e.atualizadoEm).toISOString() })),
+    ];
+    if (exclusoes.length) {
+      const { error } = await (await admin()).from("cloud_exclusoes").upsert(exclusoes, { onConflict: "banda_id,tipo,item_id" });
+      if (error) throw error;
+    }
+  }
   return {
     banda: conta.banda,
     podeApagar: conta.podeApagar,

@@ -75,6 +75,7 @@ function EditarContrato() {
   const remover = (i: number) => setDados((d) => d ? { ...d, repertorio: d.repertorio.filter((_, index) => index !== i).map((m, index) => ({ ...m, ordem: index + 1 })) } : d);
   const gravar = async (revisar = false) => {
     if (!dados || !conta || ocupado) return;
+    if (!navigator.onLine) { toast.error("Conecte-se à internet para salvar ou redigir contratos."); return; }
     if (revisar) {
       const problemas = validarContrato(dados);
       setErros(problemas);

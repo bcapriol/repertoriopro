@@ -222,6 +222,12 @@ export type Database = {
           },
         ]
       }
+      cloud_exclusoes: {
+        Row: { id: string; banda_id: string; item_id: string; tipo: string; atualizado_em: string }
+        Insert: { id?: string; banda_id: string; item_id: string; tipo: string; atualizado_em: string }
+        Update: { id?: string; banda_id?: string; item_id?: string; tipo?: string; atualizado_em?: string }
+        Relationships: [{ foreignKeyName: "cloud_exclusoes_banda_id_fkey"; columns: ["banda_id"]; isOneToOne: false; referencedRelation: "bandas"; referencedColumns: ["id"] }]
+      }
       cloud_songs: {
         Row: {
           anexos: Json

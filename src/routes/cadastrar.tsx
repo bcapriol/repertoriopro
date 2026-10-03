@@ -105,6 +105,10 @@ function CadastrarPage() {
       const conta = lerConta();
       try {
         await guardarAnexoOffline(idAnexo, file);
+        if (!navigator.onLine) {
+          novos.push({ id: idAnexo, nome: file.name, tipo: file.type, dados });
+          continue;
+        }
         if (!conta) throw new Error("Entre novamente para enviar o anexo.");
         const remoto = await enviar({
           data: {
@@ -129,6 +133,10 @@ function CadastrarPage() {
   };
 
   const salvar = async () => {
+    if (!id && !navigator.onLine) {
+      toast.error("Conecte-se à internet para cadastrar novas músicas.");
+      return;
+    }
     if (id && !conta?.podeEditar) {
       toast.error("Você não tem privilégio para alterar músicas.");
       return;
