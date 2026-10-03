@@ -3,3 +3,4 @@
 - [x] Simplificar o modo palco: conteúdo em tela cheia, navegação inferior e acesso rápido às músicas no topo.
 - [x] Corrigir o limite de armazenamento ao salvar músicas com anexos e sincronizar por Wi-Fi.
 - [x] Migrar imagens e PDFs para armazenamento em nuvem, mantendo cópias locais para acesso offline.
+- [x] Aplicar o tema branco, azul Royal e preto em todo o aplicativo.
