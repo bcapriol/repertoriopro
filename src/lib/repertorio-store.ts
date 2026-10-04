@@ -48,32 +48,84 @@ let fila: Promise<void> = Promise.resolve();
 
 function abrirBanco(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open("repertorio-facil-dados", 1);
-    req.onupgradeneeded = () => req.result.createObjectStore("dados");
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error("Não foi possível abrir a memória do aparelho."));
+    let concluido = false;
+    const timer = window.setTimeout(() => {
+      concluido = true;
+      reject(new Error("A memória do aparelho demorou para responder. Feche outras abas do aplicativo e tente novamente, sem limpar os dados."));
+    }, 15000);
+    try {
+      const req = indexedDB.open("repertorio-facil-dados", 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains("dados")) req.result.createObjectStore("dados");
+      };
+      req.onblocked = () => {
+        window.clearTimeout(timer);
+        concluido = true;
+        reject(new Error("Outra aba está impedindo a abertura dos dados. Feche as outras abas do aplicativo e tente novamente, sem limpar os dados."));
+      };
+      req.onsuccess = () => {
+        if (concluido) { req.result.close(); return; }
+        window.clearTimeout(timer);
+        concluido = true;
+        resolve(req.result);
+      };
+      req.onerror = () => {
+        window.clearTimeout(timer);
+        concluido = true;
+        reject(req.error ?? new Error("Não foi possível abrir a memória do aparelho."));
+      };
+    } catch (error) {
+      window.clearTimeout(timer);
+      reject(error);
+    }
   });
 }
 
 async function bancoLer(): Promise<AppData | undefined> {
   const db = await abrirBanco();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dados", "readonly");
-    const req = tx.objectStore("dados").get("atual");
-    req.onsuccess = () => resolve(req.result as AppData | undefined);
-    req.onerror = () => reject(req.error);
-    tx.oncomplete = () => db.close();
+    let finalizado = false;
+    const finalizar = (erro?: unknown, dados?: AppData) => {
+      if (finalizado) return;
+      finalizado = true;
+      window.clearTimeout(timer);
+      db.close();
+      if (erro) reject(erro);
+      else resolve(dados);
+    };
+    const timer = window.setTimeout(() => finalizar(new Error("A leitura dos dados demorou para responder. Feche outras abas do aplicativo e tente novamente, sem limpar os dados.")), 15000);
+    try {
+      const tx = db.transaction("dados", "readonly");
+      const req = tx.objectStore("dados").get("atual");
+      let dados: AppData | undefined;
+      req.onsuccess = () => { dados = req.result as AppData | undefined; };
+      tx.oncomplete = () => finalizar(undefined, dados);
+      tx.onerror = () => finalizar(tx.error ?? new Error("Falha ao ler os dados salvos."));
+      tx.onabort = () => finalizar(tx.error ?? new Error("Leitura dos dados interrompida."));
+    } catch (erro) { finalizar(erro); }
   });
 }
 
 async function bancoSalvar(data: AppData): Promise<void> {
   const db = await abrirBanco();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dados", "readwrite");
-    tx.objectStore("dados").put(data, "atual");
-    tx.oncomplete = () => { db.close(); resolve(); };
-    tx.onerror = () => { db.close(); reject(tx.error); };
-    tx.onabort = () => { db.close(); reject(tx.error); };
+    let finalizado = false;
+    const finalizar = (erro?: unknown) => {
+      if (finalizado) return;
+      finalizado = true;
+      window.clearTimeout(timer);
+      db.close();
+      if (erro) reject(erro);
+      else resolve();
+    };
+    const timer = window.setTimeout(() => finalizar(new Error("A gravação dos dados demorou para responder. Feche outras abas do aplicativo e tente novamente, sem limpar os dados.")), 15000);
+    try {
+      const tx = db.transaction("dados", "readwrite");
+      tx.objectStore("dados").put(data, "atual");
+      tx.oncomplete = () => finalizar();
+      tx.onerror = () => finalizar(tx.error ?? new Error("Falha ao salvar os dados."));
+      tx.onabort = () => finalizar(tx.error ?? new Error("Gravação dos dados interrompida."));
+    } catch (erro) { finalizar(erro); }
   });
 }
 
@@ -92,8 +144,9 @@ export function prepararDados(): Promise<void> {
       }
       try { window.localStorage.removeItem(KEY); } catch { /* storage indisponível */ }
       listeners.forEach((l) => l());
-    })().catch(() => {
+    })().catch((error: unknown) => {
       carregando = null;
+      if (error instanceof Error && error.message) throw error;
       throw new Error("Não foi possível acessar os dados deste aparelho. Tente liberar espaço e abrir novamente.");
     });
   }
