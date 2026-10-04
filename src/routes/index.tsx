@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
 import { salvarConta, useBanda, useConta } from "@/lib/banda-local";
+import { OfflineStatus } from "@/components/OfflineStatus";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -74,7 +75,7 @@ function Index() {
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col bg-background px-5 pt-10 pb-8">
+    <main className="flex min-h-dvh flex-col bg-background px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6">
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
         <div className="flex flex-col items-end gap-2">
           <Link
@@ -115,7 +116,9 @@ function Index() {
           </p>
         </header>
 
-        <nav className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-6"><OfflineStatus /></div>
+
+        <nav className="mt-6 grid grid-cols-1 gap-4 min-[380px]:grid-cols-2">
           {!banda && data.songs.length === 0 && data.setlists.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-5 py-4 text-center text-sm text-muted-foreground sm:col-span-2">
               Aparelho vazio. Use{" "}

@@ -79,7 +79,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Repertório Fácil - Bruno Capriolli" },
       {
         name: "description",
@@ -135,34 +135,28 @@ function RootComponent() {
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then(async () => {
-        await navigator.serviceWorker.ready;
-        // Na primeira instalação, aguarda o controle da página antes de baixar as telas.
-        if (!navigator.serviceWorker.controller) {
-          await new Promise<void>((resolve) => navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true }));
-        }
-        if (navigator.onLine) {
-          void Promise.allSettled([
-            ...Object.values(import.meta.glob("./*.tsx")).map((carregar) => carregar()),
-            (async () => {
-              // Prepara também o leitor de PDF, mesmo sem abrir um anexo antes.
-              await import("pdfjs-dist");
-              const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
-              const cache = await caches.open("repertorio-offline-v1");
-              await cache.add(worker.default);
-            })(),
-          ]);
-        }
-      }).catch(() => {
-        // O app continua funcionando online se o navegador não permitir o cache offline.
-      });
-    }
+    let ativo = true;
+    const preparar = async () => {
+      const [{ prepararDados, readData }, offline] = await Promise.all([
+        import("@/lib/repertorio-store"), import("@/lib/offline-app"),
+      ]);
+      await prepararDados();
+      if (!ativo) return;
+      await offline.verificarTelasOffline();
+      if (ativo && navigator.onLine) await offline.prepararTelasOffline(readData());
+    };
+    void preparar().catch(() => {});
+    const reconectou = () => { void preparar().catch(() => {}); };
+    window.addEventListener("online", reconectou);
     try {
       localStorage.removeItem("rf-theme");
     } catch {
       // ignore storage errors
     }
+    return () => {
+      ativo = false;
+      window.removeEventListener("online", reconectou);
+    };
   }, []);
 
   return (

@@ -117,6 +117,10 @@ export async function prepararCopiaOffline(
     await guardarAnexoOffline(anexo.id, blob);
     disponiveis++;
   }
+  // A cópia dos dados não basta: também prepara as telas para reabrir o app.
+  const { prepararTelasOffline } = await import("./offline-app");
+  await prepararTelasOffline(dados);
+  window.dispatchEvent(new Event("repertorio-copia-atualizada"));
   return { total: anexos.size, disponiveis, pendentes: anexos.size - disponiveis };
 }
 

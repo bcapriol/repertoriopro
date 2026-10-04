@@ -12,6 +12,7 @@ import {
   WifiIcon,
 } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
+import { OfflineStatus } from "@/components/OfflineStatus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { enviarAnexo, obterAnexo, sincronizarNuvem } from "@/lib/nuvem.functions";
@@ -178,6 +179,7 @@ function SincronizarPage() {
   return (
     <PageShell title="Sincronização e transferência" subtitle="Wi-Fi, Bluetooth ou arquivo">
       <div className="flex flex-col gap-6">
+        <OfflineStatus />
         <p className="text-sm text-muted-foreground">
           {banda
             ? `Aparelho ligado à banda: ${banda}.`

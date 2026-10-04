@@ -62,6 +62,31 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando");
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [dimensoes, setDimensoes] = useState(0);
+
+  // Recalcula a resolução ao girar o celular ou redimensionar a janela no tablet.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let timer: ReturnType<typeof setTimeout>;
+    let largura = container.clientWidth;
+    const atualizar = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setDimensoes((n) => n + 1), 180);
+    };
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
+      if (container.clientWidth === largura) return;
+      largura = container.clientWidth;
+      atualizar();
+    });
+    observer?.observe(container);
+    window.addEventListener("resize", atualizar);
+    return () => {
+      clearTimeout(timer);
+      observer?.disconnect();
+      window.removeEventListener("resize", atualizar);
+    };
+  }, []);
 
   // URL de blob (fallback nativo do navegador)
   useEffect(() => {
@@ -86,6 +111,7 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
   useEffect(() => {
     let cancelado = false;
     let paginasOk = 0;
+    let tarefa: import("pdfjs-dist").PDFDocumentLoadingTask | undefined;
     setEstado("carregando");
 
     (async () => {
@@ -98,9 +124,10 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
         const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
         pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
 
-        if (!fonte) return;
+        if (!fonte || cancelado) return;
         const entrada = fonte.startsWith("data:") ? { data: dataUrlToUint8(fonte) } : { url: fonte };
-        const doc = await pdfjs.getDocument(entrada).promise;
+        tarefa = pdfjs.getDocument(entrada);
+        const doc = await tarefa.promise;
         for (let n = 1; n <= doc.numPages; n++) {
           if (cancelado) return;
           const page = await doc.getPage(n);
@@ -138,8 +165,9 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
 
     return () => {
       cancelado = true;
+      void tarefa?.destroy().catch(() => {});
     };
-  }, [fonte, fit]);
+  }, [fonte, fit, dimensoes]);
 
   return (
     <div className="w-full bg-background">
@@ -181,7 +209,7 @@ export function AnexoView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean 
 
 export function AnexosViewer({ anexos, fit = false }: { anexos: Anexo[]; fit?: boolean }) {
   return (
-    <div className={fit ? "h-full w-full overflow-hidden bg-background" : "h-full w-full overflow-auto bg-background"}>
+    <div className="h-full w-full overflow-auto overscroll-contain bg-background">
       {anexos.map((a) => (
         <AnexoView key={a.id} anexo={a} fit={fit} />
       ))}

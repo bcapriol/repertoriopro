@@ -100,7 +100,7 @@ function PalcoPage() {
   return (
     <main className="relative h-dvh overflow-hidden bg-background">
       <Button variant="ghost" size="icon" className="absolute top-3 right-3 z-30 size-9 border border-border bg-card/80 backdrop-blur-sm" title="Ir para música" aria-label="Ir para música" aria-expanded={listaAberta} onClick={() => setListaAberta((v) => !v)}><ListIcon /></Button>
-      <section className="h-full overflow-hidden">
+      <section className="h-full overflow-hidden pt-[env(safe-area-inset-top)] pb-[calc(3.5rem+env(safe-area-inset-bottom))]">
         {anexos.length ? (
           <AnexosViewer key={atual.id} anexos={anexos} fit />
         ) : (

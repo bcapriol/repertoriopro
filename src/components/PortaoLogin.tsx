@@ -15,15 +15,29 @@ export function PortaoLogin({ children }: { children: ReactNode }) {
   const [dadosProntos, setDadosProntos] = useState(false);
   const [erroDados, setErroDados] = useState("");
 
+  const carregar = () => {
+    setErroDados("");
+    void prepararDados().then(() => setDadosProntos(true)).catch((e) => setErroDados(e.message));
+  };
+
   useEffect(() => {
-    prepararDados().then(() => setDadosProntos(true)).catch((e) => setErroDados(e.message));
+    carregar();
   }, []);
 
-  if (erroDados) return <main className="flex min-h-screen items-center justify-center bg-background p-6 text-center text-foreground">{erroDados}</main>;
-  if (!dadosProntos) return null;
+  if (erroDados) return (
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background p-6 text-center text-foreground">
+      <h1 className="text-xl font-bold">Não foi possível abrir a cópia local</h1>
+      <p className="max-w-md text-sm text-muted-foreground">{erroDados} Não limpe os dados do aplicativo, pois isso remove o conteúdo salvo.</p>
+      <Button onClick={carregar} className="min-h-11">Tentar novamente</Button>
+    </main>
+  );
+  if (!dadosProntos || !pronto) return (
+    <main role="status" className="flex min-h-dvh items-center justify-center bg-background p-6 text-center text-muted-foreground">
+      Abrindo os dados salvos neste aparelho…
+    </main>
+  );
 
   if (pathname.startsWith("/adm")) return <>{children}</>;
-  if (!pronto) return null;
   if (conta) return <>{children}</>;
   return <TelaLogin />;
 }
@@ -36,6 +50,10 @@ function TelaLogin() {
   const [ocupado, setOcupado] = useState(false);
 
   const acessar = async () => {
+    if (!navigator.onLine) {
+      toast.error("Para entrar na conta, conecte-se à internet. Depois de preparar a cópia offline, mantenha sua conta conectada para consultar sem rede.");
+      return;
+    }
     if (!usuario.trim() || !senha) {
       toast.error("Informe usuário e senha.");
       return;
