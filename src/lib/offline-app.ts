@@ -31,6 +31,26 @@ function comPrazo<T>(promise: Promise<T>, ms = 20000): Promise<T> {
   });
 }
 
+async function registrarWorker(): Promise<ServiceWorkerRegistration> {
+  try {
+    return await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
+  } catch (erroArquivo) {
+    // Alguns ambientes não entregam o arquivo público; usa o mesmo código pelo servidor.
+    try {
+      return await navigator.serviceWorker.register("/offline-worker", { scope: "/", updateViaCache: "none" });
+    } catch (erroServidor) {
+      console.warn("Falha ao instalar a abertura offline", { erroArquivo, erroServidor });
+      if (!navigator.onLine) {
+        throw new Error("Conecte-se à internet para preparar a abertura offline neste aparelho.");
+      }
+      const previa = window.location.hostname.startsWith("id-preview-") && window.location.hostname.endsWith(".lovable.app");
+      throw new Error(previa
+        ? "A prévia não conseguiu carregar o recurso de abertura offline. Publique esta atualização, abra o endereço publicado neste aparelho e toque em SINCRONIZAR P/ OFFLINE. A abertura sem internet ainda não está confirmada."
+        : "Não foi possível carregar o recurso de abertura offline. Reabra o app com internet e tente novamente. Se persistir, confira se a atualização foi publicada. A abertura sem internet ainda não está confirmada.");
+    }
+  }
+}
+
 async function worker(): Promise<ServiceWorker> {
   if (!registro) {
     registro = (async () => {
@@ -40,7 +60,7 @@ async function worker(): Promise<ServiceWorker> {
       const existente = await navigator.serviceWorker.getRegistration("/");
       const registration = !navigator.onLine && existente?.active
         ? existente
-        : await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch((error) => {
+        : await registrarWorker().catch((error) => {
           if (existente?.active) return existente;
           throw error;
         });

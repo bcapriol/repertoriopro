@@ -122,7 +122,7 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/_server') || url.pathname.startsWith('/api/') || url.pathname === '/sw.js') return;
+  if (url.pathname.startsWith('/_server') || url.pathname.startsWith('/api/') || url.pathname === '/sw.js' || url.pathname === '/offline-worker') return;
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       const controller = new AbortController();
