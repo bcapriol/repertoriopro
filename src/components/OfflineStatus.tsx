@@ -18,6 +18,13 @@ export function OfflineStatus({ sincronizar = false }: { sincronizar?: boolean }
   const [online, setOnline] = useState<boolean | null>(null);
   const [arquivos, setArquivos] = useState<{ total: number; salvos: number } | null>(null);
   const [falha, setFalha] = useState(false);
+  const [mostrarSucesso, setMostrarSucesso] = useState(false);
+
+  const sincronizarTudo = async () => {
+    setMostrarSucesso(false);
+    const completo = await executar();
+    if (completo) setMostrarSucesso(true);
+  };
 
   useEffect(() => {
     let ativo = true;
@@ -48,9 +55,24 @@ export function OfflineStatus({ sincronizar = false }: { sincronizar?: boolean }
 
   return (
     <section aria-label="Acesso sem internet" className="rounded-2xl border border-border bg-muted/40 p-4 sm:p-5">
+      {sincronizar && (
+        <AlertDialog open={mostrarSucesso} onOpenChange={setMostrarSucesso}>
+          <AlertDialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Dispositivo 100% atualizado! Bora pro show!</AlertDialogTitle>
+              <AlertDialogDescription>
+                Músicas e repertórios sincronizados, anexos salvos e telas e leitor de PDF preparados para uso sem internet. Agenda, contratos e serviços da nuvem continuam precisando de conexão.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction className="min-h-11">OK</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
       <div className="flex items-start gap-2">
         {sincronizar ? (
-          <Button variant="outline" disabled={ocupado || preparando || online !== true} aria-busy={ocupado} className="min-h-11 min-w-0 flex-1 whitespace-normal sm:flex-none" onClick={() => void executar()}>
+          <Button variant="outline" disabled={ocupado || preparando || online !== true} aria-busy={ocupado} className="min-h-11 min-w-0 flex-1 whitespace-normal sm:flex-none" onClick={() => void sincronizarTudo()}>
             <RefreshCwIcon aria-hidden="true" className={ocupado || preparando ? "animate-spin" : ""} /> {ocupado ? "SINCRONIZANDO…" : "SINCRONIZAR REPERTÓRIOS"}
           </Button>
         ) : (

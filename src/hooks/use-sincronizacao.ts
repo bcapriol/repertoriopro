@@ -95,6 +95,7 @@ export function useSincronizacao() {
         const sucesso = `Sincronização concluída. ${resumo} Telas e leitor de PDF preparados para uso offline.`;
         setMensagem(sucesso);
         toast.success(sucesso);
+        return true;
       }
     } catch (e) {
       const erro = e instanceof DOMException && e.name === "QuotaExceededError"
