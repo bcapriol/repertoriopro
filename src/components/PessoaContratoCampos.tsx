@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,59 +13,85 @@ const campos: { key: keyof Pessoa; label: string }[] = [
   { key: "cep", label: "CEP" }, { key: "telefone", label: "Telefone" }, { key: "email", label: "E-mail" },
 ];
 
+const estadoInicial = { buscando: false, mensagem: "", fonte: "" };
 type Props = { pessoa: Pessoa; onChange: (changes: Partial<Pessoa>) => void };
 export function PessoaContratoCampos({ pessoa, onChange }: Props) {
   const { conta } = useConta();
   const buscar = useServerFn(contratosBuscarNome);
-  const [estado, setEstado] = useState({ buscando: false, mensagem: "", fonte: "" });
-  const [tentativa, setTentativa] = useState(0);
+  const id = useId();
+  const nomeInput = useRef<HTMLInputElement>(null);
+  const consulta = useRef(0);
   const atual = useRef({ pessoa, onChange });
-  useEffect(() => { atual.current = { pessoa, onChange }; }, [pessoa, onChange]);
+  const [estado, setEstado] = useState(estadoInicial);
   const documento = pessoa.documento.replace(/\D/g, "");
+  useEffect(() => { atual.current = { pessoa, onChange }; }, [pessoa, onChange]);
   useEffect(() => {
-    let ativo = true;
-    setEstado({ buscando: false, mensagem: "", fonte: "" });
-    if (!conta?.podeEditar || ![11, 14].includes(documento.length)) return;
-    if (!numeroValido(documento)) {
-      setEstado({ buscando: false, mensagem: "Confira o CPF/CNPJ: os dígitos não são válidos.", fonte: "" });
-      return;
+    consulta.current += 1;
+    setEstado(estadoInicial);
+    return () => { consulta.current += 1; };
+  }, [documento, conta?.usuario, conta?.senha, conta?.podeEditar]);
+
+  const pesquisar = async () => {
+    if (!conta?.podeEditar || estado.buscando || !numeroValido(documento)) return;
+    const tentativa = ++consulta.current;
+    const vigente = () => tentativa === consulta.current && atual.current.pessoa.documento.replace(/\D/g, "") === documento;
+    const preencherManualmente = () => {
+      setEstado(estadoInicial);
+      nomeInput.current?.focus();
+    };
+    if (!navigator.onLine) { preencherManualmente(); return; }
+    const nomeAntes = atual.current.pessoa.nome;
+    setEstado({ buscando: true, mensagem: "", fonte: "" });
+    try {
+      const resultado = await buscar({ data: { usuario: conta.usuario, senha: conta.senha, documento } });
+      if (!vigente()) return;
+      if (!resultado.nome?.trim()) { preencherManualmente(); return; }
+      const preservarNome = atual.current.pessoa.nome !== nomeAntes || !!atual.current.pessoa.nome.trim();
+      if (!preservarNome) atual.current.onChange({ nome: resultado.nome });
+      setEstado({ buscando: false, fonte: resultado.fonte, mensagem: preservarNome && atual.current.pessoa.nome.trim() !== resultado.nome
+        ? `Nome encontrado: ${resultado.nome}. Mantivemos o nome já preenchido; confira e ajuste se necessário.`
+        : resultado.mensagem });
+    } catch {
+      if (vigente()) preencherManualmente();
     }
-    const cred = { usuario: conta.usuario, senha: conta.senha, documento };
-    const timer = setTimeout(() => {
-      if (!navigator.onLine) {
-        setEstado({ buscando: false, mensagem: "Sem internet para consultar. Preencha o nome manualmente.", fonte: "" });
-        return;
-      }
-      const nomeAntes = atual.current.pessoa.nome;
-      setEstado({ buscando: true, mensagem: "Consultando nome…", fonte: "" });
-      buscar({ data: cred }).then((resultado) => {
-        if (!ativo || atual.current.pessoa.documento.replace(/\D/g, "") !== documento) return;
-        const preservarNome = atual.current.pessoa.nome !== nomeAntes || !!atual.current.pessoa.nome.trim();
-        if (resultado.nome && !preservarNome) atual.current.onChange({ nome: resultado.nome });
-        setEstado({ buscando: false, fonte: resultado.fonte, mensagem: resultado.nome && preservarNome && atual.current.pessoa.nome.trim() !== resultado.nome
-          ? `Nome encontrado: ${resultado.nome}. Mantivemos o nome já preenchido; confira e ajuste se necessário.`
-          : resultado.mensagem });
-      }).catch(() => {
-        if (ativo) setEstado({ buscando: false, mensagem: "Não foi possível consultar agora. Preencha o nome manualmente ou tente novamente.", fonte: "" });
-      });
-    }, 650);
-    return () => { ativo = false; clearTimeout(timer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documento, conta?.usuario, conta?.senha, conta?.podeEditar, tentativa]);
+  };
+
+  const mudarCampo = (key: keyof Pessoa, value: string) => {
+    if (key === "documento") {
+      consulta.current += 1;
+      setEstado(estadoInicial);
+    }
+    atual.current = { pessoa: { ...atual.current.pessoa, [key]: value }, onChange };
+    onChange({ [key]: value });
+  };
+  const documentoInvalido = [11, 14].includes(documento.length) && !numeroValido(documento);
 
   return <div className="space-y-3">
-    <p className="text-sm text-muted-foreground">Somente nome e CPF/CNPJ são obrigatórios. Ao completar um documento válido, o nome será consultado automaticamente e poderá ser corrigido.</p>
-    <div className="grid gap-3 sm:grid-cols-2">{campos.map(({ key, label }) => <label key={key} className="block space-y-1 text-sm font-semibold">
-      {label}<Input value={pessoa[key]} required={key === "nome" || key === "documento"}
-        inputMode={key === "documento" ? "numeric" : undefined} maxLength={key === "documento" ? 18 : undefined}
-        onChange={(e) => onChange({ [key]: e.target.value })} />
-    </label>)}</div>
-    <div className="space-y-2 rounded-md bg-muted p-3 text-sm">
-      <p className="text-muted-foreground">CPF: busca nos contratos da própria banda. CNPJ: busca nos contratos e, se necessário, na base pública BrasilAPI. O CNPJ digitado é enviado a esse serviço para consulta. Consulta externa de CPF requer um serviço autorizado, ainda não configurado.</p>
-      {estado.mensagem && <p role="status" aria-live="polite">{estado.mensagem}{estado.fonte && <span className="block text-xs text-muted-foreground">Fonte: {estado.fonte}</span>}</p>}
-      <Button type="button" size="sm" variant="outline" disabled={estado.buscando || !numeroValido(documento)} onClick={() => setTentativa((n) => n + 1)}>
-        {estado.buscando ? "Consultando…" : "Consultar nome novamente"}
-      </Button>
-    </div>
+    <p className="text-sm text-muted-foreground">Somente nome e CPF/CNPJ são obrigatórios. Digite o documento e clique em PESQUISAR.</p>
+    <div className="grid gap-3 sm:grid-cols-2">{campos.map(({ key, label }) => <div key={key} className="space-y-1">
+      <label htmlFor={`${id}-${key}`} className="block text-sm font-semibold">{label}</label>
+      <div className="flex items-center gap-2">
+        <Input id={`${id}-${key}`} ref={key === "nome" ? nomeInput : undefined} value={pessoa[key]}
+          className="min-w-0" required={key === "nome" || key === "documento"}
+          placeholder={key === "nome" ? "digite aqui" : undefined}
+          inputMode={key === "documento" ? "numeric" : undefined} maxLength={key === "documento" ? 18 : undefined}
+          aria-invalid={key === "documento" ? documentoInvalido : undefined}
+          aria-describedby={key === "documento" ? `${id}-consulta` : undefined}
+          onChange={(e) => mudarCampo(key, e.target.value)}
+          onKeyDown={key === "documento" ? (e) => { if (e.key === "Enter") { e.preventDefault(); void pesquisar(); } } : undefined} />
+        {key === "documento" && <Button type="button" size="sm" variant="outline" className="shrink-0 text-xs"
+          disabled={estado.buscando || !conta?.podeEditar || !numeroValido(documento)}
+          aria-busy={estado.buscando} onClick={() => void pesquisar()}>
+          {estado.buscando ? "Pesquisando…" : "PESQUISAR"}
+        </Button>}
+      </div>
+      {key === "documento" && <div id={`${id}-consulta`} className="space-y-1 text-xs text-muted-foreground">
+        <p>CPF: contratos da banda. CNPJ: contratos da banda e BrasilAPI, à qual o documento é enviado.</p>
+        {documentoInvalido && <p>Confira o CPF/CNPJ: os dígitos não são válidos.</p>}
+        <p role="status" aria-live="polite">{estado.buscando ? "Consultando nome…" : estado.mensagem}
+          {estado.fonte && <span className="block">Fonte: {estado.fonte}</span>}
+        </p>
+      </div>}
+    </div>)}</div>
   </div>;
 }
