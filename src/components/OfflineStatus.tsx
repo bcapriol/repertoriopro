@@ -57,12 +57,9 @@ export function OfflineStatus({ sincronizar = false }: { sincronizar?: boolean }
     <section aria-label="Acesso sem internet" className="rounded-2xl border border-border bg-muted/40 p-4 sm:p-5">
       {sincronizar && (
         <AlertDialog open={mostrarSucesso} onOpenChange={setMostrarSucesso}>
-          <AlertDialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl">
+          <AlertDialogContent aria-describedby={undefined} className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl">
             <AlertDialogHeader>
               <AlertDialogTitle>Dispositivo 100% atualizado! Bora pro show!</AlertDialogTitle>
-              <AlertDialogDescription>
-                Envio das músicas e repertórios confirmado na nuvem, arquivos enviados e cópia offline concluída neste aparelho. Telas e leitor de PDF preparados para uso sem internet. Agenda, contratos e serviços da nuvem continuam precisando de conexão.
-              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogAction className="min-h-11">OK</AlertDialogAction>
