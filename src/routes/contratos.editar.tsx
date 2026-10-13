@@ -6,6 +6,7 @@ import { PageShell, EmptyState } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { PessoaContratoCampos } from "@/components/PessoaContratoCampos";
 import { useConta } from "@/lib/banda-local";
 import { useAppData } from "@/lib/repertorio-store";
 import { contratosListar, contratosNovo, contratosSalvar } from "@/lib/nuvem.functions";
@@ -16,12 +17,6 @@ export const Route = createFileRoute("/contratos/editar")({
   component: EditarContrato,
 });
 type Chave = keyof ContratoDados;
-const pessoaCampos: { key: keyof Pessoa; label: string }[] = [
-  { key: "nome", label: "Nome completo / Razão Social" }, { key: "documento", label: "CPF/CNPJ" },
-  { key: "endereco", label: "Endereço" }, { key: "numero", label: "Número" }, { key: "complemento", label: "Complemento" },
-  { key: "bairro", label: "Bairro" }, { key: "cidade", label: "Cidade" }, { key: "estado", label: "Estado" },
-  { key: "cep", label: "CEP" }, { key: "telefone", label: "Telefone" }, { key: "email", label: "E-mail" },
-];
 const opcao = (itens: readonly string[]) => <>{itens.map((v) => <option key={v} value={v}>{v}</option>)}</>;
 const estiloCampo = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
 function EditarContrato() {
@@ -62,12 +57,16 @@ function EditarContrato() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pronto, id, conta?.usuario, conta?.senha, conta?.podeEditar]);
   const mudar = (key: Chave, value: string) => setDados((d) => d ? { ...d, [key]: value, ...(key === "autorizacaoImagem" && value !== "AUTORIZO" ? { finalidades: [] } : {}) } : d);
-  const mudarPessoa = (tipo: "contratante" | "contratado", key: keyof Pessoa, value: string) => setDados((d) => d ? { ...d, [tipo]: { ...d[tipo], [key]: value } } : d);
+  const mudarPessoa = (tipo: "contratante" | "contratado", changes: Partial<Pessoa>) => setDados((d) => {
+    if (!d) return d;
+    const tamanho = changes.documento?.replace(/\D/g, "").length;
+    return { ...d, [tipo]: { ...d[tipo], ...changes }, ...(tipo === "contratante" && (tamanho === 11 || tamanho === 14) ? { tipoPessoa: tamanho === 14 ? "Pessoa Jurídica" as const : "Pessoa Física" as const } : {}) };
+  });
   const alternar = (key: "servicos" | "finalidades", value: string) => setDados((d) => d ? { ...d, [key]: d[key].includes(value) ? d[key].filter((v) => v !== value) : [...d[key], value] } : d);
-  const campo = (key: Chave, label: string, type = "text") => <label className="block space-y-1 text-sm font-semibold">{label}<Input type={type} min={type === "number" ? "0" : undefined} step={type === "number" ? (key === "equipeAlimentacao" || key === "parcelas" ? "1" : "0.01") : undefined} value={String(dados?.[key] ?? "")} onChange={(e) => mudar(key, e.target.value)} /></label>;
+  const campo = (key: Chave, label: string, type = "text") => <label className="block space-y-1 text-sm font-semibold">{label.replace(/ \*$/, "")}<Input type={type} min={type === "number" ? "0" : undefined} step={type === "number" ? (key === "equipeAlimentacao" || key === "parcelas" ? "1" : "0.01") : undefined} value={String(dados?.[key] ?? "")} onChange={(e) => mudar(key, e.target.value)} /></label>;
   const texto = (key: Chave, label: string) => <label className="block space-y-1 text-sm font-semibold">{label}<Textarea value={String(dados?.[key] ?? "")} onChange={(e) => mudar(key, e.target.value)} /></label>;
-  const selecao = (key: Chave, label: string, items: readonly string[]) => <label className="block space-y-1 text-sm font-semibold">{label}<select className={estiloCampo} value={String(dados?.[key] ?? "")} onChange={(e) => mudar(key, e.target.value)}><option value="">Selecione</option>{opcao(items)}</select></label>;
-  const pessoa = (tipo: "contratante" | "contratado") => <div className="grid gap-3 sm:grid-cols-2">{pessoaCampos.map(({ key, label }) => <label key={key} className="block space-y-1 text-sm font-semibold">{label}<Input value={dados?.[tipo][key] ?? ""} onChange={(e) => mudarPessoa(tipo, key, e.target.value)} /></label>)}</div>;
+  const selecao = (key: Chave, label: string, items: readonly string[]) => <label className="block space-y-1 text-sm font-semibold">{label.replace(/ \*$/, "")}<select className={estiloCampo} value={String(dados?.[key] ?? "")} onChange={(e) => mudar(key, e.target.value)}><option value="">Selecione (opcional)</option>{opcao(items)}</select></label>;
+  const pessoa = (tipo: "contratante" | "contratado") => dados ? <PessoaContratoCampos pessoa={dados[tipo]} onChange={(changes) => mudarPessoa(tipo, changes)} /> : null;
   const filtradas = useMemo(() => biblioteca.songs.filter((s) => (!lista || biblioteca.setlists.find((r) => r.id === lista)?.songIds.includes(s.id)) && `${s.titulo} ${s.artista}`.toLocaleLowerCase("pt-BR").includes(busca.toLocaleLowerCase("pt-BR"))), [biblioteca, busca, lista]);
   const adicionar = (s: typeof biblioteca.songs[number]) => setDados((d) => d && !d.repertorio.some((m) => m.idOriginal === s.id) ? { ...d, repertorio: [...d.repertorio, { idOriginal: s.id, titulo: s.titulo, artista: s.artista, ordem: d.repertorio.length + 1, momento: "", observacao: "" }] } : d);
   const mudarMusica = (i: number, changes: Partial<MusicaContrato>) => setDados((d) => d ? { ...d, repertorio: d.repertorio.map((m, index) => index === i ? { ...m, ...changes } : m) } : d);
@@ -91,7 +90,7 @@ function EditarContrato() {
   };
   if (!pronto || carregando) return <PageShell title="Contrato de Eventos"><p>Carregando…</p></PageShell>;
   if (!conta?.podeEditar || !dados) return <PageShell title="Contrato de Eventos"><EmptyState title="Acesso restrito" hint="É necessária permissão de edição e um rascunho válido." /></PageShell>;
-  return <PageShell title={numero ? `Contrato ${numero}` : "Novo Contrato"} subtitle="Preencha os dados e salve um rascunho" wide>
+  return <PageShell title={numero ? `Contrato ${numero}` : "Novo Contrato"} subtitle="Somente nome e CPF/CNPJ das partes são obrigatórios. Os demais dados são opcionais." wide>
     <div className="space-y-8 pb-10">
       <Link to="/contratos" className="text-sm text-primary underline">Voltar à lista</Link>
       <section className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2"><h2 className="text-lg font-bold sm:col-span-2">Evento e contratante</h2>
@@ -104,7 +103,7 @@ function EditarContrato() {
         {campo("nomeEvento", "Nome do evento *")}{campo("dataEvento", "Data prevista *", "date")}{campo("localEvento", "Local do evento *")}{campo("enderecoEvento", "Endereço do evento *")}{campo("horaEvento", "Horário previsto do evento *", "time")}{campo("horaInicio", "Início da atividade *", "time")}{campo("horaFim", "Término da atividade *", "time")}
         <div className="sm:col-span-2">{texto("estilo", "Estilo / características do evento")}</div>
       </section>
-      <section className="space-y-3 rounded-lg border border-border p-4"><h2 className="text-lg font-bold">Modalidade de contrato *</h2>
+      <section className="space-y-3 rounded-lg border border-border p-4"><h2 className="text-lg font-bold">Modalidade de contrato</h2>
         <div className="grid gap-2 sm:grid-cols-2">{SERVICOS.map((s) => <label key={s} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dados.servicos.includes(s)} onChange={() => alternar("servicos", s)} />{s}</label>)}</div>
         {selecao("removerAntes", "É possível remover equipamentos antes do término? *", ["Sim", "Não"])}
       </section>
@@ -117,7 +116,7 @@ function EditarContrato() {
       </section>
       <section className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2"><h2 className="text-lg font-bold sm:col-span-2">Valores e condições de pagamento</h2>
         {campo("valorTotal", "Valor total (R$) *", "number")}{campo("valorReserva", "Valor da reserva (R$) *", "number")}
-        <p className="sm:col-span-2 text-sm font-semibold">Valor restante: {Math.max(0, Number(dados.valorTotal || 0) - Number(dados.valorReserva || 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+        <p className="sm:col-span-2 text-sm font-semibold">Valor restante: {dados.valorTotal.trim() && dados.valorReserva.trim() ? Math.max(0, Number(dados.valorTotal) - Number(dados.valorReserva)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "não informado"}</p>
         {campo("dataReserva", "Data do pagamento da reserva", "date")}{campo("dataSaldo", "Data prevista para pagamento do saldo", "date")}
         {selecao("pagamento", "Condição de pagamento *", PAGAMENTOS)}
         {dados.pagamento === "Parcelado" && <>{campo("parcelas", "Número de parcelas", "number")}{campo("valorParcela", "Valor de cada parcela do saldo (R$)", "number")}<div className="sm:col-span-2">{texto("vencimentos", "Vencimentos das parcelas (AAAA-MM-DD, um por linha)")}</div></>}

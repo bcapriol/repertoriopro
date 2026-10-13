@@ -57,41 +57,34 @@ export function numeroValido(documento: string): boolean {
 }
 export function validarContrato(d: ContratoDados): string[] {
   const erros: string[] = [];
-  if (!TIPOS_EVENTO.includes(d.tipoEvento as typeof TIPOS_EVENTO[number])) erros.push("Selecione o tipo de evento.");
-  if (!(["Pessoa Física", "Pessoa Jurídica"] as string[]).includes(d.tipoPessoa)) erros.push("Selecione o tipo de contratante.");
   for (const [nome, p] of [["Contratante", d.contratante], ["Contratado", d.contratado]] as const) {
-    if (!p.nome.trim() || !p.endereco.trim() || !p.numero.trim() || !p.bairro.trim() || !p.cidade.trim() || !p.estado.trim() || !p.cep.trim()) erros.push(`Preencha nome e endereço completo de ${nome}.`);
-    if (!numeroValido(p.documento) || (nome === "Contratante" && p.documento.replace(/\D/g, "").length !== (d.tipoPessoa === "Pessoa Jurídica" ? 14 : 11))) erros.push(`CPF/CNPJ inválido: ${nome}.`);
-    if (!/^\S+@\S+\.\S+$/.test(p.email)) erros.push(`E-mail inválido: ${nome}.`);
-    if (![10, 11].includes(p.telefone.replace(/\D/g, "").length)) erros.push(`Telefone inválido: ${nome}.`);
-    if (p.cep.replace(/\D/g, "").length !== 8) erros.push(`CEP inválido: ${nome}.`);
+    if (!p.nome.trim()) erros.push(`Informe o nome de ${nome}.`);
+    if (!numeroValido(p.documento) || (nome === "Contratante" && p.documento.replace(/\D/g, "").length !== (d.tipoPessoa === "Pessoa Jurídica" ? 14 : 11))) erros.push(`Informe um CPF/CNPJ válido: ${nome}.`);
+    if (p.email.trim() && !/^\S+@\S+\.\S+$/.test(p.email.trim())) erros.push(`E-mail inválido: ${nome}.`);
+    if (p.telefone.trim() && ![10, 11].includes(p.telefone.replace(/\D/g, "").length)) erros.push(`Telefone inválido: ${nome}.`);
+    if (p.cep.trim() && p.cep.replace(/\D/g, "").length !== 8) erros.push(`CEP inválido: ${nome}.`);
   }
-  if (d.tipoPessoa === "Pessoa Jurídica" && (!d.representante.trim() || !d.cargoRepresentante.trim() || d.cpfRepresentante.replace(/\D/g, "").length !== 11 || !numeroValido(d.cpfRepresentante))) erros.push("Informe representante, CPF válido e cargo.");
-  if (!d.nomeEvento.trim() || !d.localEvento.trim() || !d.enderecoEvento.trim()) erros.push("Preencha nome, local e endereço do evento.");
-  if (!d.dataEvento || Number.isNaN(new Date(`${d.dataEvento}T12:00:00`).getTime()) || new Date(`${d.dataEvento}T12:00:00`).toISOString().slice(0, 10) !== d.dataEvento) erros.push("Informe uma data válida para o evento.");
-  if (!d.horaEvento || !d.horaInicio || !d.horaFim || d.horaFim <= d.horaInicio) erros.push("Confira os horários do evento (término após início).");
-  if (!d.servicos.length || d.servicos.some((s) => !SERVICOS.includes(s as typeof SERVICOS[number]))) erros.push("Selecione ao menos um serviço válido.");
-  if (!["Sim", "Não"].includes(d.removerAntes) || !["No dia do evento", "Dia anterior", "Na semana"].includes(d.montagem) || !["Sim", "Não"].includes(d.alteraData) || !["AUTORIZO", "NÃO AUTORIZO"].includes(d.autorizacaoImagem)) erros.push("Responda às opções de equipamentos, montagem, alteração de data e imagem.");
-  if (d.finalidades.some((f) => !FINALIDADES.includes(f as typeof FINALIDADES[number]))) erros.push("Selecione apenas finalidades de imagem disponíveis.");
-  if (d.autorizacaoImagem === "AUTORIZO" && !d.finalidades.length) erros.push("Selecione as finalidades autorizadas para o uso de imagem.");
+  if (d.cpfRepresentante.trim() && (d.cpfRepresentante.replace(/\D/g, "").length !== 11 || !numeroValido(d.cpfRepresentante))) erros.push("CPF do representante inválido.");
+  const dataValida = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(`${v}T12:00:00`).getTime()) && new Date(`${v}T12:00:00`).toISOString().slice(0, 10) === v;
+  for (const [rotulo, valor] of [["evento", d.dataEvento], ["pagamento da reserva", d.dataReserva], ["pagamento do saldo", d.dataSaldo]] as const) {
+    if (valor && !dataValida(valor)) erros.push(`Data inválida para ${rotulo}.`);
+  }
+  if (d.horaInicio && d.horaFim && d.horaFim <= d.horaInicio) erros.push("O término deve ser após o início da atividade.");
   if (d.equipeAlimentacao && (!Number.isInteger(Number(d.equipeAlimentacao)) || Number(d.equipeAlimentacao) < 0)) erros.push("Quantidade da equipe deve ser um número inteiro não negativo.");
+  for (const [rotulo, valor] of [["total", d.valorTotal], ["da reserva", d.valorReserva], ["da parcela", d.valorParcela]] as const) {
+    const n = Number(valor);
+    if (valor.trim() && (!Number.isFinite(n) || n < 0 || Math.abs(n * 100 - Math.round(n * 100)) > 0.00001)) erros.push(`Valor ${rotulo} inválido; use reais e centavos não negativos.`);
+  }
   const total = Number(d.valorTotal), reserva = Number(d.valorReserva);
-  if (!d.valorTotal || !d.valorReserva || !Number.isFinite(total) || total <= 0 || !Number.isFinite(reserva) || reserva < 0 || reserva > total || Math.abs(total * 100 - Math.round(total * 100)) > 0.00001 || Math.abs(reserva * 100 - Math.round(reserva * 100)) > 0.00001) erros.push("Informe valores em reais e centavos; a reserva não pode superar o valor total.");
-  if (reserva > 0 && !d.dataReserva) erros.push("Informe a data de pagamento da reserva.");
-  if (total > reserva && !d.dataSaldo) erros.push("Informe a data prevista para pagamento do saldo.");
-  if (!PAGAMENTOS.includes(d.pagamento as typeof PAGAMENTOS[number])) erros.push("Selecione a condição de pagamento.");
-  if (d.pagamento === PAGAMENTOS[1] && Math.round(reserva * 100) !== Math.round(total * 50)) erros.push("Na condição 50% + 50%, a reserva deve ser metade do valor total.");
-  if (d.pagamento === PAGAMENTOS[2] && Math.round(reserva * 100) !== Math.round(total * 30)) erros.push("Na condição 30% + 70%, a reserva deve corresponder a 30% do valor total.");
-  if (d.pagamento === "Parcelado") {
-    const parcelas = Number(d.parcelas), valorParcela = Number(d.valorParcela);
+  if (d.valorTotal && d.valorReserva && reserva > total) erros.push("A reserva não pode superar o valor total.");
+  if (d.valorTotal && d.valorReserva && d.pagamento === PAGAMENTOS[1] && Math.round(reserva * 100) !== Math.round(total * 50)) erros.push("Na condição 50% + 50%, a reserva deve ser metade do valor total.");
+  if (d.valorTotal && d.valorReserva && d.pagamento === PAGAMENTOS[2] && Math.round(reserva * 100) !== Math.round(total * 30)) erros.push("Na condição 30% + 70%, a reserva deve corresponder a 30% do valor total.");
+  if (d.parcelas && (!Number.isInteger(Number(d.parcelas)) || Number(d.parcelas) < 2)) erros.push("O número de parcelas deve ser um inteiro a partir de 2.");
+  if (d.vencimentos.trim()) {
     const vencimentos = d.vencimentos.split(/[\n,;]+/).map((v) => v.trim()).filter(Boolean);
-    if (!Number.isInteger(parcelas) || parcelas < 2 || !Number.isFinite(valorParcela) || valorParcela <= 0 || Math.abs(valorParcela * 100 - Math.round(valorParcela * 100)) > 0.00001 || vencimentos.length !== parcelas) erros.push("Informe quantidade, valor em reais e um vencimento por parcela (uma linha para cada).");
-    if (vencimentos.some((v) => !/^\d{4}-\d{2}-\d{2}$/.test(v) || Number.isNaN(new Date(`${v}T12:00:00`).getTime()) || new Date(`${v}T12:00:00`).toISOString().slice(0, 10) !== v)) erros.push("Informe os vencimentos no formato AAAA-MM-DD, com datas válidas.");
-    if (Number.isFinite(total) && Number.isFinite(reserva) && Number.isInteger(parcelas) && Number.isFinite(valorParcela) && Math.round(valorParcela * 100) * parcelas !== Math.round((total - reserva) * 100)) erros.push("O total das parcelas deve corresponder ao saldo após a reserva.");
+    if (vencimentos.some((v) => !dataValida(v))) erros.push("Informe os vencimentos no formato AAAA-MM-DD, com datas válidas.");
+    if (d.parcelas && vencimentos.length !== Number(d.parcelas)) erros.push("A quantidade de vencimentos deve corresponder ao número de parcelas informado.");
   }
-  if (d.pagamento === "Outra condição" && !d.outraCondicao.trim()) erros.push("Descreva a condição de pagamento.");
-  for (const [rotulo, valor] of [["pagamento da reserva", d.dataReserva], ["pagamento do saldo", d.dataSaldo]] as const) {
-    if (valor && (Number.isNaN(new Date(`${valor}T12:00:00`).getTime()) || new Date(`${valor}T12:00:00`).toISOString().slice(0, 10) !== valor)) erros.push(`Data inválida para ${rotulo}.`);
-  }
+  if (d.pagamento === "Parcelado" && d.valorTotal && d.parcelas && d.valorParcela && Math.round(Number(d.valorParcela) * 100) * Number(d.parcelas) !== Math.round((total - reserva) * 100)) erros.push("O total das parcelas deve corresponder ao saldo após a reserva.");
   return erros;
 }

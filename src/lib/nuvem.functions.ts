@@ -146,6 +146,10 @@ export const contratosNovo = createServerFn({ method: "POST" })
   .inputValidator((d: Cred) => d)
   .handler(async ({ data }) => (await import("./contratos.server")).novoContrato(data));
 
+export const contratosBuscarNome = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { documento: string }) => d)
+  .handler(async ({ data }) => (await import("./contratos.server")).buscarNomeDocumento(data, data.documento));
+
 export const contratosGerar = createServerFn({ method: "POST" })
   .inputValidator((d: Cred & { id: string }) => d)
   .handler(async ({ data }) => (await import("./contratos.server")).gerarContrato(data, data.id));

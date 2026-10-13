@@ -1,7 +1,7 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin as db } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
-import { configInicial, contratoInicial, validarContrato, TRANSICOES_CONTRATO, type StatusContrato, type ConfigContratos, type ContratoDados } from "./contratos";
+import { configInicial, contratoInicial, numeroValido, validarContrato, TRANSICOES_CONTRATO, type StatusContrato, type ConfigContratos, type ContratoDados } from "./contratos";
 import { gerarPdfContrato } from "./contratos-pdf.server";
 
 type Cred = { usuario: string; senha: string };
@@ -67,6 +67,49 @@ export async function salvarRascunho(cred: Cred, dados: ContratoDados, id?: stri
 export async function novoContrato(cred: Cred) {
   const config = await lerConfiguracao(cred);
   return contratoInicial(config);
+}
+
+export async function buscarNomeDocumento(cred: Cred, documento: string) {
+  const usuario = await autenticar(cred);
+  if (!usuario.pode_editar) throw new Error("Você não tem permissão para consultar dados de contratos.");
+  const numero = typeof documento === "string" ? documento.replace(/\D/g, "") : "";
+  if (!numeroValido(numero)) throw new Error("Informe um CPF ou CNPJ válido para consultar.");
+  const formatado = numero.length === 11
+    ? numero.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+    : numero.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  const filtros = [numero, formatado].flatMap((v) => [
+    `dados->contratante->>documento.eq.${v}`,
+    `dados->contratado->>documento.eq.${v}`,
+    ...(numero.length === 11 ? [`dados->>cpfRepresentante.eq.${v}`] : []),
+  ]).join(",");
+  const { data, error } = await db.from("contratos_eventos").select("dados")
+    .eq("banda_id", usuario.banda_id).or(filtros).order("atualizado_em", { ascending: false }).limit(20);
+  if (error) throw new Error("Não foi possível consultar os contratos da banda. Tente novamente.");
+  for (const row of data ?? []) {
+    const d = row.dados as unknown as ContratoDados;
+    for (const p of [d.contratante, d.contratado]) {
+      if (p?.documento?.replace(/\D/g, "") === numero && p.nome?.trim()) {
+        return { nome: p.nome.trim(), fonte: "Contratos da banda", mensagem: "Nome encontrado nos contratos da banda. Confira antes de salvar." };
+      }
+    }
+    if (numero.length === 11 && d.cpfRepresentante?.replace(/\D/g, "") === numero && d.representante?.trim()) {
+      return { nome: d.representante.trim(), fonte: "Contratos da banda", mensagem: "Representante encontrado nos contratos da banda. Confira antes de salvar." };
+    }
+  }
+  if (numero.length === 11) return { nome: "", fonte: "", mensagem: "CPF não encontrado nos contratos da banda. Informe o nome manualmente. Consulta externa de CPF exige um serviço autorizado, ainda não configurado." };
+  try {
+    const resposta = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${numero}`, {
+      headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10000),
+    });
+    if (resposta.status === 404) return { nome: "", fonte: "", mensagem: "CNPJ não encontrado na base pública. Informe a razão social manualmente." };
+    if (!resposta.ok) throw new Error("Consulta indisponível");
+    const empresa: unknown = await resposta.json();
+    const nome = empresa && typeof empresa === "object" && "razao_social" in empresa && typeof empresa.razao_social === "string" ? empresa.razao_social.trim() : "";
+    if (!nome) throw new Error("Razão social não retornada");
+    return { nome, fonte: "BrasilAPI — base pública de CNPJ", mensagem: "Razão social encontrada na base pública. Confira antes de salvar." };
+  } catch {
+    return { nome: "", fonte: "", mensagem: "A consulta pública de CNPJ está indisponível no momento. Preencha a razão social manualmente ou tente novamente." };
+  }
 }
 
 export async function gerarContrato(cred: Cred, id: string) {
