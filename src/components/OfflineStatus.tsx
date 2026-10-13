@@ -61,7 +61,7 @@ export function OfflineStatus({ sincronizar = false }: { sincronizar?: boolean }
             <AlertDialogHeader>
               <AlertDialogTitle>Dispositivo 100% atualizado! Bora pro show!</AlertDialogTitle>
               <AlertDialogDescription>
-                Músicas e repertórios sincronizados, anexos salvos e telas e leitor de PDF preparados para uso sem internet. Agenda, contratos e serviços da nuvem continuam precisando de conexão.
+                Envio das músicas e repertórios confirmado na nuvem, arquivos enviados e cópia offline concluída neste aparelho. Telas e leitor de PDF preparados para uso sem internet. Agenda, contratos e serviços da nuvem continuam precisando de conexão.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -171,10 +171,23 @@ export async function baixarDaBanda(bandaId: string) {
   const db = await admin();
   const banda = { id: bandaId };
 
+  // Lê até a última página, sem limitar a sincronização ao máximo de uma consulta.
+  const lerTodas = async <T,>(pagina: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: unknown }>) => {
+    const data: T[] = [];
+    const tamanho = 500;
+    for (let de = 0; ; de += tamanho) {
+      const resultado = await pagina(de, de + tamanho - 1);
+      if (resultado.error) throw resultado.error;
+      const itens = resultado.data ?? [];
+      data.push(...itens);
+      if (itens.length < tamanho) break;
+    }
+    return { data, error: null };
+  };
   const [musicas, repertorios, exclusoes] = await Promise.all([
-    db.from("cloud_songs").select("*").eq("banda_id", banda.id).order("ordem"),
-    db.from("cloud_setlists").select("*").eq("banda_id", banda.id).order("ordem"),
-    db.from("cloud_exclusoes").select("tipo, item_id, atualizado_em").eq("banda_id", banda.id),
+    lerTodas((de, ate) => db.from("cloud_songs").select("*").eq("banda_id", banda.id).order("ordem").order("id").range(de, ate)),
+    lerTodas((de, ate) => db.from("cloud_setlists").select("*").eq("banda_id", banda.id).order("ordem").order("id").range(de, ate)),
+    lerTodas((de, ate) => db.from("cloud_exclusoes").select("tipo, item_id, atualizado_em").eq("banda_id", banda.id).order("id").range(de, ate)),
   ]);
   if (musicas.error) throw musicas.error;
   if (repertorios.error) throw repertorios.error;
@@ -301,20 +314,20 @@ export async function sincronizar(usuario: string, senha: string, locais: AppDat
       if (error) throw error;
     }
     const alteradas = mesclado.songs.filter((s) => !nuvem.songs.some((n) => n.id === s.id && (n.atualizadoEm ?? n.criadoEm) >= (s.atualizadoEm ?? s.criadoEm)));
-    if (alteradas.length) {
-      const { error } = await db.from("cloud_songs").upsert(alteradas.map((s, i) => ({
+    for (let inicio = 0; inicio < alteradas.length; inicio += 100) {
+      const { error } = await db.from("cloud_songs").upsert(alteradas.slice(inicio, inicio + 100).map((s, i) => ({
         banda_id: conta.bandaId, song_id: s.id, titulo: s.titulo, artista: s.artista ?? "", tom: s.tom ?? "",
         bpm: s.bpm ?? "", ritmo: s.ritmo ?? "", observacoes: s.observacoes ?? "", letra: s.letra ?? "",
-        anexos: (s.anexos ?? []) as unknown as never, ordem: i,
+        anexos: (s.anexos ?? []) as unknown as never, ordem: inicio + i,
         atualizado_em: new Date(s.atualizadoEm ?? s.criadoEm).toISOString(),
       })), { onConflict: "banda_id,song_id" });
       if (error) throw error;
     }
     const listasAlteradas = mesclado.setlists.filter((s) => !nuvem.setlists.some((n) => n.id === s.id && (n.atualizadoEm ?? n.criadoEm) >= (s.atualizadoEm ?? s.criadoEm)));
-    if (listasAlteradas.length) {
-      const { error } = await db.from("cloud_setlists").upsert(listasAlteradas.map((s, i) => ({
+    for (let inicio = 0; inicio < listasAlteradas.length; inicio += 100) {
+      const { error } = await db.from("cloud_setlists").upsert(listasAlteradas.slice(inicio, inicio + 100).map((s, i) => ({
         banda_id: conta.bandaId, setlist_id: s.id, nome: s.nome, local: s.local ?? "", data: s.data ?? "",
-        song_ids: s.songIds as unknown as never, ordem: i,
+        song_ids: s.songIds as unknown as never, ordem: inicio + i,
         atualizado_em: new Date(s.atualizadoEm ?? s.criadoEm).toISOString(),
       })), { onConflict: "banda_id,setlist_id" });
       if (error) throw error;
@@ -325,10 +338,27 @@ export async function sincronizar(usuario: string, senha: string, locais: AppDat
       ...(mesclado.deletedSongs ?? []).map((e) => ({ banda_id: conta.bandaId, tipo: "song", item_id: e.id, atualizado_em: new Date(e.atualizadoEm).toISOString() })),
       ...(mesclado.deletedSetlists ?? []).map((e) => ({ banda_id: conta.bandaId, tipo: "setlist", item_id: e.id, atualizado_em: new Date(e.atualizadoEm).toISOString() })),
     ];
-    if (exclusoes.length) {
-      const { error } = await (await admin()).from("cloud_exclusoes").upsert(exclusoes, { onConflict: "banda_id,tipo,item_id" });
+    const db = await admin();
+    for (let inicio = 0; inicio < exclusoes.length; inicio += 100) {
+      const { error } = await db.from("cloud_exclusoes").upsert(exclusoes.slice(inicio, inicio + 100), { onConflict: "banda_id,tipo,item_id" });
       if (error) throw error;
     }
+  }
+  // Só confirma o envio depois de reler todos os registros gravados.
+  const confirmado = await baixarDaBanda(conta.bandaId);
+  const conferir = <T extends { id: string; criadoEm: number; atualizadoEm?: number }>(esperados: T[], salvos: T[]) => {
+    const versoes = new Map(salvos.map((item) => [item.id, item.atualizadoEm ?? item.criadoEm]));
+    return esperados.every((item) => (versoes.get(item.id) ?? -1) >= (item.atualizadoEm ?? item.criadoEm));
+  };
+  const conferirExclusoes = (esperadas: AppData["deletedSongs"], salvas: AppData["deletedSongs"]) => {
+    const versoes = new Map((salvas ?? []).map((item) => [item.id, item.atualizadoEm]));
+    return (esperadas ?? []).every((item) => (versoes.get(item.id) ?? -1) >= item.atualizadoEm);
+  };
+  if (!conferir(mesclado.songs, confirmado.songs)
+    || !conferir(mesclado.setlists, confirmado.setlists)
+    || (conta.podeApagar && (!conferirExclusoes(mesclado.deletedSongs, confirmado.deletedSongs)
+      || !conferirExclusoes(mesclado.deletedSetlists, confirmado.deletedSetlists)))) {
+    throw new Error("O envio ainda não foi confirmado por completo. A sincronização precisa tentar novamente.");
   }
   return {
     banda: conta.banda,
