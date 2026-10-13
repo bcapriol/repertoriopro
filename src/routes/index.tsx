@@ -5,7 +5,7 @@ import {
   ListMusicIcon,
   LibraryIcon,
   ArrowDownUpIcon,
-  RefreshCwIcon,
+  BluetoothIcon,
   LockIcon,
   LogOutIcon,
   CalendarDaysIcon,
@@ -116,7 +116,7 @@ function Index() {
           </p>
         </header>
 
-        <div className="mt-6"><OfflineStatus /></div>
+        <div className="mt-6"><OfflineStatus sincronizar /></div>
 
         <nav className="mt-6 grid grid-cols-1 gap-4 min-[380px]:grid-cols-2">
           {!banda && data.songs.length === 0 && data.setlists.length === 0 ? (
@@ -159,9 +159,9 @@ function Index() {
           </Link>
           <Link to="/sincronizar" className={tileClass}>
             <TileBody
-              label="Sincronizar Repertórios"
-              hint={banda ? `Banda atual: ${banda}` : "Wi-Fi, Bluetooth ou arquivo"}
-              Icon={RefreshCwIcon}
+              label="Transferir entre aparelhos"
+              hint="Bluetooth, receber arquivo e backup"
+              Icon={BluetoothIcon}
             />
           </Link>
           <Link to="/dados" className={tileClass}>

@@ -3,14 +3,16 @@ import { Link } from "@tanstack/react-router";
 import { AlertCircleIcon, RefreshCwIcon } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
 import { lerAnexoOffline } from "@/lib/anexo-cache";
-import { prepararTelasOffline, useOfflineApp } from "@/lib/offline-app";
+import { useOfflineApp } from "@/lib/offline-app";
+import { useSincronizacao } from "@/hooks/use-sincronizacao";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export function OfflineStatus() {
+export function OfflineStatus({ sincronizar = false }: { sincronizar?: boolean }) {
+  const { executar, ocupado, mensagem } = useSincronizacao();
   const { data } = useAppData();
   const { preparando, copia, erro } = useOfflineApp();
   const [online, setOnline] = useState<boolean | null>(null);
@@ -47,9 +49,13 @@ export function OfflineStatus() {
   return (
     <section aria-label="Acesso sem internet" className="rounded-2xl border border-border bg-muted/40 p-4 sm:p-5">
       <div className="flex items-start gap-2">
-        <Button variant="outline" disabled={preparando || online !== true} className="min-h-11 min-w-0 flex-1 whitespace-normal sm:flex-none" onClick={() => void prepararTelasOffline(data)}>
-          <RefreshCwIcon aria-hidden="true" className={preparando ? "animate-spin" : ""} /> SINCRONIZAR P/ OFFLINE
-        </Button>
+        {sincronizar ? (
+          <Button variant="outline" disabled={ocupado || preparando || online !== true} aria-busy={ocupado} className="min-h-11 min-w-0 flex-1 whitespace-normal sm:flex-none" onClick={() => void executar()}>
+            <RefreshCwIcon aria-hidden="true" className={ocupado || preparando ? "animate-spin" : ""} /> {ocupado ? "SINCRONIZANDO…" : "SINCRONIZAR REPERTÓRIOS"}
+          </Button>
+        ) : (
+          <Link to="/" className="inline-flex min-h-11 flex-1 items-center font-medium text-primary underline">Sincronizar na tela inicial</Link>
+        )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label="Info sobre o acesso sem internet" title="Info">
@@ -60,7 +66,7 @@ export function OfflineStatus() {
             <AlertDialogHeader>
               <AlertDialogTitle>Info</AlertDialogTitle>
               <AlertDialogDescription className="text-left leading-relaxed">
-                Para o acesso sem internet: após atualizar ou sincronizar, aguarde o preparo das telas e dos anexos antes de desconectar. Agenda, contratos e serviços da nuvem precisam de internet. Não limpe os dados do aplicativo: isso apaga a cópia local.
+                Na tela inicial, SINCRONIZAR REPERTÓRIOS envia suas alterações, recebe os dados da banda, baixa os anexos e prepara as telas e o leitor de PDF para uso offline. Funciona com Wi-Fi ou internet móvel. Aguarde a confirmação de conclusão antes de desconectar. Exclusões também são sincronizadas. Agenda, contratos e serviços da nuvem precisam de internet. Não limpe os dados do aplicativo: isso apaga a cópia local.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -70,6 +76,7 @@ export function OfflineStatus() {
         </AlertDialog>
       </div>
       <div role="status" aria-live="polite" className="mt-3 space-y-1 text-sm text-muted-foreground">
+        {sincronizar && mensagem ? <p>{mensagem}</p> : null}
         <p>Neste aparelho: {data.songs.length} música(s) e {data.setlists.length} repertório(s).</p>
         <p>{copia ? `Última atualização das telas: ${new Date(copia.preparedAt).toLocaleString("pt-BR")}.` : "A abertura offline ainda não foi confirmada neste aparelho."}</p>
         <p>{arquivos && !falha ? `Anexos: ${arquivos.salvos} de ${arquivos.total} salvos.` : "Verificando anexos…"}</p>
@@ -78,7 +85,7 @@ export function OfflineStatus() {
       {erro ? <p role="alert" className="mt-3 text-sm text-destructive">{erro} {copia ? "A última cópia completa foi mantida." : ""}</p> : null}
       {falha ? <p role="alert" className="mt-3 text-sm text-destructive">Não foi possível verificar os anexos. Confira o espaço disponível no aparelho.</p> : null}
       {arquivos && arquivos.salvos < arquivos.total ? (
-        <p className="mt-3 text-sm text-muted-foreground">Faltam {arquivos.total - arquivos.salvos} arquivo(s). <Link to="/sincronizar" className="inline-flex min-h-11 items-center font-medium text-primary underline">Sincronize com internet para baixar.</Link></p>
+        <p className="mt-3 text-sm text-muted-foreground">Faltam {arquivos.total - arquivos.salvos} arquivo(s). <Link to="/" className="inline-flex min-h-11 items-center font-medium text-primary underline">Use Sincronizar Repertórios na tela inicial com internet para baixar.</Link></p>
       ) : null}
       {online === false ? <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Sem conexão: consulte Músicas Salvas e Repertórios. Não saia da sua conta.</p> : null}
     </section>

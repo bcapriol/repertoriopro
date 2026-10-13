@@ -399,7 +399,7 @@ function DadosPage() {
         <p className="text-sm text-muted-foreground">
           Ao atualizar, o app também baixa os anexos das músicas deste aparelho para consulta offline.
           Aguarde a confirmação antes de desconectar a internet. Para receber mudanças de outros aparelhos,
-          use Sincronizar Repertórios Wi-Fi.
+          use Sincronizar Repertórios na tela inicial (Wi-Fi ou internet móvel).
         </p>
 
         {podeBackup ? (

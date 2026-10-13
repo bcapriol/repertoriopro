@@ -45,7 +45,7 @@ async function registrarWorker(): Promise<ServiceWorkerRegistration> {
       }
       const previa = window.location.hostname.startsWith("id-preview-") && window.location.hostname.endsWith(".lovable.app");
       throw new Error(previa
-        ? "A prévia não conseguiu carregar o recurso de abertura offline. Publique esta atualização, abra o endereço publicado neste aparelho e toque em SINCRONIZAR P/ OFFLINE. A abertura sem internet ainda não está confirmada."
+        ? "A prévia não conseguiu carregar o recurso de abertura offline. Publique esta atualização, abra o endereço publicado neste aparelho e toque em SINCRONIZAR REPERTÓRIOS na tela inicial. A abertura sem internet ainda não está confirmada."
         : "Não foi possível carregar o recurso de abertura offline. Reabra o app com internet e tente novamente. Se persistir, confira se a atualização foi publicada. A abertura sem internet ainda não está confirmada.");
     }
   }

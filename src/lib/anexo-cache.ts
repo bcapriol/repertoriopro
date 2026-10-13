@@ -87,7 +87,7 @@ export async function limparAnexosOffline(dados: AppData): Promise<void> {
   }
 }
 
-export type CopiaOffline = { total: number; disponiveis: number; pendentes: number };
+export type CopiaOffline = { total: number; disponiveis: number; pendentes: number; telasProntas: boolean };
 
 /** Só considera disponível o arquivo gravado na memória local. */
 export async function prepararCopiaOffline(
@@ -119,9 +119,9 @@ export async function prepararCopiaOffline(
   }
   // A cópia dos dados não basta: também prepara as telas para reabrir o app.
   const { prepararTelasOffline } = await import("./offline-app");
-  await prepararTelasOffline(dados);
+  const telasProntas = await prepararTelasOffline(dados);
   window.dispatchEvent(new Event("repertorio-copia-atualizada"));
-  return { total: anexos.size, disponiveis, pendentes: anexos.size - disponiveis };
+  return { total: anexos.size, disponiveis, pendentes: anexos.size - disponiveis, telasProntas };
 }
 
 /** Inclui os arquivos no envio sem internet, não apenas os endereços da nuvem. */
@@ -135,7 +135,7 @@ export async function criarDadosPortateis(dados: AppData): Promise<AppData> {
         continue;
       }
       const blob = await lerAnexoOffline(anexo.id);
-      if (!blob) throw new Error(`O arquivo “${anexo.nome}” não está neste aparelho. Sincronize por Wi-Fi antes de enviar.`);
+      if (!blob) throw new Error(`O arquivo “${anexo.nome}” não está neste aparelho. Use Sincronizar Repertórios na tela inicial com internet antes de enviar.`);
       const conteudo = await new Promise<string>((resolve, reject) => {
         const leitor = new FileReader();
         leitor.onload = () => resolve(String(leitor.result));
