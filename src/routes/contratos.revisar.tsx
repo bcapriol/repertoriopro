@@ -8,7 +8,7 @@ import { ContratoPdfAcoes } from "@/components/ContratoPdfAcoes";
 import { ClausulasContrato } from "@/components/ClausulasContrato";
 import { useConta } from "@/lib/banda-local";
 import { contarRestricoes, dataAlteracaoContrato, redigirContrato } from "@/lib/contratos-documento";
-import { validarContrato, type ResumoContrato } from "@/lib/contratos";
+import { temAnexoRepertorio, validarContrato, type ResumoContrato } from "@/lib/contratos";
 import { contratosGerar, contratosListar, contratosNovaVersao, contratosSalvar } from "@/lib/nuvem.functions";
 
 export const Route = createFileRoute("/contratos/revisar")({
@@ -96,7 +96,7 @@ function RevisaoContrato() {
       <section className="space-y-2 rounded-lg border border-border bg-muted p-4 text-sm">
         <h2 className="font-bold">Confira antes de gerar o arquivo</h2>
         <p>Contratante: {contrato.dados.contratante.nome || "Não informado"} · Evento: {contrato.dados.nomeEvento || "Não informado"}</p>
-        <p>{contrato.dados.repertorio.length} músicas selecionadas · {contarRestricoes(contrato.dados.musicasVetadas)} músicas vetadas · {contarRestricoes(contrato.dados.artistasVetados)} artistas vetados</p>
+        <p>{temAnexoRepertorio(contrato.dados) ? `Com Anexo I — ${contrato.dados.repertorio.length} música(s) selecionada(s)` : "Sem Anexo I — a lista de músicas não será incluída no PDF"} · {contarRestricoes(contrato.dados.musicasVetadas)} músicas vetadas · {contarRestricoes(contrato.dados.artistasVetados)} artistas vetados</p>
         <p>Todas as cláusulas estão abaixo. O próximo PDF gerado usará o texto e a numeração desta revisão. Para consultar o documento já emitido, use “Visualizar PDF”.</p>
         {!rascunho && conta.podeEditar && <p>Use “Rever e editar contrato” para alterar qualquer contrato, inclusive enviado, aceito, cancelado ou concluído. Documentos já emitidos permanecem no histórico; a nova versão precisará ser revisada e enviada novamente.</p>}
         {alterado && <p role="status" className="font-semibold">Há alterações não salvas. Salve antes de sair desta página.</p>}

@@ -10,7 +10,7 @@ import { PessoaContratoCampos } from "@/components/PessoaContratoCampos";
 import { useConta } from "@/lib/banda-local";
 import { useAppData } from "@/lib/repertorio-store";
 import { contratosListar, contratosNovo, contratosSalvar } from "@/lib/nuvem.functions";
-import { FINALIDADES, MOMENTOS, PAGAMENTOS, SERVICOS, TIPOS_EVENTO, validarContrato, type ContratoDados, type Pessoa, type MusicaContrato } from "@/lib/contratos";
+import { FINALIDADES, MOMENTOS, PAGAMENTOS, SERVICOS, TIPOS_EVENTO, temAnexoRepertorio, validarContrato, type ContratoDados, type Pessoa, type MusicaContrato } from "@/lib/contratos";
 
 export const Route = createFileRoute("/contratos/editar")({
   validateSearch: (search: Record<string, unknown>) => ({ id: typeof search.id === "string" ? search.id : undefined }),
@@ -126,8 +126,12 @@ function EditarContrato() {
         {dados.autorizacaoImagem === "AUTORIZO" && <div className="grid gap-2 sm:grid-cols-2">{FINALIDADES.map((f) => <label key={f} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dados.finalidades.includes(f)} onChange={() => alternar("finalidades", f)} />{f}</label>)}</div>}
         {texto("observacoes", "Observações e condições especiais")}
       </section>
-      <section className="space-y-4 rounded-lg border border-border p-4"><h2 className="text-lg font-bold">Anexo I — Repertório escolhido</h2>
-        <p className="text-sm text-muted-foreground">Seleção da biblioteca existente neste aparelho. O título e artista são registrados no rascunho para preservar o histórico.</p>
+      <section className="space-y-4 rounded-lg border border-border p-4"><h2 className="text-lg font-bold">Repertório e Anexo I (opcional)</h2>
+        <label className="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" className="mt-1" checked={temAnexoRepertorio(dados)} onChange={(e) => { const incluir = e.target.checked; setDados((d) => d ? { ...d, incluirAnexoRepertorio: incluir } : d); }} />Incluir Anexo I — Repertório escolhido no contrato</label>
+        <p className="text-sm text-muted-foreground">Sem o anexo, a lista de músicas não aparece no contrato nem no PDF; as seleções ficam guardadas caso queira incluí-las depois. As restrições e orientações abaixo continuam valendo com ou sem anexo.</p>
+        <p className="text-sm text-muted-foreground">A cláusula “Da escolha do repertório” permite à banda definir o repertório quando a escolha for deixada a seu critério e consultar a contratante ou os noivos sobre músicas e artistas desejados ou vetados. Você pode editar ou remover essa cláusula na revisão.</p>
+        {temAnexoRepertorio(dados) && <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">Selecione ao menos uma música da biblioteca existente neste aparelho. O título e artista são registrados no rascunho para preservar o histórico.</p>
         <Button type="button" variant="outline" onClick={() => setAbrirMusicas(!abrirMusicas)}>SELECIONAR REPERTÓRIO</Button>
         {abrirMusicas && <div className="space-y-3 rounded-lg border border-border p-3"><Input placeholder="Pesquisar música ou artista" value={busca} onChange={(e) => setBusca(e.target.value)} />
           <select className={estiloCampo} value={lista} onChange={(e) => setLista(e.target.value)}><option value="">Todas as categorias / repertórios</option>{biblioteca.setlists.map((r) => <option key={r.id} value={r.id}>{r.nome}</option>)}</select>
@@ -138,6 +142,7 @@ function EditarContrato() {
           <div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" disabled={i === 0} onClick={() => mover(i, -1)}>Subir</Button><Button type="button" size="sm" variant="outline" disabled={i === dados.repertorio.length - 1} onClick={() => mover(i, 1)}>Descer</Button><Button type="button" size="sm" variant="outline" onClick={() => remover(i)}>Remover</Button></div>
           <select className={estiloCampo} value={m.momento} onChange={(e) => mudarMusica(i, { momento: e.target.value })}><option value="">Sem momento especial</option>{opcao(MOMENTOS)}</select>
           <Input placeholder="Observação da música" value={m.observacao} onChange={(e) => mudarMusica(i, { observacao: e.target.value })} /></div>)}
+        </div>}
         {texto("musicasVetadas", "Músicas que não deverão ser tocadas (uma por linha)")}
         {texto("artistasVetados", "Artistas/cantores que não deverão ser tocados (um por linha)")}
         {texto("observacoesRepertorio", "Observações especiais sobre o repertório")}

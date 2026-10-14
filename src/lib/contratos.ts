@@ -23,6 +23,7 @@ export type ContratoDados = {
   montagem: string; horaMontagem: string; localMontagem: string; observacoesMontagem: string;
   valorTotal: string; valorReserva: string; dataReserva: string; dataSaldo: string; pagamento: string; parcelas: string; valorParcela: string; vencimentos: string; outraCondicao: string;
   alteraData: string; autorizacaoImagem: string; finalidades: string[]; observacoes: string;
+  incluirAnexoRepertorio?: boolean;
   repertorio: MusicaContrato[]; musicasVetadas: string; artistasVetados: string; observacoesRepertorio: string;
 };
 export const contratoInicial = (config: ConfigContratos = configInicial()): ContratoDados => ({
@@ -32,8 +33,11 @@ export const contratoInicial = (config: ConfigContratos = configInicial()): Cont
   removerAntes: "", estilo: "", equipeAlimentacao: "", observacoesAlimentacao: "", montagem: "", horaMontagem: "", localMontagem: "", observacoesMontagem: "",
   valorTotal: "", valorReserva: "", dataReserva: "", dataSaldo: "", pagamento: "", parcelas: "", valorParcela: "", vencimentos: "", outraCondicao: config.condicoesPagamento,
   alteraData: "", autorizacaoImagem: "", finalidades: [], observacoes: config.observacoesPadrao,
+  incluirAnexoRepertorio: false,
   repertorio: [], musicasVetadas: "", artistasVetados: "", observacoesRepertorio: "",
 });
+// Contratos anteriores mantêm o anexo quando já havia músicas selecionadas.
+export const temAnexoRepertorio = (dados: ContratoDados): boolean => dados.incluirAnexoRepertorio ?? dados.repertorio.length > 0;
 export const STATUS_CONTRATO = ["Rascunho", "Aguardando revisão", "Pronto para envio", "Enviado", "Aceito", "Cancelado", "Concluído"] as const;
 export type StatusContrato = typeof STATUS_CONTRATO[number];
 export const TRANSICOES_CONTRATO: Record<StatusContrato, readonly StatusContrato[]> = {
@@ -62,6 +66,7 @@ export function numeroValido(documento: string): boolean {
 }
 export function validarContrato(d: ContratoDados): string[] {
   const erros: string[] = [];
+  if (temAnexoRepertorio(d) && !d.repertorio.length) erros.push("Selecione ao menos uma música para o Anexo I ou desmarque a opção de incluir o anexo.");
   for (const [nome, p] of [["Contratante", d.contratante], ["Contratado", d.contratado]] as const) {
     if (!p.nome.trim()) erros.push(`Informe o nome de ${nome}.`);
     if (!numeroValido(p.documento) || (nome === "Contratante" && p.documento.replace(/\D/g, "").length !== (d.tipoPessoa === "Pessoa Jurídica" ? 14 : 11))) erros.push(`Informe um CPF/CNPJ válido: ${nome}.`);
