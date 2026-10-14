@@ -10,7 +10,12 @@ export const pessoaVazia = (): Pessoa => ({ nome: "", documento: "", endereco: "
 export type ConfigContratos = { contratado: Pessoa; logo: string; dadosBancarios: string; clausulaCancelamento: string; foro: string; rodape: string; condicoesPagamento: string; observacoesPadrao: string };
 export const configInicial = (): ConfigContratos => ({ contratado: { ...pessoaVazia(), nome: "Banda Multivibe" }, logo: "/multivibe-logo.jpg", dadosBancarios: "", clausulaCancelamento: CLAUSULA_CANCELAMENTO, foro: "", rodape: "", condicoesPagamento: "", observacoesPadrao: "" });
 export type MusicaContrato = { idOriginal: string; titulo: string; artista: string; ordem: number; momento: string; observacao: string };
+export type TrechoClausula = { id: string; tipo: "texto" | "artigo" | "paragrafo" | "item"; texto: string; filhos?: TrechoClausula[] };
+export type ClausulaContrato = { id: string; titulo: string; trechos: TrechoClausula[] };
+export type EdicaoClausulas = { personalizadas: Record<string, ClausulaContrato>; removidas: string[]; adicionais: ClausulaContrato[] };
 export type ContratoDados = {
+  clausulas?: EdicaoClausulas;
+  alteradoEm?: string;
   tipoEvento: string; tipoPessoa: "Pessoa Física" | "Pessoa Jurídica"; contratante: Pessoa; representante: string; cpfRepresentante: string; cargoRepresentante: string;
   contratado: Pessoa; configSnapshot: ConfigContratos;
   nomeEvento: string; dataEvento: string; localEvento: string; enderecoEvento: string; horaEvento: string; horaInicio: string; horaFim: string; servicos: string[];

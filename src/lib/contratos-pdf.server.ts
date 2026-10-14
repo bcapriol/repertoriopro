@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { ContratoDados } from "./contratos";
-import { redigirContrato } from "./contratos-documento";
+import { dataAlteracaoContrato, redigirContrato } from "./contratos-documento";
 
 // A4 em milímetros. Os blocos são medidos antes da impressão para evitar títulos órfãos.
 export function gerarPdfContrato(dados: ContratoDados, numero: string, emissao: string): Uint8Array {
@@ -96,7 +96,10 @@ export function gerarPdfContrato(dados: ContratoDados, numero: string, emissao: 
     pdf.setTextColor(100, 108, 116); pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
     pdf.text(`BANDA MULTIVIBE  |  CONTRATO ${limpar(numero)}  |  ${limpar(dados.nomeEvento)}`, margem, 15, { maxWidth: largura - 2 * margem });
     pdf.setDrawColor(210, 210, 210); pdf.line(margem, 18, largura - margem, 18); pdf.line(margem, 277, largura - margem, 277);
-    pdf.text(limpar(dados.configSnapshot?.rodape || "Banda Multivibe · Contrato de prestação de serviços"), margem, 284, { maxWidth: 125 });
+    const rodape = pdf.splitTextToSize(limpar(dados.configSnapshot?.rodape || "Banda Multivibe · Contrato de prestação de serviços"), 125) as string[];
+    pdf.text(rodape.slice(0, 2), margem, 282);
+    const alteracao = dataAlteracaoContrato(dados);
+    if (alteracao) pdf.text(`Última alteração: ${alteracao}`, margem, 292);
     pdf.text(`Página ${pagina} de ${total}`, largura - margem, 284, { align: "right" });
   }
   return new Uint8Array(pdf.output("arraybuffer"));

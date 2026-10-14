@@ -1,6 +1,32 @@
-import { type ContratoDados, type Pessoa } from "./contratos";
+import { type ClausulaContrato, type ContratoDados, type Pessoa, type TrechoClausula } from "./contratos";
 
-export type BlocoContrato = { titulo: string; paragrafos: string[]; anexo?: boolean; repertorio?: ContratoDados["repertorio"] };
+export type LinhaClausula = { id: string; rotulo: string; texto: string; nivel: number };
+export type BlocoContrato = { titulo: string; paragrafos: string[]; clausula?: ClausulaContrato; linhas?: LinhaClausula[]; anexo?: boolean; repertorio?: ContratoDados["repertorio"] };
+
+// A mesma numeração é utilizada no editor, na revisão e no PDF.
+function numerarClausulas(clausulas: ClausulaContrato[]): BlocoContrato[] {
+  let artigo = 0;
+  return clausulas.map((clausula, indice) => {
+    const linhas: LinhaClausula[] = [];
+    const percorrer = (trechos: TrechoClausula[], caminho: number[], nivel: number) => {
+      let paragrafo = 0, item = 0;
+      for (const [posicao, trecho] of trechos.entries()) {
+        let rotulo = "";
+        let proximo = [...caminho, posicao + 1];
+        if (trecho.tipo === "artigo") rotulo = `Art. ${++artigo}º — `;
+        if (trecho.tipo === "paragrafo") rotulo = `§ ${++paragrafo}º — `;
+        if (trecho.tipo === "item") { proximo = [...caminho, ++item]; rotulo = `${proximo.join(".")}. `; }
+        linhas.push({ id: trecho.id, rotulo, texto: trecho.texto, nivel });
+        if (trecho.filhos?.length) percorrer(trecho.filhos, proximo, nivel + 1);
+      }
+    };
+    percorrer(clausula.trechos, [indice + 1], 0);
+    return { titulo: `CLÁUSULA ${indice + 1} — ${clausula.titulo}`, clausula, linhas, paragrafos: linhas.map((l) => `${l.rotulo}${l.texto}`) };
+  });
+}
+
+export const dataAlteracaoContrato = (dados: ContratoDados) => dados.alteradoEm
+  ? new Date(dados.alteradoEm).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
 export type DocumentoContrato = { cabecalho: string[]; partes: string[]; blocos: BlocoContrato[]; assinaturas: string[] };
 const dataBR = (valor: string) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return valor; const [ano, mes, dia] = valor.split("-"); return `${dia}/${mes}/${ano}`; };
 const informado = (valor: string) => valor.trim() || "não informado";
@@ -16,7 +42,12 @@ const identificacao = (p: Pessoa) => [
 
 export function redigirContrato(d: ContratoDados, numero: string, emissao: string): DocumentoContrato {
   const blocos: BlocoContrato[] = [];
-  const clausula = (titulo: string, ...paragrafos: (string | undefined | false)[]) => blocos.push({ titulo: `CLÁUSULA ${blocos.filter((b) => !b.anexo).length + 1} — ${titulo}`, paragrafos: paragrafos.filter((p): p is string => typeof p === "string" && !!p.trim()) });
+  const clausulas: ClausulaContrato[] = [];
+  const clausula = (titulo: string, ...paragrafos: (string | undefined | false)[]) => {
+    const id = `padrao:${titulo}`;
+    if (d.clausulas?.removidas.includes(id)) return;
+    clausulas.push(d.clausulas?.personalizadas[id] ?? { id, titulo, trechos: paragrafos.filter((p): p is string => typeof p === "string" && !!p.trim()).map<TrechoClausula>((texto, i) => ({ id: `${id}:${i}`, tipo: i === 0 ? "texto" : "paragrafo", texto })) });
+  };
   const reserv = Number(d.valorReserva), total = Number(d.valorTotal);
   const contratado = d.contratado;
   const foro = d.configSnapshot?.foro?.trim();
@@ -48,6 +79,7 @@ export function redigirContrato(d: ContratoDados, numero: string, emissao: strin
   if (foro) clausula("DO FORO", `Para dirimir controvérsias relativas a este contrato, fica indicado o foro de ${foro}, ressalvadas as regras legais de competência aplicáveis, inclusive as de proteção ao consumidor.`);
   if (!d.repertorio.length && (itens(d.musicasVetadas).length || itens(d.artistasVetados).length)) clausula("DAS RESTRIÇÕES DE REPERTÓRIO", "A CONTRATANTE informa que as seguintes músicas e/ou artistas não deverão ser executados durante o evento:", itens(d.musicasVetadas).length && `Músicas: ${itens(d.musicasVetadas).join("; ")}.`, itens(d.artistasVetados).length && `Artistas/cantores: ${itens(d.artistasVetados).join("; ")}.`);
   if (!d.repertorio.length && d.observacoesRepertorio.trim()) clausula("DAS ORIENTAÇÕES MUSICAIS", `As partes registram as seguintes orientações sobre o repertório: ${d.observacoesRepertorio.trim()}.`);
+  blocos.push(...numerarClausulas([...clausulas, ...(d.clausulas?.adicionais ?? [])]));
   if (d.repertorio.length) {
     const anexos: BlocoContrato[] = [
       { titulo: "ANEXO I — REPERTÓRIO ESCOLHIDO", paragrafos: [`Contrato ${numero} · Evento: ${d.nomeEvento} · Data: ${dataBR(d.dataEvento)}`], anexo: true },

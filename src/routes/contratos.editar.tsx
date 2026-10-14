@@ -75,11 +75,9 @@ function EditarContrato() {
   const gravar = async (revisar = false) => {
     if (!dados || !conta || ocupado) return;
     if (!navigator.onLine) { toast.error("Conecte-se à internet para salvar ou redigir contratos."); return; }
-    if (revisar) {
-      const problemas = validarContrato(dados);
-      setErros(problemas);
-      if (problemas.length) { toast.error("Corrija as pendências antes de revisar."); return; }
-    }
+    // A revisão das cláusulas pode ser aberta mesmo com dados incompletos.
+    // As pendências só impedem a emissão do PDF, não a consulta ou a edição.
+    if (revisar) setErros(validarContrato(dados));
     setOcupado(true);
     try {
       const salvo = await salvar({ data: { usuario: conta.usuario, senha: conta.senha, dados, ...(id ? { id } : {}) } });
@@ -144,7 +142,12 @@ function EditarContrato() {
         {texto("artistasVetados", "Artistas/cantores que não deverão ser tocados (um por linha)")}
         {texto("observacoesRepertorio", "Observações especiais sobre o repertório")}
       </section>
-      <div className="flex flex-wrap gap-3"><Button onClick={() => void gravar()} disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar rascunho"}</Button><Button type="button" variant="outline" disabled={ocupado} onClick={() => void gravar(true)}>Revisar contrato</Button></div>
+      <section className="space-y-2 rounded-lg border border-border bg-muted p-4 text-sm">
+        <h2 className="font-bold">Cláusulas do contrato</h2>
+        <p>Em “Revisar e editar cláusulas” você verá o texto completo antes de gerar o PDF, poderá editar ou remover cada cláusula e incluir cláusulas adicionais, artigos, parágrafos e itens com numeração automática.</p>
+        {!!dados.clausulas && <p>As cláusulas personalizadas mantêm o texto que você escreveu. Confira valores, datas e referências na revisão caso tenha alterado os dados acima.</p>}
+      </section>
+      <div className="flex flex-wrap gap-3"><Button onClick={() => void gravar()} disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar rascunho"}</Button><Button type="button" variant="outline" disabled={ocupado} onClick={() => void gravar(true)}>Revisar e editar cláusulas</Button></div>
       {erros.length > 0 && <div role="alert" className="rounded-lg border border-destructive p-4 text-sm"><p className="font-bold">Pendências para gerar o contrato:</p><ul className="mt-2 list-disc pl-5">{erros.map((e) => <li key={e}>{e}</li>)}</ul></div>}
     </div>
   </PageShell>;

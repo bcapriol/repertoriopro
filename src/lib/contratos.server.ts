@@ -45,7 +45,19 @@ export async function salvarRascunho(cred: Cred, dados: ContratoDados, id?: stri
   if (!usuario.pode_editar) throw new Error("Você não tem permissão para criar ou editar contratos.");
   if (!dados || JSON.stringify(dados).length > 200000) throw new Error("Dados do contrato muito grandes.");
   if (id) {
-    const { data, error } = await db.from("contratos_eventos").update({ dados: dados as unknown as Json, usuario_id: usuario.id, atualizado_em: new Date().toISOString() }).eq("id", id).eq("banda_id", usuario.banda_id).in("status", ["Rascunho", "Aguardando revisão"]).is("pdf_caminho", null).select("id, numero").maybeSingle();
+    const { data: atual, error: erroLeitura } = await db.from("contratos_eventos").select("dados, atualizado_em").eq("id", id).eq("banda_id", usuario.banda_id).maybeSingle();
+    if (erroLeitura) throw erroLeitura;
+    if (!atual) throw new Error("Contrato não encontrado.");
+    const anteriores = atual.dados as unknown as ContratoDados;
+    const canonico = (valor: unknown): string => {
+      if (Array.isArray(valor)) return `[${valor.map(canonico).join(",")}]`;
+      if (valor && typeof valor === "object") return `{${Object.entries(valor).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonico(v)}`).join(",")}}`;
+      return JSON.stringify(valor) ?? "null";
+    };
+    const mudou = canonico({ ...anteriores, alteradoEm: undefined }) !== canonico({ ...dados, alteradoEm: undefined });
+    const agora = new Date().toISOString();
+    const dadosSalvos = { ...dados, alteradoEm: mudou ? agora : anteriores.alteradoEm };
+    const { data, error } = await db.from("contratos_eventos").update({ dados: dadosSalvos as unknown as Json, usuario_id: usuario.id, atualizado_em: agora }).eq("id", id).eq("banda_id", usuario.banda_id).eq("atualizado_em", atual.atualizado_em).in("status", ["Rascunho", "Aguardando revisão"]).is("pdf_caminho", null).select("id, numero").maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("Rascunho não encontrado ou não editável.");
     return data;
@@ -118,9 +130,19 @@ export async function alterarStatusContrato(cred: Cred, id: string, destino: Sta
 export async function iniciarNovaVersao(cred: Cred, id: string) {
   const usuario = await autenticar(cred);
   if (!usuario.pode_editar) throw new Error("Você não tem permissão para editar contratos.");
-  const { data, error } = await db.rpc("contratos_proxima_versao", { p_id: id, p_banda: usuario.banda_id, p_usuario: usuario.id });
+  const { data: atual, error } = await db.from("contratos_eventos").select("id, versao, status, dados, pdf_caminho, pdf_emissao, atualizado_em").eq("id", id).eq("banda_id", usuario.banda_id).maybeSingle();
   if (error) throw error;
-  if (!data) throw new Error("Somente contratos aceitos, com versão anterior preservada, podem iniciar uma nova versão.");
+  if (!atual) throw new Error("Contrato não encontrado.");
+  if (!atual.pdf_caminho && ["Rascunho", "Aguardando revisão"].includes(atual.status)) return true;
+  // Preserva o documento emitido antes de reabrir, inclusive contratos antigos.
+  if (atual.pdf_caminho) {
+    if (!atual.pdf_emissao) throw new Error("O PDF anterior está sem data de emissão.");
+    const { error: erroVersao } = await db.from("contratos_versoes").upsert({ contrato_id: id, banda_id: usuario.banda_id, versao: atual.versao, dados: atual.dados, pdf_caminho: atual.pdf_caminho, pdf_emissao: atual.pdf_emissao }, { onConflict: "contrato_id,versao", ignoreDuplicates: true });
+    if (erroVersao) throw erroVersao;
+  }
+  const { data: salvo, error: erroSalvar } = await db.from("contratos_eventos").update({ versao: atual.versao + (atual.pdf_caminho ? 1 : 0), status: "Rascunho", pdf_caminho: null, pdf_emissao: null, usuario_id: usuario.id, atualizado_em: new Date().toISOString() }).eq("id", id).eq("banda_id", usuario.banda_id).eq("atualizado_em", atual.atualizado_em).select("id").maybeSingle();
+  if (erroSalvar) throw erroSalvar;
+  if (!salvo) throw new Error("O contrato mudou durante a operação. Atualize a página.");
   return true;
 }
 

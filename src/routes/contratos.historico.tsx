@@ -38,7 +38,7 @@ function Historico() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pronto, conta?.usuario, conta?.senha, id]);
   const iniciar = async () => {
-    if (!conta?.podeEditar || !contrato || ocupado || !window.confirm("Criar nova versão? O PDF aceito permanecerá no histórico e a nova versão começará como rascunho.")) return;
+    if (!conta?.podeEditar || !contrato || ocupado || !window.confirm("Reabrir para edição? O contrato voltará a rascunho. Documentos já emitidos permanecerão no histórico e uma nova versão será criada se houver PDF.")) return;
     setOcupado(true);
     try {
       await nova({ data: { usuario: conta.usuario, senha: conta.senha, id: contrato.id } });
@@ -49,8 +49,9 @@ function Historico() {
     <div className="space-y-6 pb-10"><Link to="/contratos" className="text-sm text-primary underline">Voltar aos contratos</Link>
       {!pronto || carregando ? <p>Carregando…</p> : !contrato ? <EmptyState title="Contrato não encontrado" hint="Selecione um contrato da sua banda na listagem." /> : <>
         <div className="rounded-lg border border-border p-4"><p className="font-bold">{contrato.numero} · versão atual {contrato.versao} · {contrato.status}</p><p className="text-sm">{contrato.dados.contratante.nome} · {contrato.dados.nomeEvento}</p>
-          {conta?.podeEditar && contrato.status === "Aceito" && <Button type="button" className="mt-4" disabled={ocupado} onClick={() => void iniciar()}>Criar nova versão</Button>}
-          {["Rascunho", "Aguardando revisão"].includes(contrato.status) && conta?.podeEditar && <Button asChild variant="outline" className="mt-4"><Link to="/contratos/editar" search={{ id: contrato.id }}>Editar versão atual</Link></Button>}
+          {conta?.podeEditar && (contrato.pdfCaminho || !["Rascunho", "Aguardando revisão"].includes(contrato.status)) && <Button type="button" className="mt-4" disabled={ocupado} onClick={() => void iniciar()}>Rever e editar contrato</Button>}
+          {["Rascunho", "Aguardando revisão"].includes(contrato.status) && !contrato.pdfCaminho && conta?.podeEditar && <Button asChild variant="outline" className="mt-4"><Link to="/contratos/editar" search={{ id: contrato.id }}>Editar versão atual</Link></Button>}
+          <p className="mt-3 text-sm"><Link to="/contratos/revisar" search={{ id: contrato.id }} className="text-primary underline">Ver todas as cláusulas</Link></p>
         </div>
         <section className="space-y-3"><h2 className="text-lg font-bold">Documentos emitidos</h2>{!versoes.length && <p className="text-sm text-muted-foreground">Nenhum PDF emitido ainda.</p>}
           {versoes.map((v) => <div key={v.versao} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"><div><p className="font-bold">Versão {v.versao} · emitida em {v.pdfEmissao}</p><p className="text-sm">{v.dados.contratante.nome} · {v.dados.nomeEvento} · {v.dados.dataEvento}</p><p className="text-xs text-muted-foreground">Repertório preservado: {v.dados.repertorio?.length ?? 0} músicas</p></div><ContratoPdfAcoes id={contrato.id} numero={contrato.numero} versao={v.versao} /></div>)}
