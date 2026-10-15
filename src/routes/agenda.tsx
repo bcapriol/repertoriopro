@@ -26,6 +26,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { agendaExcluir, agendaListar, agendaSalvar, agendaStatus } from "@/lib/nuvem.functions";
 import { salvarConta, useConta } from "@/lib/banda-local";
+import { useFeriados } from "@/hooks/use-feriados";
+import { FONTE_PREFEITURA, FONTE_SP, fonteBrasilApi } from "@/lib/feriados";
 import type { EventoAgenda } from "@/lib/nuvem.server";
 
 export const Route = createFileRoute("/agenda")({
@@ -137,6 +139,12 @@ function AgendaPage() {
     return Array.from({ length: 42 }, (_, i) => new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + i));
   }, [mes]);
 
+  const { porData: feriadosPorData, consultas: consultasFeriados } = useFeriados([
+    mes.getFullYear(), celulas[0].getFullYear(), celulas[41].getFullYear(), Number(dia.slice(0, 4)),
+  ]);
+  const feriadosDoDia = feriadosPorData[dia] ?? [];
+  const consultaFeriados = consultasFeriados[mes.getFullYear()];
+
   const shows = eventos.filter((e) => e.tipo === "show");
   const showsFiltrados = shows.filter((e) => {
     const valor = e.valor;
@@ -238,18 +246,23 @@ function AgendaPage() {
                 const cores = tiposDoDia.map((t) => TIPOS[t].corCalendario);
                 const fora = d.getMonth() !== mes.getMonth();
                 const sel = k === dia;
+                const feriados = feriadosPorData[k] ?? [];
+                const descricaoFeriados = feriados.map((f) => `${f.nome} (${f.abrangencia})`).join("; ");
                 return (
                   <button
                     key={k}
                     type="button"
                     onClick={() => setDia(k)}
-                    aria-label={`${dataBR(k)}${tiposDoDia.length ? `: ${tiposDoDia.map((t) => TIPOS[t].rotulo).join(", ")}` : ""}`}
+                    aria-pressed={sel}
+                    aria-label={`${dataBR(k)}${tiposDoDia.length ? `: ${tiposDoDia.map((t) => TIPOS[t].rotulo).join(", ")}` : ""}${descricaoFeriados ? `; Feriado: ${descricaoFeriados}` : ""}`}
+                    title={descricaoFeriados || undefined}
                     style={cores.length ? { background: cores.length === 1 ? cores[0] : `linear-gradient(90deg, ${cores.map((cor, i) => `${cor} ${i * 100 / cores.length}% ${(i + 1) * 100 / cores.length}%`).join(", ")})` } : undefined}
-                    className={`flex aspect-square items-center justify-center rounded-lg border text-sm transition-colors ${
+                    className={`relative flex aspect-square items-center justify-center rounded-lg border text-sm transition-colors ${
                       sel ? "border-primary font-bold" : cores.length ? "border-transparent hover:brightness-95" : "border-transparent hover:bg-muted/50"
                     } ${fora ? "text-muted-foreground" : "text-foreground"} ${k === iso(hoje) && !sel ? "underline decoration-primary underline-offset-4" : ""}`}
                   >
                     {d.getDate()}
+                    {feriados.length > 0 && <span aria-hidden="true" className="absolute bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-foreground" />}
                   </button>
                 );
               })}
@@ -258,11 +271,46 @@ function AgendaPage() {
               {(Object.keys(TIPOS) as Tipo[]).map((t) => (
                 <span key={t} className="flex items-center gap-1"><span className="size-3 rounded-sm" style={{ backgroundColor: TIPOS[t].corCalendario }} />{TIPOS[t].rotulo}</span>
               ))}
+              <span className="flex items-center gap-1"><span aria-hidden="true" className="size-1.5 rounded-full bg-foreground" />Feriado</span>
             </div>
+            <p className="mt-3 text-center text-xs text-muted-foreground">Toque em uma data com pontinho para ver o feriado.</p>
+            <details className="mt-3 rounded-lg border border-border p-3 text-xs text-muted-foreground">
+              <summary className="cursor-pointer text-foreground">Feriados e referências</summary>
+              <div className="mt-2 space-y-2">
+                <p aria-live="polite">{consultaFeriados?.status === "consultado"
+                  ? `Datas nacionais de ${mes.getFullYear()} conferidas online na BrasilAPI.`
+                  : consultaFeriados?.status === "indisponivel"
+                    ? "Consulta online indisponível. Exibindo o calendário recorrente salvo no aplicativo."
+                    : "Consultando datas nacionais online… O calendário recorrente já está disponível."}</p>
+                <p>São Paulo e Botucatu usam datas recorrentes cadastradas. Os decretos municipais não são consultados automaticamente; confirme alterações e feriados extraordinários com a Prefeitura.</p>
+                <p>Carnaval, emendas e outros pontos facultativos não são marcados como feriados. Sexta-feira da Paixão e Corpus Christi aparecem como feriados locais.</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  <a className="text-primary underline underline-offset-2" href={fonteBrasilApi(mes.getFullYear())} target="_blank" rel="noopener noreferrer">BrasilAPI · nacionais</a>
+                  <a className="text-primary underline underline-offset-2" href={FONTE_SP} target="_blank" rel="noopener noreferrer">Lei estadual · 9 de julho</a>
+                  <a className="text-primary underline underline-offset-2" href={FONTE_PREFEITURA} target="_blank" rel="noopener noreferrer">Prefeitura · conferir Botucatu</a>
+                </div>
+              </div>
+            </details>
           </section>
 
           <section className="flex flex-col gap-3">
             <h2 className="font-bold text-foreground">{dataBR(dia)}</h2>
+            {feriadosDoDia.length > 0 && (
+              <div aria-live="polite" className="space-y-2 rounded-xl border border-border bg-muted/40 p-3">
+                {feriadosDoDia.map((feriado) => (
+                  <div key={`${feriado.data}-${feriado.nome}`} className="flex items-start gap-2">
+                    <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-foreground" />
+                    <div className="min-w-0 text-sm">
+                      <p className="font-semibold">{feriado.nome}</p>
+                      <p className="text-xs text-muted-foreground">Feriado · {feriado.abrangencia}</p>
+                      <a href={feriado.fonte} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline underline-offset-2">
+                        {feriado.abrangencia === "Municipal · Botucatu" ? "Conferir no portal da Prefeitura" : "Consultar referência"}
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(TIPOS) as Tipo[])
                 .filter((t) => t !== "show" || podeShows)
