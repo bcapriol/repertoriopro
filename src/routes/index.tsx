@@ -10,6 +10,7 @@ import {
   LogOutIcon,
   CalendarDaysIcon,
   FileTextIcon,
+  MegaphoneIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
@@ -156,6 +157,9 @@ function Index() {
           </Link>
           <Link to="/contratos" className={tileClass}>
             <TileBody label="Contratos de Eventos" hint="Contratos de Prestação de Serviços — Banda Multivibe" Icon={FileTextIcon} />
+          </Link>
+          <Link to="/divulgacao" className={tileClass}>
+            <TileBody label="Divulgação" hint="Crie prompts e artes com inteligência artificial" Icon={MegaphoneIcon} />
           </Link>
           <Link to="/sincronizar" className={tileClass}>
             <TileBody
