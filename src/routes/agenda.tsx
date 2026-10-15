@@ -27,7 +27,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { agendaExcluir, agendaListar, agendaSalvar, agendaStatus } from "@/lib/nuvem.functions";
 import { salvarConta, useConta } from "@/lib/banda-local";
 import { useFeriados } from "@/hooks/use-feriados";
-import { FONTE_PREFEITURA, FONTE_SP, fonteBrasilApi } from "@/lib/feriados";
 import type { EventoAgenda } from "@/lib/nuvem.server";
 
 export const Route = createFileRoute("/agenda")({
@@ -139,11 +138,10 @@ function AgendaPage() {
     return Array.from({ length: 42 }, (_, i) => new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + i));
   }, [mes]);
 
-  const { porData: feriadosPorData, consultas: consultasFeriados } = useFeriados([
+  const { porData: feriadosPorData } = useFeriados([
     mes.getFullYear(), celulas[0].getFullYear(), celulas[41].getFullYear(), Number(dia.slice(0, 4)),
   ]);
   const feriadosDoDia = feriadosPorData[dia] ?? [];
-  const consultaFeriados = consultasFeriados[mes.getFullYear()];
 
   const shows = eventos.filter((e) => e.tipo === "show");
   const showsFiltrados = shows.filter((e) => {
@@ -274,23 +272,6 @@ function AgendaPage() {
               <span className="flex items-center gap-1"><span aria-hidden="true" className="size-1.5 rounded-full bg-foreground" />Feriado</span>
             </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">Toque em uma data com pontinho para ver o feriado.</p>
-            <details className="mt-3 rounded-lg border border-border p-3 text-xs text-muted-foreground">
-              <summary className="cursor-pointer text-foreground">Feriados e referências</summary>
-              <div className="mt-2 space-y-2">
-                <p aria-live="polite">{consultaFeriados?.status === "consultado"
-                  ? `Datas nacionais de ${mes.getFullYear()} conferidas online na BrasilAPI.`
-                  : consultaFeriados?.status === "indisponivel"
-                    ? "Consulta online indisponível. Exibindo o calendário recorrente salvo no aplicativo."
-                    : "Consultando datas nacionais online… O calendário recorrente já está disponível."}</p>
-                <p>São Paulo e Botucatu usam datas recorrentes cadastradas. Os decretos municipais não são consultados automaticamente; confirme alterações e feriados extraordinários com a Prefeitura.</p>
-                <p>Carnaval, emendas e outros pontos facultativos não são marcados como feriados. Sexta-feira da Paixão e Corpus Christi aparecem como feriados locais.</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                  <a className="text-primary underline underline-offset-2" href={fonteBrasilApi(mes.getFullYear())} target="_blank" rel="noopener noreferrer">BrasilAPI · nacionais</a>
-                  <a className="text-primary underline underline-offset-2" href={FONTE_SP} target="_blank" rel="noopener noreferrer">Lei estadual · 9 de julho</a>
-                  <a className="text-primary underline underline-offset-2" href={FONTE_PREFEITURA} target="_blank" rel="noopener noreferrer">Prefeitura · conferir Botucatu</a>
-                </div>
-              </div>
-            </details>
           </section>
 
           <section className="flex flex-col gap-3">
@@ -303,9 +284,6 @@ function AgendaPage() {
                     <div className="min-w-0 text-sm">
                       <p className="font-semibold">{feriado.nome}</p>
                       <p className="text-xs text-muted-foreground">Feriado · {feriado.abrangencia}</p>
-                      <a href={feriado.fonte} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline underline-offset-2">
-                        {feriado.abrangencia === "Municipal · Botucatu" ? "Conferir no portal da Prefeitura" : "Consultar referência"}
-                      </a>
                     </div>
                   </div>
                 ))}
