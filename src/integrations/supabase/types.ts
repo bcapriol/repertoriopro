@@ -18,6 +18,10 @@ export type Database = {
         Row: {
           atualizado_em: string
           criado_em: string
+          cliente: string
+          cidade: string
+          consumacao_pessoas: number | null
+          mensagem_contratante: string
           data: string
           data_fim: string | null
           descricao: string
@@ -33,6 +37,10 @@ export type Database = {
         Insert: {
           atualizado_em?: string
           criado_em?: string
+          cliente?: string
+          cidade?: string
+          consumacao_pessoas?: number | null
+          mensagem_contratante?: string
           data: string
           data_fim?: string | null
           descricao?: string
@@ -48,6 +56,10 @@ export type Database = {
         Update: {
           atualizado_em?: string
           criado_em?: string
+          cliente?: string
+          cidade?: string
+          consumacao_pessoas?: number | null
+          mensagem_contratante?: string
           data?: string
           data_fim?: string | null
           descricao?: string
@@ -79,6 +91,7 @@ export type Database = {
           pode_agenda: boolean
           pode_apagar: boolean
           pode_backup: boolean
+          pode_copiar_mensagens_shows: boolean
           pode_editar: boolean
           senha_hash: string
           senha_visivel: string
@@ -92,6 +105,7 @@ export type Database = {
           pode_agenda?: boolean
           pode_apagar?: boolean
           pode_backup?: boolean
+          pode_copiar_mensagens_shows?: boolean
           pode_editar?: boolean
           senha_hash: string
           senha_visivel?: string
@@ -105,6 +119,7 @@ export type Database = {
           pode_agenda?: boolean
           pode_apagar?: boolean
           pode_backup?: boolean
+          pode_copiar_mensagens_shows?: boolean
           pode_editar?: boolean
           senha_hash?: string
           senha_visivel?: string

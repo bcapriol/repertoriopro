@@ -1,11 +1,12 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { AppData, Anexo, Setlist, Song } from "./repertorio-store";
 import { mesclarDados } from "./sync-merge";
+import { criarMensagemShow } from "./agenda-mensagem";
 
 export type BandaResumo = {
   id: string;
   nome: string;
-  usuarios: { id: string; usuario: string; senha: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean }[];
+  usuarios: { id: string; usuario: string; senha: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean; podeCopiarMensagensShows: boolean }[];
   totalMusicas: number;
   totalRepertorios: number;
 };
@@ -43,7 +44,7 @@ export async function listarBandas(): Promise<BandaResumo[]> {
   const db = await admin();
   const [bandas, usuarios, musicas, repertorios] = await Promise.all([
     db.from("bandas").select("id, nome, criado_em").order("criado_em", { ascending: false }),
-    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id, pode_apagar, pode_backup, pode_editar, pode_agenda, pode_adicionar_shows"),
+    db.from("app_usuarios").select("id, usuario, senha_visivel, banda_id, pode_apagar, pode_backup, pode_editar, pode_agenda, pode_adicionar_shows, pode_copiar_mensagens_shows"),
     db.from("cloud_songs").select("banda_id"),
     db.from("cloud_setlists").select("banda_id"),
   ]);
@@ -64,6 +65,7 @@ export async function listarBandas(): Promise<BandaResumo[]> {
         podeEditar: u.pode_editar ?? false,
         podeAgenda: u.pode_agenda ?? false,
         podeAdicionarShows: u.pode_adicionar_shows ?? false,
+        podeCopiarMensagensShows: u.pode_copiar_mensagens_shows ?? false,
       })),
     totalMusicas: conta(musicas.data, b.id),
     totalRepertorios: conta(repertorios.data, b.id),
@@ -103,7 +105,7 @@ export async function alterarSenhaUsuario(id: string, senha: string) {
 
 export async function definirPrivilegios(
   id: string,
-  privilegios: { podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean },
+  privilegios: { podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean; podeCopiarMensagensShows: boolean },
 ) {
   const db = await admin();
   const { error } = await db
@@ -114,6 +116,7 @@ export async function definirPrivilegios(
       pode_editar: privilegios.podeEditar,
       pode_agenda: privilegios.podeAgenda,
       pode_adicionar_shows: privilegios.podeAdicionarShows,
+      pode_copiar_mensagens_shows: privilegios.podeCopiarMensagensShows === true,
     })
     .eq("id", id);
   if (error) throw error;
@@ -268,7 +271,7 @@ export async function entrarUsuario(usuario: string, senha: string) {
   const db = await admin();
   const { data } = await db
     .from("app_usuarios")
-    .select("id, usuario, senha_hash, banda_id, pode_apagar, pode_backup, pode_editar, pode_agenda, pode_adicionar_shows, bandas(nome)")
+    .select("id, usuario, senha_hash, banda_id, pode_apagar, pode_backup, pode_editar, pode_agenda, pode_adicionar_shows, pode_copiar_mensagens_shows, bandas(nome)")
     .eq("usuario", usuario.trim().toLowerCase())
     .maybeSingle();
   if (!data || data.senha_hash !== hashSenha(senha)) throw new Error("Usuário ou senha inválidos.");
@@ -282,6 +285,7 @@ export async function entrarUsuario(usuario: string, senha: string) {
     podeEditar: data.pode_editar ?? false,
     podeAgenda: data.pode_agenda ?? false,
     podeAdicionarShows: data.pode_adicionar_shows ?? false,
+    podeCopiarMensagensShows: data.pode_copiar_mensagens_shows ?? false,
     usuarioId: data.id as string,
   };
 }
@@ -417,6 +421,10 @@ export type EventoAgenda = {
   local: string;
   descricao: string;
   valor: number | null;
+  cliente: string;
+  cidade: string;
+  consumacaoPessoas: number | null;
+  mensagemContratante?: string;
   status: "agendado" | "concluido" | "cancelado";
 };
 
@@ -436,19 +444,32 @@ export async function listarAgenda(usuario: string, senha: string) {
     .order("data")
     .order("hora_inicio");
   if (error) throw error;
-  const eventos: EventoAgenda[] = (data ?? []).map((e) => ({
-    id: e.id,
-    tipo: e.tipo as EventoAgenda["tipo"],
-    data: e.data,
-    dataFim: e.data_fim ?? e.data,
-    horaInicio: e.hora_inicio,
-    horaFim: e.hora_fim,
-    local: e.local,
-    descricao: e.descricao,
-    valor: e.valor === null ? null : Number(e.valor),
+  const eventos: EventoAgenda[] = (data ?? []).map((e) => {
+    const evento = converterEventoAgenda(e);
+    if (conta.podeCopiarMensagensShows && evento.tipo === "show") {
+      evento.mensagemContratante = e.mensagem_contratante || criarMensagemShow(evento, evento.status === "cancelado" ? "cancelamento" : "agendamento");
+    }
+    return evento;
+  });
+  return { eventos, podeAgenda: conta.podeAgenda, podeAdicionarShows: conta.podeAdicionarShows, podeCopiarMensagensShows: conta.podeCopiarMensagensShows };
+}
+
+function converterEventoAgenda(e: import("@/integrations/supabase/types").Database["public"]["Tables"]["agenda_eventos"]["Row"]): EventoAgenda {
+  return {
+    id: e.id, tipo: e.tipo as EventoAgenda["tipo"], data: e.data,
+    dataFim: e.data_fim ?? e.data, horaInicio: e.hora_inicio, horaFim: e.hora_fim,
+    local: e.local, descricao: e.descricao, valor: e.valor === null ? null : Number(e.valor),
+    cliente: e.cliente, cidade: e.cidade, consumacaoPessoas: e.consumacao_pessoas,
     status: e.status as EventoAgenda["status"],
-  }));
-  return { eventos, podeAgenda: conta.podeAgenda, podeAdicionarShows: conta.podeAdicionarShows };
+  };
+}
+
+export async function mensagemEvento(usuario: string, senha: string, id: string) {
+  const resultado = await listarAgenda(usuario, senha);
+  if (!resultado.podeCopiarMensagensShows) throw new Error("Você não tem privilégio para copiar mensagens de shows.");
+  const evento = resultado.eventos.find((e) => e.id === id && e.tipo === "show");
+  if (!evento?.mensagemContratante) throw new Error("Show não encontrado.");
+  return evento.mensagemContratante;
 }
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$|^$/;
@@ -465,13 +486,18 @@ export async function salvarEvento(usuario: string, senha: string, ev: Omit<Even
     if (!ev.local.trim()) throw new Error("Informe o local do show.");
   }
   if (ev.tipo === "particular" && !ev.descricao.trim()) throw new Error("Informe a descrição.");
+  if (ev.tipo === "show" && ev.consumacaoPessoas != null && (!Number.isSafeInteger(ev.consumacaoPessoas) || ev.consumacaoPessoas < 0 || ev.consumacaoPessoas > 2147483647)) {
+    throw new Error("Informe uma quantidade inteira e não negativa de pessoas para consumação.");
+  }
   let dataAnterior: string | null = null;
+  let eventoAnterior: EventoAgenda | undefined;
   if (ev.id) {
-    const { data: atual, error } = await db.from("agenda_eventos").select("tipo, data").eq("id", ev.id).eq("usuario_id", conta.usuarioId).maybeSingle();
+    const { data: atual, error } = await db.from("agenda_eventos").select("*").eq("id", ev.id).eq("usuario_id", conta.usuarioId).maybeSingle();
     if (error) throw error;
     if (!atual) throw new Error("Evento não encontrado.");
     if (atual.tipo === "show" && !conta.podeAdicionarShows) throw new Error("Você não tem privilégio para alterar shows.");
     dataAnterior = atual.data;
+    eventoAnterior = converterEventoAgenda(atual);
   }
   if (ev.tipo === "show") {
     const { data: folgas, error: erroFolgas } = await db.from("agenda_eventos")
@@ -497,13 +523,21 @@ export async function salvarEvento(usuario: string, senha: string, ev: Omit<Even
     local: ev.tipo === "show" ? ev.local.trim().slice(0, 200) : "",
     descricao: ev.tipo === "show" ? "" : ev.descricao.trim().slice(0, 500),
     valor: ev.tipo === "show" && ev.valor !== null && Number.isFinite(ev.valor) ? Math.max(0, ev.valor) : null,
+    cliente: ev.tipo === "show" ? (ev.cliente ?? "").trim().slice(0, 200) : "",
+    cidade: ev.tipo === "show" ? (ev.cidade ?? "").trim().slice(0, 200) : "",
+    consumacao_pessoas: ev.tipo === "show" ? ev.consumacaoPessoas ?? null : null,
     atualizado_em: new Date().toISOString(),
   };
+  const mensagem = ev.tipo === "show" ? criarMensagemShow({
+    ...ev, cliente: linha.cliente, cidade: linha.cidade, local: linha.local,
+    valor: linha.valor, consumacaoPessoas: linha.consumacao_pessoas,
+  }, eventoAnterior?.status === "cancelado" ? "cancelamento" : ev.id ? "alteracao" : "agendamento", eventoAnterior) : "";
+  const dados = { ...linha, mensagem_contratante: mensagem };
   const r = ev.id
-    ? await db.from("agenda_eventos").update(linha).eq("id", ev.id).eq("usuario_id", conta.usuarioId)
-    : await db.from("agenda_eventos").insert(linha);
+    ? await db.from("agenda_eventos").update(dados).eq("id", ev.id).eq("usuario_id", conta.usuarioId).select("id").single()
+    : await db.from("agenda_eventos").insert(dados).select("id").single();
   if (r.error) throw r.error;
-  return listarAgenda(usuario, senha);
+  return { ...await listarAgenda(usuario, senha), eventoId: r.data.id };
 }
 
 async function eventoDoUsuario(usuario: string, senha: string, id: string) {
@@ -526,7 +560,10 @@ export async function statusEvento(usuario: string, senha: string, id: string, s
   if (!["agendado", "concluido", "cancelado"].includes(status)) throw new Error("Status inválido.");
   const { conta, db, tipo } = await eventoDoUsuario(usuario, senha, id);
   if (tipo !== "show") throw new Error("Status só se aplica a shows.");
-  const { error } = await db.from("agenda_eventos").update({ status, atualizado_em: new Date().toISOString() }).eq("id", id).eq("usuario_id", conta.usuarioId);
+  const { data: atual, error: erroAtual } = await db.from("agenda_eventos").select("*").eq("id", id).eq("usuario_id", conta.usuarioId).single();
+  if (erroAtual) throw erroAtual;
+  const mensagem = status === "concluido" ? atual.mensagem_contratante : criarMensagemShow(converterEventoAgenda(atual), status === "cancelado" ? "cancelamento" : "agendamento");
+  const { error } = await db.from("agenda_eventos").update({ status, mensagem_contratante: mensagem, atualizado_em: new Date().toISOString() }).eq("id", id).eq("usuario_id", conta.usuarioId);
   if (error) throw error;
   return listarAgenda(usuario, senha);
 }

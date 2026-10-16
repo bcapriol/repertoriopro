@@ -62,7 +62,7 @@ export const admExcluirUsuario = createServerFn({ method: "POST" })
   });
 
 export const admDefinirPrivilegios = createServerFn({ method: "POST" })
-  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean }) => d)
+  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean; podeCopiarMensagensShows: boolean }) => d)
   .handler(async ({ data }) => {
     const m = await import("./nuvem.server");
     m.conferirSenhaAdm(data.senha);
@@ -72,6 +72,7 @@ export const admDefinirPrivilegios = createServerFn({ method: "POST" })
       podeEditar: data.podeEditar,
       podeAgenda: data.podeAgenda,
       podeAdicionarShows: data.podeAdicionarShows,
+      podeCopiarMensagensShows: data.podeCopiarMensagensShows,
     });
     return m.listarBandas();
   });
@@ -185,3 +186,7 @@ export const agendaExcluir = createServerFn({ method: "POST" })
 export const agendaStatus = createServerFn({ method: "POST" })
   .inputValidator((d: Cred & { id: string; status: EventoAgenda["status"] }) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).statusEvento(data.usuario, data.senha, data.id, data.status));
+
+export const agendaMensagem = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).mensagemEvento(data.usuario, data.senha, data.id));
