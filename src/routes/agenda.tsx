@@ -57,16 +57,16 @@ const SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const dataBR = (s: string) => s.split("-").reverse().join("/");
 const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
-const horario = (e: EventoAgenda) => (e.horaInicio ? `${e.horaInicio}${e.horaFim ? `–${e.horaFim}` : ""}` : "—");
+const horario = (e: EventoAgenda) => (e.horaInicio ? `${e.horaInicio}${e.tipo !== "show" && e.horaFim ? `–${e.horaFim}` : ""}` : "—");
 
-type Form = { id?: string; tipo: Tipo; data: string; dataFim: string; horaInicio: string; horaFim: string; local: string; descricao: string; valor: string; cliente: string; cidade: string; consumacaoPessoas: string };
+type Form = { id?: string; tipo: Tipo; data: string; dataFim: string; horaInicio: string; horaFim: string; local: string; descricao: string; valor: string; tipoValor: EventoAgenda["tipoValor"]; cliente: string; cidade: string; consumacaoTipo: "pessoas" | "valor"; consumacaoPessoas: string; consumacaoValor: string };
 type ColunaRelatorio = "data" | "horario" | "local" | "valor" | "status";
 type FiltrosRelatorio = { dataInicio: string; dataFim: string; horaInicio: string; horaFim: string; local: string; valorMin: string; valorMax: string; status: string };
 const FILTROS_VAZIOS: FiltrosRelatorio = { dataInicio: "", dataFim: "", horaInicio: "", horaFim: "", local: "", valorMin: "", valorMax: "", status: "" };
 const COLUNAS_RELATORIO: { chave: ColunaRelatorio; rotulo: string; campos: (keyof FiltrosRelatorio)[] }[] = [
   { chave: "data", rotulo: "Data", campos: ["dataInicio", "dataFim"] },
   { chave: "horario", rotulo: "Horário", campos: ["horaInicio", "horaFim"] },
-  { chave: "local", rotulo: "Local", campos: ["local"] },
+  { chave: "local", rotulo: "Cliente / Cidade", campos: ["local"] },
   { chave: "valor", rotulo: "Valor", campos: ["valorMin", "valorMax"] },
   { chave: "status", rotulo: "Status", campos: ["status"] },
 ];
@@ -162,7 +162,7 @@ function AgendaPage() {
       (!filtros.dataFim || e.data <= filtros.dataFim) &&
       (!filtros.horaInicio || e.horaInicio >= filtros.horaInicio) &&
       (!filtros.horaFim || (e.horaInicio && e.horaInicio <= filtros.horaFim)) &&
-      (!filtros.local || e.local.toLocaleLowerCase("pt-BR").includes(filtros.local.trim().toLocaleLowerCase("pt-BR"))) &&
+      (!filtros.local || `${e.cliente} ${e.cidade}`.toLocaleLowerCase("pt-BR").includes(filtros.local.trim().toLocaleLowerCase("pt-BR"))) &&
       (!filtros.valorMin || (Number.isFinite(minimo) && valor !== null && valor >= minimo)) &&
       (!filtros.valorMax || (Number.isFinite(maximo) && valor !== null && valor <= maximo)) &&
       (!filtros.status || e.status === filtros.status);
@@ -173,7 +173,7 @@ function AgendaPage() {
   const novo = (tipo: Tipo) => {
     if (tipo === "show" && diaDeFolga) return;
     setConflitoShow(false);
-    setForm({ tipo, data: dia, dataFim: dia, horaInicio: "", horaFim: "", local: "", descricao: "", valor: "", cliente: "", cidade: "", consumacaoPessoas: "" });
+    setForm({ tipo, data: dia, dataFim: dia, horaInicio: "", horaFim: "", local: "", descricao: "", valor: "", tipoValor: "cache", cliente: "", cidade: "", consumacaoTipo: "pessoas", consumacaoPessoas: "", consumacaoValor: "" });
   };
 
   const enviar = async (confirmarConflito = false) => {
@@ -184,8 +184,10 @@ function AgendaPage() {
       return;
     }
     const valor = form.valor.trim() ? Number(form.valor.replace(/\./g, "").replace(",", ".")) : null;
-    if (valor !== null && !Number.isFinite(valor)) { toast.error("Valor inválido."); return; }
-    const consumacaoPessoas = form.consumacaoPessoas.trim() ? Number(form.consumacaoPessoas) : null;
+    if (valor !== null && (!Number.isFinite(valor) || valor < 0 || valor > 9999999999.99)) { toast.error("Valor inválido."); return; }
+    const consumacaoValor = form.consumacaoTipo === "valor" && form.consumacaoValor.trim() ? Number(form.consumacaoValor.replace(/\./g, "").replace(",", ".")) : null;
+    if (consumacaoValor !== null && (!Number.isFinite(consumacaoValor) || consumacaoValor < 0 || consumacaoValor > 9999999999.99)) { toast.error("Informe um valor válido para consumação."); return; }
+    const consumacaoPessoas = form.consumacaoTipo === "pessoas" && form.consumacaoPessoas.trim() ? Number(form.consumacaoPessoas) : null;
     if (form.tipo === "show" && consumacaoPessoas !== null && (!Number.isSafeInteger(consumacaoPessoas) || consumacaoPessoas < 0 || consumacaoPessoas > 2147483647)) {
       toast.error("Informe uma quantidade inteira e não negativa de pessoas para consumação.");
       return;
@@ -204,7 +206,7 @@ function AgendaPage() {
       const resultado = await salvar({
         data: {
           ...cred,
-          evento: { id: form.id, tipo: form.tipo, data: form.data, dataFim: form.tipo === "folga" ? form.dataFim : form.data, horaInicio: form.horaInicio, horaFim: form.horaFim, local: form.local, descricao: form.descricao, valor, cliente: form.cliente, cidade: form.cidade, consumacaoPessoas },
+          evento: { id: form.id, tipo: form.tipo, data: form.data, dataFim: form.tipo === "folga" ? form.dataFim : form.data, horaInicio: form.horaInicio, horaFim: form.horaFim, local: form.local, descricao: form.descricao, valor, tipoValor: form.tipoValor, cliente: form.cliente, cidade: form.cidade, consumacaoPessoas, consumacaoValor },
           confirmarConflito,
         },
       });
@@ -334,10 +336,10 @@ function AgendaPage() {
                       {e.tipo === "show" ? <span className="ml-auto rounded-full border border-current px-2 py-0.5 text-xs">{STATUS[e.status]}</span> : null}
                     </div>
                     <p className="mt-2 font-semibold text-foreground">
-                      {e.tipo === "show" ? e.local : e.descricao || (e.tipo === "folga" ? "Dia de folga" : "")}
+                      {e.tipo === "show" ? [e.cliente, e.cidade].filter(Boolean).join(" · ") || "Show" : e.descricao || (e.tipo === "folga" ? "Dia de folga" : "")}
                     </p>
-                    {e.tipo === "folga" ? <p className="text-sm text-muted-foreground">{dataBR(e.data)}{e.dataFim !== e.data ? ` a ${dataBR(e.dataFim)}` : ""}</p> : <p className="text-sm text-muted-foreground">{horario(e)}{e.tipo === "show" ? ` · ${moeda(e.valor)}` : ""}</p>}
-                    {e.tipo === "show" && (e.cliente || e.cidade) ? <p className="mt-1 text-sm text-foreground">{[e.cliente, e.cidade].filter(Boolean).join(" · ")}</p> : null}
+                    {e.tipo === "folga" ? <p className="text-sm text-muted-foreground">{dataBR(e.data)}{e.dataFim !== e.data ? ` a ${dataBR(e.dataFim)}` : ""}</p> : <p className="text-sm text-muted-foreground">{horario(e)}{e.tipo === "show" ? ` · ${e.tipoValor === "couvert" ? "Couvert" : "Cachê"}: ${moeda(e.valor)}` : ""}</p>}
+                    {e.tipo === "show" ? <p className="mt-1 text-sm text-foreground">Consumação: {e.consumacaoValor !== null ? moeda(e.consumacaoValor) : e.consumacaoPessoas !== null ? `${e.consumacaoPessoas} pessoa(s)` : "A combinar"}</p> : null}
                     {podeMexer(e) ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {e.tipo === "show" ? (
@@ -350,7 +352,7 @@ function AgendaPage() {
                             <Button size="sm" variant="secondary" disabled={ocupado} onClick={() => rodar(() => mudar({ data: { ...cred!, id: e.id, status: "agendado" } }), "Show reaberto.", e.id)}><RotateCcwIcon /> Reabrir</Button>
                           )
                         ) : null}
-                        <Button size="sm" variant="outline" disabled={ocupado} onClick={() => { setConflitoShow(false); setForm({ id: e.id, tipo: e.tipo, data: e.data, dataFim: e.dataFim, horaInicio: e.horaInicio, horaFim: e.horaFim, local: e.local, descricao: e.descricao, valor: e.valor === null ? "" : String(e.valor).replace(".", ","), cliente: e.cliente, cidade: e.cidade, consumacaoPessoas: e.consumacaoPessoas === null ? "" : String(e.consumacaoPessoas) }); }}><PencilIcon /> Alterar</Button>
+                        <Button size="sm" variant="outline" disabled={ocupado} onClick={() => { setConflitoShow(false); setForm({ id: e.id, tipo: e.tipo, data: e.data, dataFim: e.dataFim, horaInicio: e.horaInicio, horaFim: e.horaFim, local: e.local, descricao: e.descricao, valor: e.valor === null ? "" : String(e.valor).replace(".", ","), tipoValor: e.tipoValor, cliente: e.cliente, cidade: e.cidade, consumacaoTipo: e.consumacaoValor !== null ? "valor" : "pessoas", consumacaoPessoas: e.consumacaoPessoas === null ? "" : String(e.consumacaoPessoas), consumacaoValor: e.consumacaoValor === null ? "" : String(e.consumacaoValor).replace(".", ",") }); }}><PencilIcon /> Alterar</Button>
                         <Button size="sm" variant="outline" className="text-destructive" disabled={ocupado} onClick={() => { if (confirm("Excluir este evento?")) rodar(() => excluir({ data: { ...cred!, id: e.id } }), "Evento excluído."); }}><Trash2Icon /> Excluir</Button>
                       </div>
                     ) : null}
@@ -389,7 +391,7 @@ function AgendaPage() {
                             <Campo rotulo="A partir de"><Input type="time" value={filtros.horaInicio} onChange={(ev) => setFiltros((f) => ({ ...f, horaInicio: ev.target.value }))} /></Campo>
                             <Campo rotulo="Até"><Input type="time" value={filtros.horaFim} onChange={(ev) => setFiltros((f) => ({ ...f, horaFim: ev.target.value }))} /></Campo>
                           </> : null}
-                          {chave === "local" ? <Campo rotulo="Local"><Input placeholder="Buscar local" value={filtros.local} onChange={(ev) => setFiltros((f) => ({ ...f, local: ev.target.value }))} /></Campo> : null}
+                          {chave === "local" ? <Campo rotulo="Cliente ou cidade"><Input placeholder="Buscar cliente ou cidade" value={filtros.local} onChange={(ev) => setFiltros((f) => ({ ...f, local: ev.target.value }))} /></Campo> : null}
                           {chave === "valor" ? <>
                             <Campo rotulo="Valor mínimo (R$)"><Input type="number" min="0" step="0.01" value={filtros.valorMin} onChange={(ev) => setFiltros((f) => ({ ...f, valorMin: ev.target.value }))} /></Campo>
                             <Campo rotulo="Valor máximo (R$)"><Input type="number" min="0" step="0.01" value={filtros.valorMax} onChange={(ev) => setFiltros((f) => ({ ...f, valorMax: ev.target.value }))} /></Campo>
@@ -409,8 +411,8 @@ function AgendaPage() {
                     <tr key={e.id} className="border-t border-border text-foreground">
                       <td className="px-3 py-2 whitespace-nowrap">{dataBR(e.data)}</td>
                       <td className="px-3 py-2 whitespace-nowrap">{horario(e)}</td>
-                      <td className="px-3 py-2">{e.local}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">{moeda(e.valor)}</td>
+                      <td className="px-3 py-2">{[e.cliente, e.cidade].filter(Boolean).join(" · ") || "—"}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{e.tipoValor === "couvert" ? "Couvert" : "Cachê"}: {moeda(e.valor)}</td>
                       <td className="px-3 py-2 whitespace-nowrap">{STATUS[e.status]}</td>
                     </tr>
                   ))}
@@ -440,7 +442,6 @@ function AgendaPage() {
                       <Campo rotulo="Cliente"><Input maxLength={200} placeholder="Nome do contratante" value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} className="h-11 text-base" /></Campo>
                       <Campo rotulo="Cidade"><Input maxLength={200} value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} className="h-11 text-base" /></Campo>
                     </div>
-                    <Campo rotulo="Local"><Input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} className="h-11 text-base" /></Campo>
                   </>
                 ) : null}
                 {form.tipo === "particular" ? (
@@ -453,14 +454,26 @@ function AgendaPage() {
                 {form.tipo !== "folga" ? (
                   <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
                     <Campo rotulo="Hora de início"><Input type="time" value={form.horaInicio} onChange={(e) => setForm({ ...form, horaInicio: e.target.value })} className="h-11 min-w-0 text-base" /></Campo>
-                    <Campo rotulo="Hora de fim"><Input type="time" value={form.horaFim} onChange={(e) => setForm({ ...form, horaFim: e.target.value })} className="h-11 min-w-0 text-base" /></Campo>
+                    {form.tipo === "particular" ? <Campo rotulo="Hora de fim"><Input type="time" value={form.horaFim} onChange={(e) => setForm({ ...form, horaFim: e.target.value })} className="h-11 min-w-0 text-base" /></Campo> : null}
                   </div>
                 ) : null}
                 {form.tipo === "show" ? (
                   <>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <Campo rotulo="Valor (R$)"><Input inputMode="decimal" placeholder="0,00" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="h-11 text-base" /></Campo>
-                      <Campo rotulo="Consumação para quantas pessoas?"><Input type="number" min="0" max="2147483647" step="1" inputMode="numeric" placeholder="A combinar" value={form.consumacaoPessoas} onChange={(e) => setForm({ ...form, consumacaoPessoas: e.target.value })} className="h-11 text-base" /></Campo>
+                      <Campo rotulo="Forma de pagamento"><select value={form.tipoValor} onChange={(e) => setForm({ ...form, tipoValor: e.target.value as Form["tipoValor"] })} className="h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground">
+                        <option value="cache">Cachê</option>
+                        <option value="couvert">Couvert</option>
+                      </select></Campo>
+                      <Campo rotulo={`${form.tipoValor === "couvert" ? "Couvert" : "Cachê"} (R$)`}><Input inputMode="decimal" placeholder="A combinar" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="h-11 text-base" /></Campo>
+                      <Campo rotulo="Consumação em"><select value={form.consumacaoTipo} onChange={(e) => setForm({ ...form, consumacaoTipo: e.target.value as Form["consumacaoTipo"] })} className="h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground">
+                        <option value="pessoas">Quantidade de pessoas</option>
+                        <option value="valor">Valor em R$</option>
+                      </select></Campo>
+                      {form.consumacaoTipo === "pessoas" ? (
+                        <Campo rotulo="Quantidade de pessoas"><Input type="number" min="0" max="2147483647" step="1" inputMode="numeric" placeholder="A combinar" value={form.consumacaoPessoas} onChange={(e) => setForm({ ...form, consumacaoPessoas: e.target.value })} className="h-11 text-base" /></Campo>
+                      ) : (
+                        <Campo rotulo="Consumação (R$)"><Input inputMode="decimal" placeholder="A combinar" value={form.consumacaoValor} onChange={(e) => setForm({ ...form, consumacaoValor: e.target.value })} className="h-11 text-base" /></Campo>
+                      )}
                     </div>
                     {podeMensagens ? <p className="text-xs text-muted-foreground">Ao salvar, a mensagem para o contratante será aberta para copiar. Campos não preenchidos aparecerão como não informados ou a combinar.</p> : null}
                   </>

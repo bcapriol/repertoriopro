@@ -21,6 +21,8 @@ export type Database = {
           cliente: string
           cidade: string
           consumacao_pessoas: number | null
+          consumacao_valor: number | null
+          tipo_valor: string
           mensagem_contratante: string
           data: string
           data_fim: string | null
@@ -40,6 +42,8 @@ export type Database = {
           cliente?: string
           cidade?: string
           consumacao_pessoas?: number | null
+          consumacao_valor?: number | null
+          tipo_valor?: string
           mensagem_contratante?: string
           data: string
           data_fim?: string | null
@@ -59,6 +63,8 @@ export type Database = {
           cliente?: string
           cidade?: string
           consumacao_pessoas?: number | null
+          consumacao_valor?: number | null
+          tipo_valor?: string
           mensagem_contratante?: string
           data?: string
           data_fim?: string | null

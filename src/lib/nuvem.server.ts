@@ -424,6 +424,8 @@ export type EventoAgenda = {
   cliente: string;
   cidade: string;
   consumacaoPessoas: number | null;
+  consumacaoValor: number | null;
+  tipoValor: "cache" | "couvert";
   mensagemContratante?: string;
   status: "agendado" | "concluido" | "cancelado";
 };
@@ -460,6 +462,8 @@ function converterEventoAgenda(e: import("@/integrations/supabase/types").Databa
     dataFim: e.data_fim ?? e.data, horaInicio: e.hora_inicio, horaFim: e.hora_fim,
     local: e.local, descricao: e.descricao, valor: e.valor === null ? null : Number(e.valor),
     cliente: e.cliente, cidade: e.cidade, consumacaoPessoas: e.consumacao_pessoas,
+    consumacaoValor: e.consumacao_valor === null ? null : Number(e.consumacao_valor),
+    tipoValor: e.tipo_valor === "couvert" ? "couvert" : "cache",
     status: e.status as EventoAgenda["status"],
   };
 }
@@ -483,7 +487,10 @@ export async function salvarEvento(usuario: string, senha: string, ev: Omit<Even
   if (!HORA.test(ev.horaInicio) || !HORA.test(ev.horaFim)) throw new Error("Horário inválido.");
   if (ev.tipo === "show") {
     if (!conta.podeAdicionarShows) throw new Error("Você não tem privilégio para adicionar shows.");
-    if (!ev.local.trim()) throw new Error("Informe o local do show.");
+    if (!["cache", "couvert"].includes(ev.tipoValor)) throw new Error("Escolha cachê ou couvert.");
+    if (ev.valor !== null && (!Number.isFinite(ev.valor) || ev.valor < 0 || ev.valor > 9999999999.99)) throw new Error("Informe um valor válido para o show.");
+    if (ev.consumacaoValor != null && (!Number.isFinite(ev.consumacaoValor) || ev.consumacaoValor < 0 || ev.consumacaoValor > 9999999999.99)) throw new Error("Informe um valor válido para consumação.");
+    if (ev.consumacaoValor != null && ev.consumacaoPessoas != null) throw new Error("Informe a consumação em pessoas ou em reais, não nas duas opções.");
   }
   if (ev.tipo === "particular" && !ev.descricao.trim()) throw new Error("Informe a descrição.");
   if (ev.tipo === "show" && ev.consumacaoPessoas != null && (!Number.isSafeInteger(ev.consumacaoPessoas) || ev.consumacaoPessoas < 0 || ev.consumacaoPessoas > 2147483647)) {
@@ -526,11 +533,13 @@ export async function salvarEvento(usuario: string, senha: string, ev: Omit<Even
     cliente: ev.tipo === "show" ? (ev.cliente ?? "").trim().slice(0, 200) : "",
     cidade: ev.tipo === "show" ? (ev.cidade ?? "").trim().slice(0, 200) : "",
     consumacao_pessoas: ev.tipo === "show" ? ev.consumacaoPessoas ?? null : null,
+    consumacao_valor: ev.tipo === "show" ? ev.consumacaoValor ?? null : null,
+    tipo_valor: ev.tipo === "show" ? ev.tipoValor : "cache",
     atualizado_em: new Date().toISOString(),
   };
   const mensagem = ev.tipo === "show" ? criarMensagemShow({
     ...ev, cliente: linha.cliente, cidade: linha.cidade, local: linha.local,
-    valor: linha.valor, consumacaoPessoas: linha.consumacao_pessoas,
+    valor: linha.valor, consumacaoPessoas: linha.consumacao_pessoas, consumacaoValor: linha.consumacao_valor,
   }, eventoAnterior?.status === "cancelado" ? "cancelamento" : ev.id ? "alteracao" : "agendamento", eventoAnterior) : "";
   const dados = { ...linha, mensagem_contratante: mensagem };
   const r = ev.id
