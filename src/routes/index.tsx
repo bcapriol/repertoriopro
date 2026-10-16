@@ -159,7 +159,7 @@ function Index() {
             <TileBody label="Contratos de Eventos" hint="Contratos de Prestação de Serviços — Banda Multivibe" Icon={FileTextIcon} />
           </Link>
           <Link to="/divulgacao" className={tileClass}>
-            <TileBody label="Divulgação" hint="Crie prompts e artes com inteligência artificial" Icon={MegaphoneIcon} />
+            <TileBody label="Divulgação" hint="Monte o prompt e abra o ChatGPT para criar sua arte" Icon={MegaphoneIcon} />
           </Link>
           <Link to="/sincronizar" className={tileClass}>
             <TileBody

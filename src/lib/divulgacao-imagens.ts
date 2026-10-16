@@ -1,5 +1,3 @@
-import { formatosDivulgacao, type FormatoDivulgacao } from "./divulgacao";
-
 function carregarImagem(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const imagem = new Image();
@@ -36,27 +34,4 @@ export async function prepararImagemDivulgacao(arquivo: File, foto: boolean): Pr
   }
 }
 
-/** A OpenAI não fornece 9:16/16:9 nativos: completa as bordas sem cortar texto ou rostos. */
-export async function ajustarArteDivulgacao(src: string, formato: FormatoDivulgacao): Promise<string> {
-  const imagem = await carregarImagem(src);
-  const { largura, altura } = formatosDivulgacao[formato];
-  const canvas = document.createElement("canvas");
-  canvas.width = largura;
-  canvas.height = altura;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Não foi possível ajustar as dimensões da arte neste aparelho.");
-  ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, largura, altura);
-  const fundo = Math.max(largura / imagem.naturalWidth, altura / imagem.naturalHeight) * 1.12;
-  const fw = imagem.naturalWidth * fundo;
-  const fh = imagem.naturalHeight * fundo;
-  ctx.save();
-  ctx.filter = "blur(32px)";
-  ctx.drawImage(imagem, (largura - fw) / 2, (altura - fh) / 2, fw, fh);
-  ctx.restore();
-  const escala = Math.min(largura / imagem.naturalWidth, altura / imagem.naturalHeight);
-  const w = imagem.naturalWidth * escala;
-  const h = imagem.naturalHeight * escala;
-  ctx.drawImage(imagem, (largura - w) / 2, (altura - h) / 2, w, h);
-  return canvas.toDataURL("image/png");
-}
+
