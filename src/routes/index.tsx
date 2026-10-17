@@ -80,7 +80,7 @@ function Index() {
   return (
     <main className="flex min-h-dvh flex-col bg-background px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6">
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center justify-end gap-2">
           <Link
             to="/adm"
             aria-label="Área do administrador"
