@@ -4,15 +4,15 @@ type Caixa = { x: number; y: number; largura: number; altura: number };
 type Gesto = { id: number; x: number; y: number; caixa: Caixa; redimensionar: boolean };
 
 export function useJanelaRelogio() {
-  const [caixa, setCaixa] = useState<Caixa>({ x: 12, y: 100, largura: 340, altura: 300 });
+  const [caixa, setCaixa] = useState<Caixa>({ x: 12, y: 100, largura: 340, altura: 180 });
   const atual = useRef(caixa);
   const gesto = useRef<Gesto | null>(null);
 
   const aplicar = (nova: Caixa) => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const largura = Math.max(Math.min(280, vw - 16), Math.min(nova.largura, vw - 16));
-    const altura = Math.max(Math.min(280, vh - 16), Math.min(nova.altura, vh - 16));
+    const largura = Math.max(Math.min(220, vw - 16), Math.min(nova.largura, vw - 16));
+    const altura = Math.max(Math.min(120, vh - 16), Math.min(nova.altura, vh - 16));
     const proxima = {
       largura, altura,
       x: Math.max(8, Math.min(nova.x, vw - largura - 8)),
@@ -23,7 +23,7 @@ export function useJanelaRelogio() {
   };
 
   useEffect(() => {
-    aplicar({ ...atual.current, y: window.innerHeight - 320 });
+    aplicar({ ...atual.current, y: window.innerHeight - 200 });
     const ajustar = () => aplicar(atual.current);
     window.addEventListener("resize", ajustar);
     return () => window.removeEventListener("resize", ajustar);

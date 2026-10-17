@@ -61,6 +61,7 @@ function JanelaRelogio({ fechar }: { fechar: () => void }) {
   const { caixa, gestos } = useJanelaRelogio();
   const [agora, setAgora] = useState<number | null>(null);
   const [vista, setVista] = useState<"relogio" | "cronometro">("relogio");
+  const [controlesVisiveis, setControlesVisiveis] = useState(false);
   const [direcao, setDirecao] = useState<"progressivo" | "regressivo">("progressivo");
   const [duracao, setDuracao] = useState<[number, number, number]>([0, 0, 0]);
   const [contagem, setContagem] = useState<Contagem>(zerado);
@@ -108,35 +109,37 @@ function JanelaRelogio({ fechar }: { fechar: () => void }) {
       onKeyUp={(e) => e.stopPropagation()}
     >
       <header data-relogio-mover className="relogio-cabecalho">
-        <span>⠿ Relógio / Cronômetro</span>
+        <span title="Arraste para mover" aria-label="Arraste para mover">⠿</span>
+        <div className="relogio-opcoes" role="group" aria-label="Exibição">
+          <button type="button" title="Relógio" aria-label="Relógio" aria-pressed={vista === "relogio"} onClick={() => setVista("relogio")}>◷</button>
+          <button type="button" title="Cronômetro" aria-label="Cronômetro" aria-pressed={vista === "cronometro"} onClick={() => setVista("cronometro")}>⏱</button>
+          {vista === "cronometro" && (
+            <button type="button" title={controlesVisiveis ? "Ocultar controles" : "Mostrar controles"} aria-label={controlesVisiveis ? "Ocultar controles" : "Mostrar controles"} aria-expanded={controlesVisiveis} aria-controls="relogio-controles" onClick={() => setControlesVisiveis((visiveis) => !visiveis)}>{controlesVisiveis ? "▴" : "▾"}</button>
+          )}
+        </div>
         <button type="button" onClick={fechar} aria-label="Fechar relógio e parar cronômetro" title="Fechar">✕</button>
       </header>
       <div className="relogio-conteudo">
-        <div className="relogio-opcoes" role="group" aria-label="Exibição">
-          <button type="button" aria-pressed={vista === "relogio"} onClick={() => setVista("relogio")}>Relógio</button>
-          <button type="button" aria-pressed={vista === "cronometro"} onClick={() => setVista("cronometro")}>Cronômetro</button>
-        </div>
         <div data-relogio-mover className="relogio-visor">
           <Digitos texto={vista === "relogio" ? hora : formatar(segundos)} />
         </div>
-        {vista === "relogio" ? <p className="relogio-legenda">Horário do dispositivo · 24 horas</p> : (
-          <>
-            <label className="relogio-direcao">
-              Contagem
-              <select value={direcao} disabled={bloqueado} onChange={(e) => setDirecao(e.target.value as typeof direcao)}>
-                <option value="progressivo">Progressiva</option>
-                <option value="regressivo">Regressiva</option>
-              </select>
-            </label>
-            <fieldset className="relogio-duracao" disabled={bloqueado}>
-              <legend>{direcao === "regressivo" ? "Tempo para contagem" : "Meta opcional · 00:00:00 = livre"}</legend>
+        {vista === "cronometro" && (
+          <div id="relogio-controles" className="relogio-controles" hidden={!controlesVisiveis}>
+            <div className="relogio-direcao" role="group" aria-label="Direção da contagem">
+              <button type="button" title="Progressiva" aria-label="Contagem progressiva" aria-pressed={direcao === "progressivo"} disabled={bloqueado} onClick={() => setDirecao("progressivo")}>↑</button>
+              <button type="button" title="Regressiva" aria-label="Contagem regressiva" aria-pressed={direcao === "regressivo"} disabled={bloqueado} onClick={() => setDirecao("regressivo")}>↓</button>
+            </div>
+            <fieldset className="relogio-duracao" disabled={bloqueado} aria-label="Duração em horas, minutos e segundos; zero para contagem progressiva livre">
               {duracao.map((valor, i) => (
                 <label key={i}>
+                  {i > 0 && <span aria-hidden="true">:</span>}
                   <input
-                    type="number" inputMode="numeric" min={0} max={i === 0 ? 99 : 59} step={1}
-                    aria-label={["Horas", "Minutos", "Segundos"][i]} value={valor}
+                    type="text" inputMode="numeric" pattern="[0-9]{1,2}" maxLength={2}
+                    aria-label={["Horas", "Minutos", "Segundos"][i]} title={["Horas (00–99)", "Minutos (00–59)", "Segundos (00–59)"][i]} value={valor}
+                    onFocus={(e) => e.currentTarget.select()}
                     onChange={(e) => {
-                      const n = Math.max(0, Math.min(i === 0 ? 99 : 59, Math.floor(Number(e.target.value) || 0)));
+                      const digitos = e.target.value.replace(/\D/g, "").slice(0, 2);
+                      const n = Math.min(i === 0 ? 99 : 59, Number(digitos) || 0);
                       setDuracao((atual) => {
                         const nova: [number, number, number] = [...atual];
                         nova[i] = n;
@@ -144,23 +147,21 @@ function JanelaRelogio({ fechar }: { fechar: () => void }) {
                       });
                     }}
                   />
-                  <span>{["h", "min", "s"][i]}</span>
                 </label>
               ))}
             </fieldset>
             <div className="relogio-opcoes">
-              <button type="button" onClick={alternar} disabled={contagem.terminou || (direcao === "regressivo" && limite === 0)}>
-                {rodando ? "Pausar" : decorrido > 0 ? "Continuar" : "Iniciar"}
+              <button type="button" title={rodando ? "Pausar" : decorrido > 0 ? "Continuar" : "Iniciar"} aria-label={rodando ? "Pausar" : decorrido > 0 ? "Continuar" : "Iniciar"} onClick={alternar} disabled={contagem.terminou || (direcao === "regressivo" && limite === 0)}>
+                {rodando ? "Ⅱ" : "▶"}
               </button>
-              <button type="button" onClick={() => setContagem(zerado)} disabled={contagem.terminou}>Zerar</button>
+              <button type="button" title="Zerar" aria-label="Zerar" onClick={() => setContagem(zerado)} disabled={contagem.terminou}>↺</button>
             </div>
-          </>
+          </div>
         )}
-        <p role="status" className="relogio-legenda">
-          {contagem.terminou ? "Tempo encerrado! Feche a janela para parar o aviso." : rodando ? "Cronômetro em andamento" : vista === "cronometro" ? "Defina o tempo e toque em Iniciar" : ""}
-        </p>
+        {contagem.terminou && (
+          <p role="status" className="relogio-legenda" title="Tempo encerrado! Feche a janela para parar o aviso." aria-label="Tempo encerrado! Feche a janela para parar o aviso.">⚠</p>
+        )}
       </div>
-      <footer className="relogio-ajuda">Arraste o topo para mover · canto para ajustar</footer>
       <div data-relogio-tamanho className="relogio-tamanho" title="Arraste para redimensionar" aria-hidden="true">◢</div>
     </div>
   );

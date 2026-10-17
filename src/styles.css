@@ -290,14 +290,14 @@ svg.lucide {
   fill: var(--relogio-neon);
   filter: drop-shadow(0 0 3px oklch(0.88 0.28 142 / 0.55));
 }
-.relogio-direcao { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.relogio-direcao select { flex: 1; min-width: 0; }
-.relogio-duracao { display: flex; gap: 8px; border: 0; padding: 0; margin: 0; }
-.relogio-duracao legend { padding-bottom: 4px; font-size: 11px; }
-.relogio-duracao label { display: flex; flex: 1; min-width: 0; align-items: center; gap: 3px; font-size: 11px; }
-.relogio-duracao input { width: 100%; min-width: 0; padding-inline: 4px; }
-.relogio-legenda { margin: 0; text-align: center; font-size: 11px; }
-.relogio-ajuda { flex-shrink: 0; padding: 3px 28px 6px 8px; font-size: 9px; text-align: center; }
+.relogio-controles { display: flex; flex-shrink: 0; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; }
+.relogio-controles[hidden] { display: none; }
+.relogio-direcao { display: flex; align-items: center; gap: 3px; }
+.relogio-controles button { min-width: 30px; padding-inline: 6px; }
+.relogio-duracao { display: flex; gap: 3px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.relogio-duracao label { display: flex; align-items: center; gap: 3px; font-size: 12px; }
+.relogio-duracao input { width: calc(2ch + 14px); min-width: 0; padding-inline: 6px; text-align: center; font-variant-numeric: tabular-nums; }
+.relogio-legenda { margin: 0; text-align: center; font-size: 14px; }
 .relogio-tamanho {
   position: absolute;
   right: 0;
