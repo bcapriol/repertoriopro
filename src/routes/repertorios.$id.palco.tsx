@@ -132,26 +132,29 @@ function PalcoPage() {
 
   return (
     <main className="relative h-dvh overflow-hidden bg-background">
-      <Metronomo key={(consulta ?? atual).id} musica={consulta ?? atual} />
-      {!consulta ? (
-        <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 z-30 flex flex-col gap-2">
-          <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Músicas do repertório" aria-label="Músicas do repertório" aria-expanded={listaAberta === "repertorio"} onClick={() => setListaAberta((v) => v === "repertorio" ? null : "repertorio")}><ListIcon /></Button>
-          <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Todas as músicas · A–Z" aria-label="Todas as músicas em ordem alfabética" aria-expanded={listaAberta === "base"} onClick={() => setListaAberta((v) => v === "base" ? null : "base")}><LibraryIcon /></Button>
-        </div>
-      ) : null}
+      <div className="absolute top-[calc(0.5rem+env(safe-area-inset-top))] right-2 z-[60] flex flex-col items-center gap-2">
+        {consulta ? (
+          <Button autoFocus variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Fechar e voltar ao repertório" aria-label="Fechar e voltar à música do repertório" onClick={() => setConsultaId(null)}><XIcon /></Button>
+        ) : (
+          <>
+            <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Músicas do repertório" aria-label="Músicas do repertório" aria-expanded={listaAberta === "repertorio"} onClick={() => setListaAberta((v) => v === "repertorio" ? null : "repertorio")}><ListIcon /></Button>
+            <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Todas as músicas · A–Z" aria-label="Todas as músicas em ordem alfabética" aria-expanded={listaAberta === "base"} onClick={() => setListaAberta((v) => v === "base" ? null : "base")}><LibraryIcon /></Button>
+          </>
+        )}
+        <Metronomo key={(consulta ?? atual).id} musica={consulta ?? atual} />
+      </div>
       <section aria-hidden={!!consulta} className={`h-full overflow-hidden pt-[env(safe-area-inset-top)] pb-[calc(3.5rem+env(safe-area-inset-bottom))] ${consulta ? "invisible" : ""}`}>
         <MusicaPalco key={atual.id} musica={atual} />
       </section>
 
       {consulta ? (
         <section aria-label="Consulta de música da base" className="absolute inset-0 z-40 overflow-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-          <Button autoFocus variant="ghost" size="icon" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 z-50 size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Fechar e voltar ao repertório" aria-label="Fechar e voltar à música do repertório" onClick={() => setConsultaId(null)}><XIcon /></Button>
           <MusicaPalco key={consulta.id} musica={consulta} />
         </section>
       ) : null}
 
       {listaAberta ? (
-        <nav aria-label={listaAberta === "base" ? "Todas as músicas em ordem alfabética" : "Músicas do repertório"} className="absolute inset-x-3 top-[calc(6.5rem+env(safe-area-inset-top))] z-20 mx-auto max-w-md border border-border bg-card/95 shadow-lg backdrop-blur">
+        <nav aria-label={listaAberta === "base" ? "Todas as músicas em ordem alfabética" : "Músicas do repertório"} className="absolute inset-x-3 top-[calc(9rem+env(safe-area-inset-top))] z-20 mx-auto max-w-md border border-border bg-card/95 shadow-lg backdrop-blur">
           <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1">
             <p className="text-sm font-semibold">{listaAberta === "base" ? "Todas as músicas · A–Z" : "Músicas do repertório"}</p>
             <Button variant="ghost" size="icon" aria-label="Fechar lista" onClick={() => setListaAberta(null)}><XIcon /></Button>

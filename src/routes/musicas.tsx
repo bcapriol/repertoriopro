@@ -167,21 +167,24 @@ function MusicasPage() {
 
       {songAberta ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-background">
-          <Metronomo key={songAberta.id} musica={songAberta} />
-          <button
-            onClick={() => setAberta(null)}
-            aria-label="Fechar"
-            className="pointer-events-auto absolute top-3 right-3 z-10 flex size-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-lg backdrop-blur-sm"
-          >
-            <XIcon />
-          </button>
+          <div className="absolute top-[calc(0.5rem+env(safe-area-inset-top))] right-2 z-[60] flex flex-col items-center gap-2">
+            <button
+              onClick={() => setAberta(null)}
+              aria-label="Fechar"
+              className="flex size-9 min-h-9 items-center justify-center rounded-lg border border-border bg-card/90 text-muted-foreground shadow-sm backdrop-blur-sm"
+            >
+              <XIcon className="size-5" />
+            </button>
+            <Metronomo key={songAberta.id} musica={songAberta} />
+          </div>
           <div className="flex-1 overflow-auto">
             {songAberta.anexos?.length ? (
               <AnexosViewer anexos={songAberta.anexos} />
             ) : (
-              <div className="px-5 py-6">
-                <h2 className="text-2xl font-black text-foreground">{songAberta.titulo}</h2>
-                <pre className="mt-4 font-sans text-lg leading-relaxed whitespace-pre-wrap text-foreground">
+              <div className="px-2 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+                <div aria-hidden="true" className="float-right h-24 w-12" />
+                <h2 className="text-2xl leading-tight font-black text-foreground">{songAberta.titulo}</h2>
+                <pre className="mt-2 font-sans text-lg leading-snug break-words whitespace-pre-wrap text-foreground">
                   {songAberta.letra || "Sem letra nem anexo cadastrado."}
                 </pre>
               </div>

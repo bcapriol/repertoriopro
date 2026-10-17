@@ -6,9 +6,10 @@ export function MusicaPalco({ musica }: { musica: Song }) {
   return anexos.length ? (
     <AnexosViewer key={musica.id} anexos={anexos} fit />
   ) : (
-    <div key={musica.id} className="h-full overflow-auto px-5 py-6">
-      <h1 className="pr-12 text-3xl leading-tight font-black text-foreground">{musica.titulo}</h1>
-      <p className="mt-1 text-base text-muted-foreground">
+    <div key={musica.id} className="h-full overflow-auto px-2 py-2">
+      <div aria-hidden="true" className="float-right h-32 w-12" />
+      <h1 className="text-2xl leading-tight font-black text-foreground sm:text-3xl">{musica.titulo}</h1>
+      <p className="mt-0.5 text-sm text-muted-foreground">
         {[
           musica.artista,
           musica.tom && `Tom ${musica.tom}`,
@@ -16,10 +17,9 @@ export function MusicaPalco({ musica }: { musica: Song }) {
           musica.ritmo,
         ].filter(Boolean).join(" · ") || "—"}
       </p>
-      <pre className="mt-5 font-sans text-[28px] leading-relaxed break-words whitespace-pre-wrap text-foreground">
+      <pre className="mt-2 font-sans text-[28px] leading-snug break-words whitespace-pre-wrap text-foreground">
         {musica.letra || "Sem letra nem anexo cadastrado."}
       </pre>
-      <div className="h-24" />
     </div>
   );
 }

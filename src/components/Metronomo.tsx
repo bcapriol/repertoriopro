@@ -13,7 +13,7 @@ export function Metronomo({ musica }: { musica: Song }) {
         aria-label={`Abrir metrônomo · ${musica.titulo}`}
         aria-expanded={aberto}
         onClick={() => setAberto((v) => !v)}
-        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-3 z-[60] flex size-9 min-h-9 items-center justify-center rounded-lg border border-border bg-card/90 text-muted-foreground shadow-sm backdrop-blur-sm"
+        className="flex size-9 min-h-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card/90 text-muted-foreground shadow-sm backdrop-blur-sm"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
           <path d="M9 3h6l4 18H5L9 3Z" /><path d="m12 16 5-12M9 17h6M10 6h4" />
