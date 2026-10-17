@@ -26,7 +26,7 @@ export function Metronomo({ musica }: { musica: Song }) {
 
 function JanelaMetronomo({ musica, fechar }: { musica: Song; fechar: () => void }) {
   const inicial = Number.parseFloat(musica.bpm.replace(",", "."));
-  const bpmBase = Number.isFinite(inicial) ? Math.round(Math.max(30, Math.min(300, inicial))) : 120;
+  const bpmBase = Number.isFinite(inicial) && inicial > 0 ? Math.round(Math.max(30, Math.min(300, inicial))) : 0;
   const [bpm, setBpm] = useState(bpmBase);
   const [entrada, setEntrada] = useState(String(bpmBase));
   const igualBase = entrada.trim() !== "" && Number(entrada) === bpmBase;
@@ -37,7 +37,7 @@ function JanelaMetronomo({ musica, fechar }: { musica: Song; fechar: () => void 
 
   const confirmar = () => {
     const n = Number(entrada);
-    const valor = Number.isFinite(n) && entrada.trim() ? Math.round(Math.max(30, Math.min(300, n))) : bpm;
+    const valor = Number.isFinite(n) && entrada.trim() ? (n <= 0 ? 0 : Math.round(Math.max(30, Math.min(300, n)))) : bpm;
     setBpm(valor);
     setEntrada(String(valor));
   };
@@ -69,14 +69,14 @@ function JanelaMetronomo({ musica, fechar }: { musica: Song; fechar: () => void 
         <label className="flex shrink-0 items-baseline gap-1 text-foreground" style={{ fontSize: Math.max(15, Math.min(28, tamanho * 0.48)), fontWeight: 750 }}>
           <input
             aria-label={`Andamento em BPM${igualBase ? " · padrão da música" : " · alterado para esta execução"}`}
-            title={`BPM da base: ${Number.isFinite(inicial) ? bpmBase : "não cadastrado (padrão 120)"}. Toque no número para ajustar sem alterar o cadastro.`}
+            title={`BPM da base: ${bpmBase > 0 ? bpmBase : "não cadastrado (0)"}. Toque no número para ajustar sem alterar o cadastro.`}
             data-alterado={!igualBase}
-            type="number" inputMode="numeric" min={30} max={300} step={1}
+            type="number" inputMode="numeric" min={0} max={300} step={1}
             value={entrada}
             onChange={(e) => {
               setEntrada(e.target.value);
               const n = Number(e.target.value);
-              if (n >= 30 && n <= 300) setBpm(Math.round(n));
+              if ((n === 0 && e.target.value.trim() !== "") || (n >= 30 && n <= 300)) setBpm(Math.round(n));
             }}
             onBlur={confirmar}
             onKeyDown={(e) => { if (e.key === "Enter") { confirmar(); e.currentTarget.blur(); } }}

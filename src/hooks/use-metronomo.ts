@@ -33,9 +33,19 @@ export function useMetronomo(bpm: number) {
     setBatida(-1);
   }, [limpar]);
 
+  useEffect(() => {
+    if (bpm <= 0) parar();
+  }, [bpm, parar]);
+
   const iniciar = useCallback(async () => {
     limpar();
     setErro("");
+    if (andamento.current <= 0) {
+      setTocando(false);
+      setBatida(-1);
+      setErro("Defina um BPM entre 30 e 300 para iniciar.");
+      return;
+    }
     const versao = geracao.current;
     try {
       const Audio = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
