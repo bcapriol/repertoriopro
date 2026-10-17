@@ -91,21 +91,22 @@ function Index() {
           <button
             type="button"
             onClick={() => salvarConta(null)}
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-accent"
+            aria-label="Sair"
+            title="Sair"
+            className="flex size-11 items-center justify-center rounded-lg border border-border text-primary transition-colors hover:bg-accent"
           >
-            <LogOutIcon className="size-4" /> SAIR
+            <LogOutIcon className="size-4" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={abrirRelogio}
             aria-label="Abrir relógio e cronômetro"
             title="Relógio e cronômetro"
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-accent"
+            className="flex size-11 items-center justify-center rounded-lg border border-border text-primary transition-colors hover:bg-accent"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
               <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
             </svg>
-            RELÓGIO
           </button>
         </div>
         <header className="text-center">
