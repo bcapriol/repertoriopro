@@ -8,6 +8,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { MusicaPalco } from "@/components/MusicaPalco";
 import { Metronomo } from "@/components/Metronomo";
 import { useAppData } from "@/lib/repertorio-store";
@@ -39,7 +40,13 @@ function PalcoPage() {
   const navigate = useNavigate();
   const { pronto, progresso, salvar } = useProgressoPalco(id);
   const [listaAberta, setListaAberta] = useState<"repertorio" | "base" | null>(null);
+  const [buscaLista, setBuscaLista] = useState("");
   const [consultaId, setConsultaId] = useState<string | null>(null);
+
+  const alternarLista = (lista: "repertorio" | "base") => {
+    setBuscaLista("");
+    setListaAberta((atual) => atual === lista ? null : lista);
+  };
 
   const rep = data.setlists.find((r) => r.id === id);
   const musicas = useMemo(() => {
@@ -48,12 +55,15 @@ function PalcoPage() {
     return rep.songIds.map((sid) => porId.get(sid)).filter((s) => !!s);
   }, [rep, data.songs]);
 
-  const baseAlfabetica = useMemo(
-    () => [...data.songs].sort((a, b) =>
-      a.titulo.localeCompare(b.titulo, "pt-BR", { sensitivity: "base", numeric: true }) ||
-      a.artista.localeCompare(b.artista, "pt-BR", { sensitivity: "base" })),
-    [data.songs],
-  );
+  const musicasDaLista = useMemo(() => {
+    const normalizar = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+    const busca = normalizar(buscaLista.trim());
+    const origem = listaAberta === "base" ? data.songs : musicas;
+    return origem.filter((s) => !busca || normalizar(`${s.titulo} ${s.artista}`).includes(busca))
+      .sort((a, b) =>
+        a.titulo.localeCompare(b.titulo, "pt-BR", { sensitivity: "base", numeric: true }) ||
+        a.artista.localeCompare(b.artista, "pt-BR", { sensitivity: "base" }));
+  }, [data.songs, musicas, listaAberta, buscaLista]);
   const consulta = data.songs.find((s) => s.id === consultaId);
   const total = musicas.length;
   const indiceSalvo = musicas.findIndex((s) => s.id === progresso?.musicaId);
@@ -137,8 +147,8 @@ function PalcoPage() {
           <Button autoFocus variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Fechar e voltar ao repertório" aria-label="Fechar e voltar à música do repertório" onClick={() => setConsultaId(null)}><XIcon /></Button>
         ) : (
           <>
-            <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Músicas do repertório" aria-label="Músicas do repertório" aria-expanded={listaAberta === "repertorio"} onClick={() => setListaAberta((v) => v === "repertorio" ? null : "repertorio")}><ListIcon /></Button>
-            <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Todas as músicas · A–Z" aria-label="Todas as músicas em ordem alfabética" aria-expanded={listaAberta === "base"} onClick={() => setListaAberta((v) => v === "base" ? null : "base")}><LibraryIcon /></Button>
+            <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Músicas do repertório · A–Z" aria-label="Músicas do repertório em ordem alfabética" aria-expanded={listaAberta === "repertorio"} onClick={() => alternarLista("repertorio")}><ListIcon /></Button>
+            <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Todas as músicas · A–Z" aria-label="Todas as músicas em ordem alfabética" aria-expanded={listaAberta === "base"} onClick={() => alternarLista("base")}><LibraryIcon /></Button>
           </>
         )}
         <Metronomo key={(consulta ?? atual).id} musica={consulta ?? atual} />
@@ -154,23 +164,33 @@ function PalcoPage() {
       ) : null}
 
       {listaAberta ? (
-        <nav aria-label={listaAberta === "base" ? "Todas as músicas em ordem alfabética" : "Músicas do repertório"} className="absolute inset-x-3 top-[calc(9rem+env(safe-area-inset-top))] z-20 mx-auto max-w-md border border-border bg-card/95 shadow-lg backdrop-blur">
+        <nav aria-label={listaAberta === "base" ? "Todas as músicas em ordem alfabética" : "Músicas do repertório em ordem alfabética"} className="absolute inset-x-3 top-[calc(9rem+env(safe-area-inset-top))] z-20 mx-auto max-w-md border border-border bg-card/95 shadow-lg backdrop-blur">
           <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1">
-            <p className="text-sm font-semibold">{listaAberta === "base" ? "Todas as músicas · A–Z" : "Músicas do repertório"}</p>
+            <p className="text-sm font-semibold">{listaAberta === "base" ? "Todas as músicas · A–Z" : "Músicas do repertório · A–Z"}</p>
             <Button variant="ghost" size="icon" aria-label="Fechar lista" onClick={() => setListaAberta(null)}><XIcon /></Button>
           </div>
+          <div className="px-3 pt-2">
+            <Input
+              autoFocus
+              type="search"
+              aria-label="Buscar por título ou artista"
+              placeholder="Digite o título ou artista…"
+              value={buscaLista}
+              onChange={(e) => setBuscaLista(e.target.value)}
+            />
+          </div>
           <ol className="max-h-[45dvh] overflow-auto p-2">
-            {(listaAberta === "base" ? baseAlfabetica : musicas).map((s, i) => (
+            {musicasDaLista.map((s) => (
               <li key={s.id}>
                 <Button
                   variant="ghost"
                   onClick={() => {
                     if (listaAberta === "base") setConsultaId(s.id);
-                    else selecionar(i);
+                    else selecionar(musicas.findIndex((musica) => musica.id === s.id));
                     setListaAberta(null);
                   }}
                   className={`h-auto min-h-11 w-full justify-start whitespace-normal px-3 py-2 text-left ${
-                    listaAberta === "repertorio" && i === index ? "bg-primary/10 font-bold text-primary" : "text-foreground"
+                    listaAberta === "repertorio" && s.id === atual.id ? "bg-primary/10 font-bold text-primary" : "text-foreground"
                   }`}
                 >
                   {s.titulo}
@@ -178,6 +198,7 @@ function PalcoPage() {
               </li>
             ))}
           </ol>
+          {musicasDaLista.length === 0 ? <p role="status" className="px-3 pb-3 text-sm text-muted-foreground">Nenhuma música encontrada.</p> : null}
           <div className="border-t border-border p-2"><Button variant="ghost" onClick={sair} className="w-full justify-start"><XIcon /> Sair do modo palco</Button></div>
         </nav>
       ) : null}
