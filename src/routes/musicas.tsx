@@ -5,6 +5,7 @@ import { useAtualizarPrivilegios, useConta } from "@/lib/banda-local";
 import { PencilIcon, PlusIcon, SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { EmptyState, PageShell } from "@/components/PageShell";
 import { AnexosViewer } from "@/components/AnexoView";
+import { Metronomo } from "@/components/Metronomo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppData } from "@/lib/repertorio-store";
@@ -166,6 +167,7 @@ function MusicasPage() {
 
       {songAberta ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <Metronomo key={songAberta.id} musica={songAberta} />
           <button
             onClick={() => setAberta(null)}
             aria-label="Fechar"

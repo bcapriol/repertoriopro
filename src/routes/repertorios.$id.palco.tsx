@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MusicaPalco } from "@/components/MusicaPalco";
+import { Metronomo } from "@/components/Metronomo";
 import { useAppData } from "@/lib/repertorio-store";
 import { useProgressoPalco } from "@/hooks/use-progresso-palco";
 
@@ -131,6 +132,7 @@ function PalcoPage() {
 
   return (
     <main className="relative h-dvh overflow-hidden bg-background">
+      <Metronomo key={(consulta ?? atual).id} musica={consulta ?? atual} />
       {!consulta ? (
         <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 z-30 flex flex-col gap-2">
           <Button variant="ghost" size="icon" className="size-9 min-h-9 border border-border bg-card/80 backdrop-blur-sm" title="Músicas do repertório" aria-label="Músicas do repertório" aria-expanded={listaAberta === "repertorio"} onClick={() => setListaAberta((v) => v === "repertorio" ? null : "repertorio")}><ListIcon /></Button>
