@@ -139,7 +139,7 @@ function RepertorioDetalhe() {
             ) : null}
             <Button
               variant="outline"
-              className="h-12 rounded-xl font-bold"
+              className="min-h-12 h-auto rounded-xl px-4 py-3 font-bold whitespace-normal"
               onClick={async () => {
                 try {
                   const { exportarRepertorioPdf } = await import("@/lib/pdf-repertorio");
@@ -150,7 +150,7 @@ function RepertorioDetalhe() {
                 }
               }}
             >
-              <FileTextIcon /> Exportar PDF para imprimir
+              <FileTextIcon /> Exportar lista de músicas deste repertório
             </Button>
           </>
         ) : null}
