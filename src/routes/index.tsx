@@ -127,11 +127,11 @@ function Index() {
               trazer as músicas e repertórios da sua banda.
             </p>
           ) : null}
-          <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>
+          <Link to="/repertorios" className={tileClass}>
             <TileBody
-              label="Cadastrar Música"
-              hint="Título, artista, tom, letra e cifra"
-              Icon={MusicIcon}
+              label="Repertório"
+              hint={`${data.setlists.length} lista(s) montada(s)`}
+              Icon={LibraryIcon}
             />
           </Link>
           <Link to="/musicas" className={tileClass}>
@@ -141,11 +141,11 @@ function Index() {
               Icon={ListMusicIcon}
             />
           </Link>
-          <Link to="/repertorios" className={tileClass}>
+          <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>
             <TileBody
-              label="Repertórios"
-              hint={`${data.setlists.length} lista(s) montada(s)`}
-              Icon={LibraryIcon}
+              label="Cadastrar Música"
+              hint="Título, artista, tom, letra e cifra"
+              Icon={MusicIcon}
             />
           </Link>
           <Link to="/agenda" className={tileClass}>
@@ -154,12 +154,6 @@ function Index() {
               hint={conta?.podeAgenda ? "Shows, compromissos e folgas" : "Requer liberação do administrador"}
               Icon={CalendarDaysIcon}
             />
-          </Link>
-          <Link to="/contratos" className={tileClass}>
-            <TileBody label="Contratos de Eventos" hint="Contratos de Prestação de Serviços — Banda Multivibe" Icon={FileTextIcon} />
-          </Link>
-          <Link to="/divulgacao" className={tileClass}>
-            <TileBody label="Divulgação" hint="Monte o prompt e abra o ChatGPT para criar sua arte" Icon={MegaphoneIcon} />
           </Link>
           <Link to="/sincronizar" className={tileClass}>
             <TileBody
@@ -174,6 +168,12 @@ function Index() {
               hint="Faça backup dos seus dados"
               Icon={ArrowDownUpIcon}
             />
+          </Link>
+          <Link to="/contratos" className={tileClass}>
+            <TileBody label="Contratos de Eventos" hint="Contratos de Prestação de Serviços — Banda Multivibe" Icon={FileTextIcon} />
+          </Link>
+          <Link to="/divulgacao" className={tileClass}>
+            <TileBody label="Divulgação" hint="Monte o prompt e abra o ChatGPT para criar sua arte" Icon={MegaphoneIcon} />
           </Link>
         </nav>
         <footer className="mt-auto pt-10 text-center text-[11px] text-muted-foreground/70">
