@@ -19,15 +19,17 @@ export function Metronomo({ musica }: { musica: Song }) {
           <path d="M9 3h6l4 18H5L9 3Z" /><path d="m12 16 5-12M9 17h6M10 6h4" />
         </svg>
       </button>
-      {aberto ? <JanelaMetronomo musica={musica} fechar={() => setAberto(false)} /> : null}
+      {aberto ? <JanelaMetronomo key={`${musica.id}:${musica.bpm}`} musica={musica} fechar={() => setAberto(false)} /> : null}
     </>
   );
 }
 
 function JanelaMetronomo({ musica, fechar }: { musica: Song; fechar: () => void }) {
   const inicial = Number.parseFloat(musica.bpm.replace(",", "."));
-  const [bpm, setBpm] = useState(Number.isFinite(inicial) ? Math.round(Math.max(30, Math.min(300, inicial))) : 120);
-  const [entrada, setEntrada] = useState(String(bpm));
+  const bpmBase = Number.isFinite(inicial) ? Math.round(Math.max(30, Math.min(300, inicial))) : 120;
+  const [bpm, setBpm] = useState(bpmBase);
+  const [entrada, setEntrada] = useState(String(bpmBase));
+  const igualBase = entrada.trim() !== "" && Number(entrada) === bpmBase;
   const { tocando, batida, som, setSom, erro, iniciar, parar } = useMetronomo(bpm);
   const { caixa, girar, gestos } = useJanelaMetronomo();
   const vertical = caixa.altura > caixa.largura;
@@ -66,7 +68,9 @@ function JanelaMetronomo({ musica, fechar }: { musica: Song; fechar: () => void 
       <div className={`flex min-h-0 flex-1 items-center justify-center gap-2 px-2 py-1 ${vertical ? "flex-col" : "flex-row"}`}>
         <label className="flex shrink-0 items-baseline gap-1 text-foreground" style={{ fontSize: Math.max(15, Math.min(28, tamanho * 0.48)), fontWeight: 750 }}>
           <input
-            aria-label="Andamento em BPM"
+            aria-label={`Andamento em BPM${igualBase ? " · padrão da música" : " · alterado para esta execução"}`}
+            title={`BPM da base: ${Number.isFinite(inicial) ? bpmBase : "não cadastrado (padrão 120)"}. Toque no número para ajustar sem alterar o cadastro.`}
+            data-alterado={!igualBase}
             type="number" inputMode="numeric" min={30} max={300} step={1}
             value={entrada}
             onChange={(e) => {

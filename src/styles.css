@@ -203,6 +203,11 @@ svg.lucide {
 .metronomo-bpm {
   appearance: textfield;
   -moz-appearance: textfield;
+  color: oklch(0 0 0);
+}
+
+.metronomo-bpm[data-alterado="true"] {
+  color: var(--destructive);
 }
 
 .metronomo-bpm::-webkit-inner-spin-button,

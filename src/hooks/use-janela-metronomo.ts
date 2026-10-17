@@ -6,7 +6,7 @@ type Gesto = { caixa: Caixa; pontos: Ponto[]; modo: "mover" | "tamanho" };
 const limitar = (n: number, min: number, max: number) => Math.max(min, Math.min(n, max));
 
 export function useJanelaMetronomo() {
-  const [caixa, setCaixa] = useState<Caixa>({ x: 12, y: 100, largura: 340, altura: 200 });
+  const [caixa, setCaixa] = useState<Caixa>({ x: 12, y: 100, largura: 300, altura: 180 });
   const atual = useRef(caixa);
   const pontos = useRef(new Map<number, Ponto>());
   const gesto = useRef<Gesto | null>(null);
@@ -14,9 +14,9 @@ export function useJanelaMetronomo() {
   const aplicar = (nova: Caixa) => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const vertical = nova.altura > nova.largura || vw < 296;
-    const largura = limitar(nova.largura, Math.min(vertical ? 190 : 280, vw - 16), vw - 16);
-    const altura = limitar(nova.altura, Math.min(vertical ? 260 : 170, vh - 16), vh - 16);
+    const vertical = nova.altura > nova.largura || vw < 256;
+    const largura = limitar(nova.largura, Math.min(vertical ? 160 : 240, vw - 16), vw - 16);
+    const altura = limitar(nova.altura, Math.min(vertical ? 220 : 150, vh - 16), vh - 16);
     const proxima = { largura, altura, x: limitar(nova.x, 8, vw - largura - 8), y: limitar(nova.y, 8, vh - altura - 8) };
     atual.current = proxima;
     setCaixa(proxima);
