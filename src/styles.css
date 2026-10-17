@@ -215,3 +215,109 @@ svg.lucide {
   margin: 0;
   -webkit-appearance: none;
 }
+
+/* Janela independente: visor de sete segmentos, sem depender de fontes externas. */
+.relogio-janela {
+  --relogio-neon: oklch(0.88 0.28 142);
+  --relogio-fundo: oklch(0 0 0);
+  position: fixed;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--relogio-neon);
+  border-radius: 12px;
+  background: var(--relogio-fundo);
+  color: var(--relogio-neon);
+  box-shadow: 0 8px 30px oklch(0 0 0 / 0.45);
+  color-scheme: dark;
+  overscroll-behavior: contain;
+}
+
+.relogio-cabecalho {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid oklch(0.88 0.28 142 / 0.3);
+  font-size: 12px;
+}
+
+.relogio-cabecalho, .relogio-visor {
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+.relogio-conteudo {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.relogio-janela button, .relogio-janela select, .relogio-janela input {
+  min-height: 34px;
+  border: 1px solid oklch(0.88 0.28 142 / 0.45);
+  border-radius: 5px;
+  background: var(--relogio-fundo);
+  color: var(--relogio-neon);
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.relogio-janela button { cursor: pointer; }
+.relogio-cabecalho button { border: 0; min-width: 36px; }
+.relogio-janela button[aria-pressed="true"] {
+  background: var(--relogio-neon);
+  color: var(--relogio-fundo);
+}
+.relogio-janela :disabled { opacity: 0.5; cursor: default; }
+.relogio-janela :focus-visible { outline: 2px solid var(--relogio-neon); outline-offset: 2px; }
+.relogio-opcoes { display: flex; gap: 6px; flex-shrink: 0; }
+.relogio-opcoes button { flex: 1; }
+.relogio-visor { display: flex; flex: 1 0 48px; align-items: center; min-height: 48px; }
+.relogio-digitos {
+  display: block;
+  width: 100%;
+  max-height: 100%;
+  fill: var(--relogio-neon);
+  filter: drop-shadow(0 0 3px oklch(0.88 0.28 142 / 0.55));
+}
+.relogio-direcao { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.relogio-direcao select { flex: 1; min-width: 0; }
+.relogio-duracao { display: flex; gap: 8px; border: 0; padding: 0; margin: 0; }
+.relogio-duracao legend { padding-bottom: 4px; font-size: 11px; }
+.relogio-duracao label { display: flex; flex: 1; min-width: 0; align-items: center; gap: 3px; font-size: 11px; }
+.relogio-duracao input { width: 100%; min-width: 0; padding-inline: 4px; }
+.relogio-legenda { margin: 0; text-align: center; font-size: 11px; }
+.relogio-ajuda { flex-shrink: 0; padding: 3px 28px 6px 8px; font-size: 9px; text-align: center; }
+.relogio-tamanho {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 3px;
+  cursor: nwse-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+@keyframes relogio-alerta {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.15; }
+}
+.relogio-janela[data-terminou="true"] .relogio-digitos,
+.relogio-janela[data-terminou="true"] p[role="status"] {
+  animation: relogio-alerta 1.2s step-end infinite;
+}

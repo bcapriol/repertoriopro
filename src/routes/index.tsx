@@ -16,6 +16,7 @@ import {
 import { useAppData } from "@/lib/repertorio-store";
 import { salvarConta, useBanda, useConta } from "@/lib/banda-local";
 import { OfflineStatus } from "@/components/OfflineStatus";
+import { useAbrirRelogio } from "@/components/RelogioFlutuante";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -62,6 +63,7 @@ function Index() {
   const { data } = useAppData();
   const banda = useBanda();
   const { conta } = useConta();
+  const abrirRelogio = useAbrirRelogio();
   const [online, setOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -92,6 +94,18 @@ function Index() {
             className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-accent"
           >
             <LogOutIcon className="size-4" /> SAIR
+          </button>
+          <button
+            type="button"
+            onClick={abrirRelogio}
+            aria-label="Abrir relógio e cronômetro"
+            title="Relógio e cronômetro"
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-bold text-primary transition-colors hover:bg-accent"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+            </svg>
+            RELÓGIO
           </button>
         </div>
         <header className="text-center">
