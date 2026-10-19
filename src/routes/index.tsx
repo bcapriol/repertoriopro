@@ -11,13 +11,13 @@ import {
   CalendarDaysIcon,
   FileTextIcon,
   MegaphoneIcon,
-  GaugeIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
 import { salvarConta, useBanda, useConta } from "@/lib/banda-local";
 import { OfflineStatus } from "@/components/OfflineStatus";
 import { useAbrirRelogio } from "@/components/RelogioFlutuante";
+import { AfinadorPopup } from "@/components/AfinadorPopup";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -82,6 +82,7 @@ function Index() {
     <main className="flex min-h-dvh flex-col bg-background px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6">
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
         <div className="flex items-center justify-end gap-2">
+          <AfinadorPopup />
           <Link
             to="/adm"
             aria-label="Área do administrador"
@@ -155,13 +156,6 @@ function Index() {
               label="Músicas Salvas"
               hint={`${data.songs.length} música(s) na biblioteca`}
               Icon={ListMusicIcon}
-            />
-          </Link>
-          <Link to="/afinador" className={tileClass}>
-            <TileBody
-              label="Afinador"
-              hint="Nota em destaque, ponteiro e referência em Hz"
-              Icon={GaugeIcon}
             />
           </Link>
           <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>

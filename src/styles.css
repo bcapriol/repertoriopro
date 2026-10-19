@@ -321,3 +321,60 @@ svg.lucide {
 .relogio-janela[data-terminou="true"] p[role="status"] {
   animation: relogio-alerta 1.2s step-end infinite;
 }
+
+/* Afinador: painel preto com escala e indicadores luminosos, sem mudar o tema do app. */
+.afinador-visor {
+  --afinador-verde: oklch(0.88 0.24 149);
+  --afinador-vermelho: oklch(0.7 0.24 25);
+  --afinador-ciano: oklch(0.87 0.14 195);
+  --afinador-texto: oklch(0.96 0.01 195);
+  --afinador-suave: oklch(0.71 0.025 210);
+  --afinador-inativo: oklch(0.3 0.025 210);
+  background: oklch(0 0 0);
+  color: var(--afinador-texto);
+  border-color: oklch(0.3 0.035 210);
+  box-shadow: inset 0 0 32px oklch(0.65 0.1 195 / 0.07), 0 12px 32px oklch(0 0 0 / 0.2);
+}
+.afinador-muted { color: var(--afinador-suave); }
+.afinador-nota {
+  color: var(--afinador-ciano);
+  font-weight: 700;
+  text-shadow: 0 0 18px oklch(0.87 0.14 195 / 0.35);
+}
+.afinador-visor[data-direcao="afinado"] .afinador-nota { color: var(--afinador-verde); }
+.afinador-trilho { color: oklch(0.26 0.025 210); }
+.afinador-marcador { color: var(--afinador-ciano); }
+.afinador-centro { color: var(--afinador-verde); }
+.afinador-brilho { filter: drop-shadow(0 0 3px currentColor); }
+.afinador-ponteiro { color: var(--afinador-ciano); }
+.afinador-visor[data-direcao="afinado"] .afinador-ponteiro { color: var(--afinador-verde); }
+.afinador-visor[data-direcao="soltar"] .afinador-ponteiro,
+.afinador-visor[data-direcao="apertar"] .afinador-ponteiro { color: var(--afinador-vermelho); }
+.afinador-indicador {
+  border-color: var(--afinador-inativo);
+  color: var(--afinador-suave);
+  font-weight: 600;
+  transition: color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+.afinador-led { background: var(--afinador-inativo); }
+.afinador-indicador[data-ativo="true"] {
+  color: var(--afinador-vermelho);
+  border-color: var(--afinador-vermelho);
+  box-shadow: inset 0 0 16px oklch(0.7 0.24 25 / 0.12), 0 0 12px oklch(0.7 0.24 25 / 0.16);
+}
+.afinador-indicador[data-ativo="true"][data-tipo="afinado"] {
+  color: var(--afinador-verde);
+  border-color: var(--afinador-verde);
+  box-shadow: inset 0 0 16px oklch(0.88 0.24 149 / 0.12), 0 0 12px oklch(0.88 0.24 149 / 0.16);
+}
+.afinador-indicador[data-ativo="true"] .afinador-led {
+  background: currentColor;
+  box-shadow: 0 0 12px currentColor;
+}
+.afinador-mensagem { color: var(--afinador-texto); font-weight: 600; }
+.afinador-visor[data-direcao="afinado"] .afinador-mensagem { color: var(--afinador-verde); }
+.afinador-captura { background: var(--afinador-inativo); }
+.afinador-captura[data-ativo="true"] { background: var(--afinador-verde); box-shadow: 0 0 8px var(--afinador-verde); }
+.afinador-sinal { background: var(--afinador-inativo); }
+.afinador-sinal > div { background: var(--afinador-ciano); box-shadow: 0 0 8px var(--afinador-ciano); }
+.afinador-aviso { color: var(--afinador-vermelho); border-color: var(--afinador-vermelho); }
