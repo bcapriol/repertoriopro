@@ -130,7 +130,7 @@ export function useAfinador() {
         if (id !== sessao.current) return;
         if (contexto.state !== "running") {
           parar();
-          setErro("A captura foi interrompida pelo aparelho. Toque em Iniciar afinador para retomar.");
+          setErro("A captura foi interrompida pelo aparelho. Feche e reabra o afinador para retomar.");
           return;
         }
         if (tempo - ultimaAnalise >= 65) {

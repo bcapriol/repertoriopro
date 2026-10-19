@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { MicIcon, SquareIcon } from "lucide-react";
 import { VisorAfinador } from "@/components/VisorAfinador";
 import { useAfinador } from "@/hooks/use-afinador";
 import { frequenciaDaNota, NOTAS_AFINADOR } from "@/lib/afinador";
@@ -41,28 +40,33 @@ export function AfinadorPainel() {
     } catch { /* O afinador também funciona sem armazenamento. */ }
   }, [configPronta, referencia, notaAlvo, oitava, automatico]);
 
+  const { iniciar, parar } = audio;
+  useEffect(() => {
+    if (!configPronta) return;
+    void iniciar(entrada);
+    const retomar = () => {
+      if (!document.hidden) void iniciar(entrada);
+    };
+    document.addEventListener("visibilitychange", retomar);
+    return () => {
+      document.removeEventListener("visibilitychange", retomar);
+      parar();
+    };
+  }, [configPronta, entrada, iniciar, parar]);
+
   return (
     <div className="space-y-5">
       <VisorAfinador frequencia={alvoForaDaFaixa ? null : audio.frequencia} referencia={referencia} alvoMidi={alvoMidi} automatico={automatico} ouvindo={audio.estado === "ouvindo"} nivel={audio.nivel} />
       <section aria-label="Captura de áudio" className="space-y-3">
-        {audio.estado === "parado" ? (
-          <button type="button" onClick={() => void audio.iniciar(entrada)} disabled={referencia === null || alvoForaDaFaixa} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border border-primary bg-accent px-4 py-3 font-bold disabled:cursor-not-allowed disabled:opacity-50">
-            <MicIcon className="size-5" aria-hidden="true" /> Iniciar afinador
-          </button>
-        ) : (
-          <button type="button" onClick={audio.parar} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border border-destructive bg-destructive/10 px-4 py-3 font-bold">
-            <SquareIcon className="size-5" aria-hidden="true" /> {audio.estado === "iniciando" ? "Cancelar início" : "Parar afinador"}
-          </button>
-        )}
         {audio.estado === "iniciando" && <p role="status" className="text-center text-sm text-muted-foreground">Aguardando acesso ao áudio… Permita o microfone quando solicitado.</p>}
         {audio.erro && <p role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm">{audio.erro}</p>}
         <label className="block text-sm font-medium" htmlFor="afinador-entrada">Entrada de áudio
-          <select id="afinador-entrada" value={entrada} onChange={(e) => setEntrada(e.target.value)} disabled={audio.estado !== "parado"} className={`${campo} disabled:opacity-60`}>
+          <select id="afinador-entrada" value={entrada} onChange={(e) => setEntrada(e.target.value)} disabled={audio.estado === "iniciando"} className={`${campo} disabled:opacity-60`}>
             <option value="">Padrão do aparelho</option>
             {audio.entradas.filter((item) => item.deviceId !== "default" && item.deviceId !== "communications").map((item, index) => <option key={item.deviceId} value={item.deviceId}>{item.label || `Entrada ${index + 1}`}</option>)}
           </select>
         </label>
-        <p className="text-xs leading-relaxed text-muted-foreground">As entradas disponíveis aparecem após a permissão. Para trocar de entrada, pare o afinador. Cabo requer uma interface de áudio compatível reconhecida pelo aparelho.</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">A captura começa ao abrir o afinador, após permitir o microfone. As entradas disponíveis aparecem após a permissão; selecionar outra entrada troca a captura automaticamente. Se houver falha, confira a permissão e reabra o afinador. Cabo requer uma interface de áudio compatível reconhecida pelo aparelho.</p>
       </section>
       <section aria-labelledby="afinador-ajustes" className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <h2 id="afinador-ajustes" className="text-lg font-bold">Afinação</h2>
@@ -104,7 +108,7 @@ export function AfinadorPainel() {
       <details className="rounded-xl border border-border p-4 text-sm">
         <summary className="cursor-pointer font-bold">Como obter uma boa leitura</summary>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
-          <li>Inicie a captura e permita o microfone. Toque uma corda de cada vez e abafe as demais, longe de conversas e caixas de som.</li>
+          <li>Ao abrir o afinador, permita o microfone quando solicitado. Toque uma corda de cada vez e abafe as demais, longe de conversas e caixas de som.</li>
           <li>A nota grande é sempre a nota captada. A# e Bb, por exemplo, são nomes diferentes para a mesma altura.</li>
           <li>Vermelho à direita: apertar. Vermelho à esquerda: soltar. Verde no centro: afinado. Ajuste devagar; não force a corda se a oitava estiver incorreta.</li>
           <li>Sem som estável, o painel aguarda uma nova leitura. Sons muito graves podem precisar de uma interface de áudio para uma captação melhor.</li>
