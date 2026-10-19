@@ -117,7 +117,7 @@ export function prepararTelasOffline(dados: AppData): Promise<boolean> {
     try {
       if (!navigator.onLine) { await verificarTelasOffline(); return !!estado.copia; }
       const workerPdf = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
-      const paths = ["/", "/musicas", "/repertorios", "/sincronizar", "/dados", "/cadastrar"];
+      const paths = ["/", "/musicas", "/repertorios", "/sincronizar", "/dados", "/cadastrar", "/afinador"];
       for (const rep of dados.setlists) {
         paths.push(`/repertorios/${encodeURIComponent(rep.id)}`, `/repertorios/${encodeURIComponent(rep.id)}/palco`);
       }

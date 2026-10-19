@@ -11,6 +11,7 @@ import {
   CalendarDaysIcon,
   FileTextIcon,
   MegaphoneIcon,
+  GaugeIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
@@ -154,6 +155,13 @@ function Index() {
               label="Músicas Salvas"
               hint={`${data.songs.length} música(s) na biblioteca`}
               Icon={ListMusicIcon}
+            />
+          </Link>
+          <Link to="/afinador" className={tileClass}>
+            <TileBody
+              label="Afinador"
+              hint="Nota em destaque, ponteiro e referência em Hz"
+              Icon={GaugeIcon}
             />
           </Link>
           <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>
