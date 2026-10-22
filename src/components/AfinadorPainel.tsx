@@ -59,14 +59,31 @@ export function AfinadorPainel() {
       <VisorAfinador frequencia={alvoForaDaFaixa ? null : audio.frequencia} referencia={referencia} alvoMidi={alvoMidi} automatico={automatico} ouvindo={audio.estado === "ouvindo"} nivel={audio.nivel} />
       <section aria-label="Captura de áudio" className="space-y-3">
         {audio.estado === "iniciando" && <p role="status" className="text-center text-sm text-muted-foreground">Aguardando acesso ao áudio… Permita o microfone quando solicitado.</p>}
-        {audio.erro && <p role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm">{audio.erro}</p>}
+        {audio.erro && (
+          <div className="space-y-3 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm">
+            <p role="alert">{audio.erro}</p>
+            <button type="button" onClick={() => void iniciar(entrada)} disabled={audio.estado === "iniciando"} className="min-h-11 rounded-lg bg-primary px-4 py-2 text-primary-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60">
+              Tentar acesso novamente
+            </button>
+            <details>
+              <summary className="cursor-pointer font-medium">Como liberar o microfone</summary>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                <li><strong>Android:</strong> abra Configurações → Aplicativos → este aplicativo → Permissões → Microfone e permita o uso durante o uso do app. Confira também se o acesso geral ao microfone está ligado nos controles de privacidade do celular.</li>
+                <li><strong>iPhone:</strong> abra Ajustes → Privacidade e Segurança → Microfone e habilite este aplicativo.</li>
+                <li><strong>No navegador:</strong> permita o microfone nas configurações deste site. Na prévia do Lovable, abra o site publicado em uma aba separada para testar.</li>
+                <li><strong>Se a opção Microfone não aparecer no aplicativo:</strong> a versão instalada pode não incluir essa permissão. Nesse caso, é necessário habilitar a captura de áudio na configuração do aplicativo no Median, gerar uma nova versão e instalá-la. Uma atualização do site não altera as permissões do aplicativo instalado.</li>
+              </ul>
+              <p className="mt-3">Depois de liberar o acesso, volte ao afinador. Se necessário, toque em Tentar acesso novamente. O aplicativo não pode conceder essa permissão por você.</p>
+            </details>
+          </div>
+        )}
         <label className="block text-sm font-medium" htmlFor="afinador-entrada">Entrada de áudio
           <select id="afinador-entrada" value={entrada} onChange={(e) => setEntrada(e.target.value)} disabled={audio.estado === "iniciando"} className={`${campo} disabled:opacity-60`}>
             <option value="">Padrão do aparelho</option>
             {audio.entradas.filter((item) => item.deviceId !== "default" && item.deviceId !== "communications").map((item, index) => <option key={item.deviceId} value={item.deviceId}>{item.label || `Entrada ${index + 1}`}</option>)}
           </select>
         </label>
-        <p className="text-xs leading-relaxed text-muted-foreground">A captura começa ao abrir o afinador, após permitir o microfone. As entradas disponíveis aparecem após a permissão; selecionar outra entrada troca a captura automaticamente. Se houver falha, confira a permissão e reabra o afinador. Cabo requer uma interface de áudio compatível reconhecida pelo aparelho.</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">A captura começa ao abrir o afinador, após permitir o microfone. As entradas disponíveis aparecem após a permissão; selecionar outra entrada troca a captura automaticamente. Se houver falha, siga as instruções de permissão acima e toque em Tentar acesso novamente. Cabo requer uma interface de áudio compatível reconhecida pelo aparelho.</p>
       </section>
       <section aria-labelledby="afinador-ajustes" className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <h2 id="afinador-ajustes" className="text-lg font-bold">Afinação</h2>

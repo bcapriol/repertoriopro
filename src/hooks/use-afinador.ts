@@ -3,6 +3,7 @@ import { criarDetectorAfinacao } from "@/lib/afinador";
 
 type Estado = "parado" | "iniciando" | "ouvindo";
 type Recursos = {
+  iniciando?: boolean;
   contexto?: AudioContext;
   stream?: MediaStream;
   fonte?: MediaStreamAudioSourceNode;
@@ -13,7 +14,10 @@ type Recursos = {
 function mensagemErro(erro: unknown) {
   const nome = erro instanceof Error ? erro.name : "";
   if (nome === "NotAllowedError" || nome === "SecurityError") {
-    return "Acesso ao microfone bloqueado. Permita o microfone nas configurações do navegador ou do aplicativo. Se estiver na prévia do editor, abra o app em uma nova aba e tente novamente.";
+    return "O aparelho ou o navegador não autorizou o microfone. Libere o acesso nas configurações e tente novamente abaixo. O afinador não consegue alterar essa permissão sozinho.";
+  }
+  if (nome === "AudioContextSuspended") {
+    return "O aparelho está aguardando um toque para liberar o áudio. Toque em Tentar acesso novamente.";
   }
   if (nome === "NotFoundError" || nome === "OverconstrainedError") {
     return "Entrada de áudio não encontrada. Conecte o microfone ou a interface e escolha a entrada padrão para tentar novamente.";
@@ -65,7 +69,8 @@ export function useAfinador() {
   useEffect(() => {
     montado.current = true;
     void atualizarEntradas();
-    const aoOcultar = () => { if (document.hidden) parar(); };
+    // A janela de permissão nativa pode ocultar o WebView temporariamente.
+    const aoOcultar = () => { if (document.hidden && !recursos.current.iniciando) parar(); };
     const dispositivos = navigator.mediaDevices;
     dispositivos?.addEventListener?.("devicechange", atualizarEntradas);
     document.addEventListener("visibilitychange", aoOcultar);
@@ -81,6 +86,7 @@ export function useAfinador() {
   }, [atualizarEntradas, liberar, parar]);
 
   const iniciar = useCallback(async (entrada: string) => {
+    if (!montado.current || document.hidden || recursos.current.iniciando) return;
     const id = ++sessao.current;
     liberar();
     setErro("");
@@ -92,13 +98,15 @@ export function useAfinador() {
       setEstado("parado");
       return;
     }
+    recursos.current.iniciando = true;
     try {
       const Audio = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Audio) throw new Error("Áudio indisponível");
       const contexto = new Audio();
       recursos.current.contexto = contexto;
-      await contexto.resume();
-      if (id !== sessao.current) return;
+      // Não espere o áudio desbloquear para solicitar o microfone: em WebViews,
+      // resume() pode ficar pendente até uma interação ou autorização do usuário.
+      const retomada = contexto.resume().catch(() => undefined);
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           ...(entrada ? { deviceId: { exact: entrada } } : {}),
@@ -113,6 +121,27 @@ export function useAfinador() {
         return;
       }
       recursos.current.stream = stream;
+      // Alguns aparelhos só liberam o contexto depois de autorizar a captura.
+      if (contexto.state !== "running") {
+        const novaRetomada = contexto.resume().catch(() => undefined);
+        let limite: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            Promise.all([retomada, novaRetomada]),
+            new Promise<void>((resolve) => { limite = setTimeout(resolve, 1500); }),
+          ]);
+        } finally {
+          if (limite !== undefined) clearTimeout(limite);
+        }
+      }
+      if (id !== sessao.current) return;
+      if (contexto.state !== "running") {
+        const falha = new Error("Áudio aguardando interação");
+        falha.name = "AudioContextSuspended";
+        throw falha;
+      }
+      if (document.hidden) { parar(); return; }
+      recursos.current.iniciando = false;
       // A análise é local e nunca é conectada à saída de som (sem retorno).
       const fonte = contexto.createMediaStreamSource(stream);
       const analisador = contexto.createAnalyser();
