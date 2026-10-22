@@ -26,6 +26,7 @@ import {
   admPublicarShow,
 } from "@/lib/nuvem.functions";
 import { readData } from "@/lib/repertorio-store";
+import { NotificacoesAdm } from "@/components/NotificacoesAdm";
 
 type Banda = {
   id: string;
@@ -208,6 +209,8 @@ function AdmPage() {
               >
                 <CloudUploadIcon /> Enviar músicas deste aparelho
               </Button>
+
+              <NotificacoesAdm senha={senha} bandaId={b.id} />
 
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-semibold text-foreground">Usuários</p>

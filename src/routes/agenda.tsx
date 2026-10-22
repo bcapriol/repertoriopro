@@ -29,6 +29,7 @@ import { salvarConta, useConta } from "@/lib/banda-local";
 import { useFeriados } from "@/hooks/use-feriados";
 import type { EventoAgenda } from "@/lib/nuvem.server";
 import { MensagemShow } from "@/components/MensagemShow";
+import { NotificacoesAgenda } from "@/components/NotificacoesAgenda";
 
 export const Route = createFileRoute("/agenda")({
   head: () => ({
@@ -239,6 +240,7 @@ function AgendaPage() {
 
   return (
     <PageShell title="Agenda" subtitle={`${shows.length} show(s) cadastrado(s)`} wide>
+      {cred && <NotificacoesAgenda key={cred.usuario} eventos={eventos} cred={cred} />}
       <Tabs defaultValue="calendario" className="min-w-0">
         <TabsList className="mb-5 grid w-full min-w-0 grid-cols-2">
           <TabsTrigger value="calendario" className="min-w-0 px-1 text-xs sm:text-sm">Calendário</TabsTrigger>

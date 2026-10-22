@@ -15,6 +15,7 @@ import { Toaster } from "../components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PortaoLogin } from "../components/PortaoLogin";
 import { RelogioProvider } from "../components/RelogioFlutuante";
+import { NotificacoesVinculo } from "../components/NotificacoesAgenda";
 
 function NotFoundComponent() {
   return (
@@ -162,6 +163,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <NotificacoesVinculo />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <PortaoLogin>
         <RelogioProvider>

@@ -6,6 +6,22 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+type PushConfig = {
+  banda_id: string; ativo: boolean; avisar_vespera: boolean; hora_vespera: string;
+  avisar_dia: boolean; hora_dia: string; fuso: string; atualizado_em: string;
+};
+type PushUsuario = { usuario_id: string; ativo: boolean };
+type PushAparelho = { assinatura: string; usuario_id: string; token_hash: string; ativo: boolean; atualizado_em: string };
+type PushEnvio = {
+  id: string; evento_id: string; usuario_id: string; data_show: string; momento: string;
+  previsto_em: string; estado: string; tentativas: number; reservado_ate: string | null;
+  enviado_em: string | null; erro: string | null; onesignal_id: string | null; criado_em: string;
+};
+type PushServico = { id: boolean; url: string; atualizado_em: string; ultima_execucao: string | null; ultimo_erro: string | null };
+type PushTable<R, Required extends keyof R> = {
+  Row: R; Insert: Pick<R, Required> & Partial<Omit<R, Required>>; Update: Partial<R>; Relationships: [];
+};
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -14,6 +30,11 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_push_config: PushTable<PushConfig, "banda_id">
+      agenda_push_usuarios: PushTable<PushUsuario, "usuario_id">
+      agenda_push_aparelhos: PushTable<PushAparelho, "assinatura" | "usuario_id" | "token_hash">
+      agenda_push_envios: PushTable<PushEnvio, "evento_id" | "usuario_id" | "data_show" | "momento" | "previsto_em">
+      agenda_push_servico: PushTable<PushServico, "url">
       agenda_eventos: {
         Row: {
           atualizado_em: string
@@ -349,6 +370,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      agenda_push_configurar: { Args: { p_url: string; p_token: string }; Returns: boolean }
+      agenda_push_status: { Args: Record<PropertyKey, never>; Returns: Json }
+      agenda_push_pendentes: { Args: Record<PropertyKey, never>; Returns: PushEnvio[] }
+      agenda_push_disparar: { Args: Record<PropertyKey, never>; Returns: undefined }
       contratos_proxima_versao: { Args: { p_id: string; p_banda: string; p_usuario: string }; Returns: boolean }
       contratos_registrar_versao: { Args: Record<PropertyKey, never>; Returns: unknown }
       contratos_versoes_imutaveis: { Args: Record<PropertyKey, never>; Returns: unknown }
