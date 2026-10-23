@@ -1,0 +1,1 @@
+ALTER TABLE public.agenda_eventos ADD COLUMN pago boolean NOT NULL DEFAULT false;
