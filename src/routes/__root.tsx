@@ -14,8 +14,6 @@ import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PortaoLogin } from "../components/PortaoLogin";
-import { RelogioProvider } from "../components/RelogioFlutuante";
-import { NotificacoesVinculo } from "../components/NotificacoesAgenda";
 
 function NotFoundComponent() {
   return (
@@ -81,7 +79,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Repertório Fácil - Bruno Capriolli" },
       {
         name: "description",
@@ -108,8 +106,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/app-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -137,38 +133,18 @@ function RootComponent() {
 
   useEffect(() => {
     document.documentElement.classList.remove("dark");
-    let ativo = true;
-    const preparar = async () => {
-      const [{ prepararDados, readData }, offline] = await Promise.all([
-        import("@/lib/repertorio-store"), import("@/lib/offline-app"),
-      ]);
-      await prepararDados();
-      if (!ativo) return;
-      await offline.verificarTelasOffline();
-      if (ativo && navigator.onLine) await offline.prepararTelasOffline(readData());
-    };
-    void preparar().catch(() => {});
-    const reconectou = () => { void preparar().catch(() => {}); };
-    window.addEventListener("online", reconectou);
     try {
       localStorage.removeItem("rf-theme");
     } catch {
       // ignore storage errors
     }
-    return () => {
-      ativo = false;
-      window.removeEventListener("online", reconectou);
-    };
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <NotificacoesVinculo />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <PortaoLogin>
-        <RelogioProvider>
-          <Outlet />
-        </RelogioProvider>
+        <Outlet />
       </PortaoLogin>
       <Toaster position="top-center" />
     </QueryClientProvider>

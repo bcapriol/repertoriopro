@@ -62,7 +62,7 @@ export const admExcluirUsuario = createServerFn({ method: "POST" })
   });
 
 export const admDefinirPrivilegios = createServerFn({ method: "POST" })
-  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean; podeCopiarMensagensShows: boolean }) => d)
+  .inputValidator((d: { senha: string; id: string; podeApagar: boolean; podeBackup: boolean; podeEditar: boolean; podeAgenda: boolean; podeAdicionarShows: boolean }) => d)
   .handler(async ({ data }) => {
     const m = await import("./nuvem.server");
     m.conferirSenhaAdm(data.senha);
@@ -72,7 +72,6 @@ export const admDefinirPrivilegios = createServerFn({ method: "POST" })
       podeEditar: data.podeEditar,
       podeAgenda: data.podeAgenda,
       podeAdicionarShows: data.podeAdicionarShows,
-      podeCopiarMensagensShows: data.podeCopiarMensagensShows,
     });
     return m.listarBandas();
   });
@@ -99,18 +98,6 @@ export const entrarComUsuario = createServerFn({ method: "POST" })
     return m.entrarUsuario(data.usuario, data.senha);
   });
 
-export const marcarPresenca = createServerFn({ method: "POST" })
-  .inputValidator((d: { usuario: string; senha: string; sessaoId: string }) => d)
-  .handler(async ({ data }) => (await import("./nuvem.server")).atualizarPresenca(data.usuario, data.senha, data.sessaoId));
-
-export const removerPresenca = createServerFn({ method: "POST" })
-  .inputValidator((d: { usuario: string; senha: string; sessaoId: string }) => d)
-  .handler(async ({ data }) => (await import("./nuvem.server")).sairDaPresenca(data.usuario, data.senha, data.sessaoId));
-
-export const usuariosOnline = createServerFn({ method: "POST" })
-  .inputValidator((d: { usuario: string; senha: string }) => d)
-  .handler(async ({ data }) => (await import("./nuvem.server")).listarPresencas(data.usuario, data.senha));
-
 export const enviarAnexo = createServerFn({ method: "POST" })
   .inputValidator((d: { usuario: string; senha: string; id: string; nome: string; tipo: string; dados: string }) => d)
   .handler(async ({ data }) => {
@@ -127,57 +114,13 @@ export const obterAnexo = createServerFn({ method: "POST" })
 
 type Cred = { usuario: string; senha: string };
 
-export const contratosListar = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).listarContratos(data));
-
-export const contratosConfigLer = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).lerConfiguracao(data));
-
-export const contratosConfigSalvar = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { config: import("./contratos").ConfigContratos }) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).salvarConfiguracao(data, data.config));
-
-export const contratosSalvar = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { dados: import("./contratos").ContratoDados; id?: string }) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).salvarRascunho(data, data.dados, data.id));
-
-export const contratosNovo = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).novoContrato(data));
-
-export const contratosGerar = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { id: string }) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).gerarContrato(data, data.id));
-
-export const contratosPdfUrl = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { id: string }) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).urlPdfContrato(data, data.id));
-
-export const contratosStatus = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { id: string; status: import("./contratos").StatusContrato }) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).alterarStatusContrato(data, data.id, data.status));
-
-export const contratosNovaVersao = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { id: string }) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).iniciarNovaVersao(data, data.id));
-
-export const contratosHistorico = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { id: string }) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).historicoContrato(data, data.id));
-
-export const contratosPdfVersaoUrl = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { id: string; versao: number }) => d)
-  .handler(async ({ data }) => (await import("./contratos.server")).urlPdfVersao(data, data.id, data.versao));
-
 export const agendaListar = createServerFn({ method: "POST" })
   .inputValidator((d: Cred) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).listarAgenda(data.usuario, data.senha));
 
 export const agendaSalvar = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { evento: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined }; confirmarConflito?: boolean }) => d)
-  .handler(async ({ data }) => (await import("./nuvem.server")).salvarEvento(data.usuario, data.senha, data.evento, data.confirmarConflito));
+  .inputValidator((d: Cred & { evento: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined } }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).salvarEvento(data.usuario, data.senha, data.evento));
 
 export const agendaExcluir = createServerFn({ method: "POST" })
   .inputValidator((d: Cred & { id: string }) => d)
@@ -186,7 +129,3 @@ export const agendaExcluir = createServerFn({ method: "POST" })
 export const agendaStatus = createServerFn({ method: "POST" })
   .inputValidator((d: Cred & { id: string; status: EventoAgenda["status"] }) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).statusEvento(data.usuario, data.senha, data.id, data.status));
-
-export const agendaMensagem = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { id: string }) => d)
-  .handler(async ({ data }) => (await import("./nuvem.server")).mensagemEvento(data.usuario, data.senha, data.id));

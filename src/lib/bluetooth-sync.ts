@@ -1,6 +1,5 @@
 import type { AppData } from "./repertorio-store";
 import { baixarArquivo } from "./backup";
-import { criarDadosPortateis } from "./anexo-cache";
 
 export type EnvioBluetooth = { ok: true; via: "compartilhar" | "arquivo" };
 
@@ -20,8 +19,7 @@ export function bluetoothDisponivel() {
  * no computador salva o arquivo para enviar pelo Bluetooth do sistema.
  */
 export async function enviarPorBluetooth(dados: AppData): Promise<EnvioBluetooth> {
-  const portateis = await criarDadosPortateis(dados);
-  const conteudo = JSON.stringify({ versao: 1, ...portateis }, null, 2);
+  const conteudo = JSON.stringify({ versao: 1, ...dados }, null, 2);
   const nome = nomeArquivo();
   const arquivo = new File([conteudo], nome, { type: "application/json" });
 

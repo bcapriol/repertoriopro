@@ -6,7 +6,6 @@ import {
   CheckCircle2Icon,
   DownloadIcon,
   HistoryIcon,
-  RefreshCwIcon,
   RotateCcwIcon,
   SaveIcon,
   Trash2Icon,
@@ -35,9 +34,6 @@ import {
 
 import { readData, useAppData, writeData } from "@/lib/repertorio-store";
 import { useConta } from "@/lib/banda-local";
-import { useServerFn } from "@tanstack/react-start";
-import { obterAnexo } from "@/lib/nuvem.functions";
-import { prepararCopiaOffline } from "@/lib/anexo-cache";
 
 
 export const Route = createFileRoute("/dados")({
@@ -63,20 +59,9 @@ export const Route = createFileRoute("/dados")({
 const hoje = () => new Date().toISOString().slice(0, 10);
 const espera = () => new Promise((r) => setTimeout(r, 120));
 
-// Os nomes dos arquivos compilados mudam quando uma nova versão é publicada.
-function assinaturaDoApp(pagina: Document): string[] {
-  return Array.from(pagina.querySelectorAll("script[src], link[rel='stylesheet'][href], link[rel='modulepreload'][href]"))
-    .map((elemento) => elemento.getAttribute("src") ?? elemento.getAttribute("href") ?? "")
-    .map((endereco) => new URL(endereco, window.location.origin))
-    .filter((url) => url.origin === window.location.origin && /\.(js|css)$/.test(url.pathname))
-    .map((url) => url.pathname)
-    .sort();
-}
-
 function DadosPage() {
   const { data } = useAppData();
   const { conta } = useConta();
-  const obterArquivo = useServerFn(obterAnexo);
   const podeBackup = conta?.podeBackup ?? false;
   const jsonRef = useRef<HTMLInputElement>(null);
   const csvRef = useRef<HTMLInputElement>(null);
@@ -84,70 +69,6 @@ function DadosPage() {
   const [etapa, setEtapa] = useState("");
   const [resultado, setResultado] = useState<ImportResult | null>(null);
   const [versoes, setVersoes] = useState<VersaoBackup[]>([]);
-  const [atualizando, setAtualizando] = useState(false);
-
-  useEffect(() => {
-    const versaoEsperada = sessionStorage.getItem("rf-atualizacao-pendente");
-    if (!versaoEsperada) return;
-    sessionStorage.removeItem("rf-atualizacao-pendente");
-    if (assinaturaDoApp(document).includes(versaoEsperada)) {
-      window.alert("Atualizado com sucesso.");
-    } else {
-      window.alert("A nova versão ainda não carregou. Conecte-se à internet e tente novamente.");
-    }
-  }, []);
-
-  const atualizarApp = async () => {
-    if (!navigator.onLine) {
-      window.alert("Conecte-se primeiro à internet.");
-      return;
-    }
-    setAtualizando(true);
-    try {
-      const dadosLocais = readData();
-      await writeData(dadosLocais, true);
-      const copia = await prepararCopiaOffline(dadosLocais, async (anexo) => {
-        if (!conta) throw new Error("Entre na sua conta para baixar os arquivos.");
-        const { url } = await obterArquivo({ data: { usuario: conta.usuario, senha: conta.senha, caminho: anexo.caminho! } });
-        const arquivo = await fetch(url);
-        if (!arquivo.ok) throw new Error("Não foi possível baixar o arquivo.");
-        return arquivo.blob();
-      });
-      if (copia.pendentes) {
-        window.alert(`As músicas foram salvas neste aparelho, mas faltam ${copia.pendentes} arquivo(s) para consulta offline. Verifique a internet e toque em ATUALIZAR novamente para concluir.`);
-        return;
-      }
-      toast.success(`Cópia offline pronta: músicas, repertórios e ${copia.disponiveis} arquivo(s) salvos neste aparelho.`);
-      // Fetch normal, sem navegação: o service worker não serve esta checagem pelo cache.
-      const resposta = await fetch(`/dados?verificar-atualizacao=${Date.now()}`, { cache: "no-store" });
-      if (!resposta.ok || !resposta.headers.get("content-type")?.includes("text/html")) {
-        throw new Error("Sem acesso à versão atual do aplicativo.");
-      }
-      const paginaNova = new DOMParser().parseFromString(await resposta.text(), "text/html");
-      const versaoAtual = assinaturaDoApp(document);
-      const versaoNova = assinaturaDoApp(paginaNova);
-      if (!versaoAtual.length || !versaoNova.length) {
-        throw new Error("Não foi possível identificar a versão do aplicativo.");
-      }
-      const novoArquivo = versaoNova.find((url) => !versaoAtual.includes(url));
-      if (!novoArquivo) {
-        window.alert("O aplicativo já está na versão mais recente.");
-        return;
-      }
-      if ("serviceWorker" in navigator) {
-        const registro = await navigator.serviceWorker.getRegistration();
-        await registro?.update();
-      }
-      sessionStorage.setItem("rf-atualizacao-pendente", novoArquivo);
-      window.location.assign("/dados?atualizado=1");
-    } catch (e) {
-      window.alert(e instanceof DOMException && e.name === "QuotaExceededError"
-        ? "Não há espaço suficiente para concluir a cópia offline. Libere espaço neste aparelho e tente novamente."
-        : "Não foi possível concluir a cópia offline ou verificar a atualização. Verifique sua conexão e o espaço livre e tente novamente.");
-    } finally {
-      setAtualizando(false);
-    }
-  };
 
   const recarregarVersoes = useCallback(() => {
     listarVersoes()
@@ -385,22 +306,6 @@ function DadosPage() {
             salvos neste dispositivo.
           </p>
         </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void atualizarApp()}
-          disabled={importando || atualizando}
-          className="h-12 rounded-xl font-bold"
-        >
-          <RefreshCwIcon className={atualizando ? "animate-spin" : ""} />
-          {atualizando ? "SALVANDO CÓPIA E ATUALIZANDO…" : "ATUALIZAR"}
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          Ao atualizar, o app também baixa os anexos das músicas deste aparelho para consulta offline.
-          Aguarde a confirmação antes de desconectar a internet. Para receber mudanças de outros aparelhos,
-          use Sincronizar Repertórios na tela inicial (Wi-Fi ou internet móvel).
-        </p>
 
         {podeBackup ? (
           <section className="flex flex-col gap-3">

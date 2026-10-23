@@ -1,5 +1,1 @@
 project_id = "coaclcwnmovyfiaksxwc"
-
-[functions.agenda-lembretes]
-# A função valida a chave do servidor ou a chave privada do agendador.
-verify_jwt = false

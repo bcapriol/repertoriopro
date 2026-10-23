@@ -14,7 +14,6 @@ import {
   PencilIcon,
   Trash2Icon,
   RotateCcwIcon,
-  FilterIcon,
   type LucideIcon,
 } from "lucide-react";
 import { PageShell, EmptyState } from "@/components/PageShell";
@@ -23,13 +22,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { agendaExcluir, agendaListar, agendaSalvar, agendaStatus } from "@/lib/nuvem.functions";
 import { salvarConta, useConta } from "@/lib/banda-local";
-import { useFeriados } from "@/hooks/use-feriados";
 import type { EventoAgenda } from "@/lib/nuvem.server";
-import { MensagemShow } from "@/components/MensagemShow";
-import { NotificacoesAgenda } from "@/components/NotificacoesAgenda";
 
 export const Route = createFileRoute("/agenda")({
   head: () => ({
@@ -46,10 +41,10 @@ export const Route = createFileRoute("/agenda")({
 });
 
 type Tipo = EventoAgenda["tipo"];
-const TIPOS: Record<Tipo, { rotulo: string; Icon: LucideIcon; corCalendario: string; chip: string }> = {
-  show: { rotulo: "Show", Icon: MicVocalIcon, corCalendario: "oklch(0.89 0.07 240)", chip: "border-primary/60 bg-primary/15 text-primary" },
-  particular: { rotulo: "Compromisso Particular", Icon: PinIcon, corCalendario: "oklch(0.90 0.06 25)", chip: "border-foreground/40 bg-foreground/10 text-foreground" },
-  folga: { rotulo: "Folga", Icon: PalmtreeIcon, corCalendario: "oklch(0.89 0.07 305)", chip: "border-dashed border-muted-foreground/60 bg-muted/40 text-muted-foreground" },
+const TIPOS: Record<Tipo, { rotulo: string; Icon: LucideIcon; ponto: string; chip: string }> = {
+  show: { rotulo: "Show", Icon: MicVocalIcon, ponto: "bg-primary", chip: "border-primary/60 bg-primary/15 text-primary" },
+  particular: { rotulo: "Compromisso Particular", Icon: PinIcon, ponto: "bg-foreground", chip: "border-foreground/40 bg-foreground/10 text-foreground" },
+  folga: { rotulo: "Folga", Icon: PalmtreeIcon, ponto: "bg-muted-foreground", chip: "border-dashed border-muted-foreground/60 bg-muted/40 text-muted-foreground" },
 };
 const STATUS: Record<EventoAgenda["status"], string> = { agendado: "Agendado", concluido: "Concluído", cancelado: "Cancelado" };
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -58,19 +53,9 @@ const SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const dataBR = (s: string) => s.split("-").reverse().join("/");
 const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
-const horario = (e: EventoAgenda) => (e.horaInicio ? `${e.horaInicio}${e.tipo !== "show" && e.horaFim ? `–${e.horaFim}` : ""}` : "—");
+const horario = (e: EventoAgenda) => (e.horaInicio ? `${e.horaInicio}${e.horaFim ? `–${e.horaFim}` : ""}` : "—");
 
-type Form = { id?: string; tipo: Tipo; data: string; dataFim: string; horaInicio: string; horaFim: string; local: string; descricao: string; valor: string; tipoValor: EventoAgenda["tipoValor"]; cliente: string; cidade: string; consumacaoTipo: "pessoas" | "valor"; consumacaoPessoas: string; consumacaoValor: string };
-type ColunaRelatorio = "data" | "horario" | "local" | "valor" | "status";
-type FiltrosRelatorio = { dataInicio: string; dataFim: string; horaInicio: string; horaFim: string; local: string; valorMin: string; valorMax: string; status: string };
-const FILTROS_VAZIOS: FiltrosRelatorio = { dataInicio: "", dataFim: "", horaInicio: "", horaFim: "", local: "", valorMin: "", valorMax: "", status: "" };
-const COLUNAS_RELATORIO: { chave: ColunaRelatorio; rotulo: string; campos: (keyof FiltrosRelatorio)[] }[] = [
-  { chave: "data", rotulo: "Data", campos: ["dataInicio", "dataFim"] },
-  { chave: "horario", rotulo: "Horário", campos: ["horaInicio", "horaFim"] },
-  { chave: "local", rotulo: "Cliente / Cidade", campos: ["local"] },
-  { chave: "valor", rotulo: "Valor", campos: ["valorMin", "valorMax"] },
-  { chave: "status", rotulo: "Status", campos: ["status"] },
-];
+type Form = { id?: string; tipo: Tipo; data: string; horaInicio: string; horaFim: string; local: string; descricao: string; valor: string };
 
 function AgendaPage() {
   const { conta, pronto } = useConta();
@@ -88,19 +73,13 @@ function AgendaPage() {
   const [mes, setMes] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
   const [dia, setDia] = useState(iso(hoje));
   const [form, setForm] = useState<Form | null>(null);
-  const [conflitoShow, setConflitoShow] = useState(false);
-  const [filtros, setFiltros] = useState<FiltrosRelatorio>(FILTROS_VAZIOS);
-  const [podeMensagens, setPodeMensagens] = useState(false);
-  const [mensagem, setMensagem] = useState<{ id: string; texto: string } | null>(null);
 
   const cred = conta ? { usuario: conta.usuario, senha: conta.senha } : null;
 
   const aplicar = useCallback(
-    (r: { eventos: EventoAgenda[]; podeAgenda: boolean; podeAdicionarShows: boolean; podeCopiarMensagensShows: boolean }) => {
+    (r: { eventos: EventoAgenda[]; podeAgenda: boolean; podeAdicionarShows: boolean }) => {
       setEventos(r.eventos);
       setPodeShows(r.podeAdicionarShows);
-      setPodeMensagens(r.podeCopiarMensagensShows);
-      if (!r.podeCopiarMensagensShows) setMensagem(null);
       if (conta && (conta.podeAgenda !== r.podeAgenda || conta.podeAdicionarShows !== r.podeAdicionarShows)) {
         salvarConta({ ...conta, podeAgenda: r.podeAgenda, podeAdicionarShows: r.podeAdicionarShows });
       }
@@ -120,15 +99,10 @@ function AgendaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pronto]);
 
-  const rodar = async (fn: () => Promise<Parameters<typeof aplicar>[0]>, msg: string, mensagemId?: string) => {
+  const rodar = async (fn: () => Promise<Parameters<typeof aplicar>[0]>, msg: string) => {
     setOcupado(true);
     try {
-      const resultado = await fn();
-      aplicar(resultado);
-      const show = resultado.eventos.find((e) => e.id === mensagemId);
-      if (resultado.podeCopiarMensagensShows && show?.mensagemContratante) {
-        setMensagem({ id: show.id, texto: show.mensagemContratante });
-      }
+      aplicar(await fn());
       toast.success(msg);
       return true;
     } catch (e) {
@@ -139,9 +113,11 @@ function AgendaPage() {
     }
   };
 
-  const eventosNoDia = (data: string) => eventos.filter((e) =>
-    e.data === data || (e.tipo === "folga" && e.data <= data && e.dataFim >= data),
-  );
+  const porDia = useMemo(() => {
+    const m = new Map<string, EventoAgenda[]>();
+    for (const e of eventos) m.set(e.data, [...(m.get(e.data) ?? []), e]);
+    return m;
+  }, [eventos]);
 
   const celulas = useMemo(() => {
     const ini = new Date(mes);
@@ -149,82 +125,29 @@ function AgendaPage() {
     return Array.from({ length: 42 }, (_, i) => new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + i));
   }, [mes]);
 
-  const { porData: feriadosPorData } = useFeriados([
-    mes.getFullYear(), celulas[0].getFullYear(), celulas[41].getFullYear(), Number(dia.slice(0, 4)),
-  ]);
-  const feriadosDoDia = feriadosPorData[dia] ?? [];
-
   const shows = eventos.filter((e) => e.tipo === "show");
-  const showsFiltrados = shows.filter((e) => {
-    const valor = e.valor;
-    const minimo = Number(filtros.valorMin.replace(",", "."));
-    const maximo = Number(filtros.valorMax.replace(",", "."));
-    return (!filtros.dataInicio || e.data >= filtros.dataInicio) &&
-      (!filtros.dataFim || e.data <= filtros.dataFim) &&
-      (!filtros.horaInicio || e.horaInicio >= filtros.horaInicio) &&
-      (!filtros.horaFim || (e.horaInicio && e.horaInicio <= filtros.horaFim)) &&
-      (!filtros.local || `${e.cliente} ${e.cidade}`.toLocaleLowerCase("pt-BR").includes(filtros.local.trim().toLocaleLowerCase("pt-BR"))) &&
-      (!filtros.valorMin || (Number.isFinite(minimo) && valor !== null && valor >= minimo)) &&
-      (!filtros.valorMax || (Number.isFinite(maximo) && valor !== null && valor <= maximo)) &&
-      (!filtros.status || e.status === filtros.status);
-  });
-  const doDia = eventosNoDia(dia);
-  const diaDeFolga = doDia.some((e) => e.tipo === "folga");
+  const doDia = porDia.get(dia) ?? [];
 
-  const novo = (tipo: Tipo) => {
-    if (tipo === "show" && diaDeFolga) return;
-    setConflitoShow(false);
-    setForm({ tipo, data: dia, dataFim: dia, horaInicio: "", horaFim: "", local: "", descricao: "", valor: "", tipoValor: "cache", cliente: "", cidade: "", consumacaoTipo: "pessoas", consumacaoPessoas: "", consumacaoValor: "" });
-  };
+  const novo = (tipo: Tipo) =>
+    setForm({ tipo, data: dia, horaInicio: "", horaFim: "", local: "", descricao: "", valor: "" });
 
-  const enviar = async (confirmarConflito = false) => {
-    if (!form || !cred || ocupado) return;
-    if (!form.data) { toast.error("Informe a data."); return; }
-    if (form.tipo === "folga" && (!form.dataFim || form.dataFim < form.data)) {
-      toast.error("A data final da folga deve ser igual ou posterior à inicial.");
-      return;
-    }
+  const enviar = async () => {
+    if (!form || !cred) return;
     const valor = form.valor.trim() ? Number(form.valor.replace(/\./g, "").replace(",", ".")) : null;
-    if (valor !== null && (!Number.isFinite(valor) || valor < 0 || valor > 9999999999.99)) { toast.error("Valor inválido."); return; }
-    const consumacaoValor = form.consumacaoTipo === "valor" && form.consumacaoValor.trim() ? Number(form.consumacaoValor.replace(/\./g, "").replace(",", ".")) : null;
-    if (consumacaoValor !== null && (!Number.isFinite(consumacaoValor) || consumacaoValor < 0 || consumacaoValor > 9999999999.99)) { toast.error("Informe um valor válido para consumação."); return; }
-    const consumacaoPessoas = form.consumacaoTipo === "pessoas" && form.consumacaoPessoas.trim() ? Number(form.consumacaoPessoas) : null;
-    if (form.tipo === "show" && consumacaoPessoas !== null && (!Number.isSafeInteger(consumacaoPessoas) || consumacaoPessoas < 0 || consumacaoPessoas > 2147483647)) {
-      toast.error("Informe uma quantidade inteira e não negativa de pessoas para consumação.");
-      return;
-    }
-    if (form.tipo === "show" && eventosNoDia(form.data).some((e) => e.tipo === "folga")) {
-      toast.error("Esta data está bloqueada por uma folga. Não é possível agendar shows.");
-      return;
-    }
-    if (form.tipo === "show" && !confirmarConflito && eventosNoDia(form.data).some((e) => e.tipo === "show" && e.status === "agendado" && e.id !== form.id) &&
-        (!form.id || eventos.find((e) => e.id === form.id)?.data !== form.data)) {
-      setConflitoShow(true);
-      return;
-    }
-    setOcupado(true);
-    try {
-      const resultado = await salvar({
-        data: {
-          ...cred,
-          evento: { id: form.id, tipo: form.tipo, data: form.data, dataFim: form.tipo === "folga" ? form.dataFim : form.data, horaInicio: form.horaInicio, horaFim: form.horaFim, local: form.local, descricao: form.descricao, valor, tipoValor: form.tipoValor, cliente: form.cliente, cidade: form.cidade, consumacaoPessoas, consumacaoValor },
-          confirmarConflito,
-        },
-      });
-      aplicar(resultado);
-      toast.success(form.id ? "Evento alterado." : "Evento adicionado.");
+    if (valor !== null && !Number.isFinite(valor)) { toast.error("Valor inválido."); return; }
+    const ok = await rodar(
+      () =>
+        salvar({
+          data: {
+            ...cred,
+            evento: { id: form.id, tipo: form.tipo, data: form.data, horaInicio: form.horaInicio, horaFim: form.horaFim, local: form.local, descricao: form.descricao, valor },
+          },
+        }),
+      form.id ? "Evento alterado." : "Evento adicionado.",
+    );
+    if (ok) {
       setDia(form.data);
-      setConflitoShow(false);
       setForm(null);
-      const show = resultado.eventos.find((e) => e.id === resultado.eventoId);
-      if (resultado.podeCopiarMensagensShows && show?.tipo === "show" && show.mensagemContratante) {
-        setMensagem({ id: show.id, texto: show.mensagemContratante });
-      }
-    } catch (e) {
-      if (!confirmarConflito && e instanceof Error && e.message.includes("CONFLITO_SHOW")) setConflitoShow(true);
-      else toast.error(e instanceof Error ? e.message : "Falhou.");
-    } finally {
-      setOcupado(false);
     }
   };
 
@@ -239,16 +162,15 @@ function AgendaPage() {
   const podeMexer = (e: EventoAgenda) => e.tipo !== "show" || podeShows;
 
   return (
-    <PageShell title="Agenda" subtitle={`${shows.length} show(s) cadastrado(s)`} wide>
-      {cred && <NotificacoesAgenda key={cred.usuario} eventos={eventos} cred={cred} />}
-      <Tabs defaultValue="calendario" className="min-w-0">
-        <TabsList className="mb-5 grid w-full min-w-0 grid-cols-2">
-          <TabsTrigger value="calendario" className="min-w-0 px-1 text-xs sm:text-sm">Calendário</TabsTrigger>
-          <TabsTrigger value="relatorio" className="min-w-0 px-1 text-xs sm:text-sm">Relatório de Shows</TabsTrigger>
+    <PageShell title="Agenda" subtitle={`${shows.length} show(s) cadastrado(s)`}>
+      <Tabs defaultValue="calendario">
+        <TabsList className="mb-5 grid w-full grid-cols-2">
+          <TabsTrigger value="calendario">Calendário</TabsTrigger>
+          <TabsTrigger value="relatorio">Relatório de Shows</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="calendario" className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
-          <section className="surface-tile min-w-0 rounded-2xl border border-border p-3">
+        <TabsContent value="calendario" className="flex flex-col gap-5">
+          <section className="surface-tile rounded-2xl border border-border p-3">
             <div className="mb-3 flex items-center justify-between">
               <Button variant="ghost" size="icon" aria-label="Mês anterior" onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}>
                 <ChevronLeftIcon />
@@ -264,68 +186,49 @@ function AgendaPage() {
             <div className="mt-1 grid grid-cols-7 gap-1">
               {celulas.map((d) => {
                 const k = iso(d);
-                const tiposDoDia = (["show", "particular", "folga"] as Tipo[]).filter((t) => eventosNoDia(k).some((e) => e.tipo === t));
-                const cores = tiposDoDia.map((t) => TIPOS[t].corCalendario);
+                const evs = porDia.get(k) ?? [];
                 const fora = d.getMonth() !== mes.getMonth();
                 const sel = k === dia;
-                const feriados = feriadosPorData[k] ?? [];
-                const descricaoFeriados = feriados.map((f) => `${f.nome} (${f.abrangencia})`).join("; ");
                 return (
                   <button
                     key={k}
                     type="button"
                     onClick={() => setDia(k)}
-                    aria-pressed={sel}
-                    aria-label={`${dataBR(k)}${tiposDoDia.length ? `: ${tiposDoDia.map((t) => TIPOS[t].rotulo).join(", ")}` : ""}${descricaoFeriados ? `; Feriado: ${descricaoFeriados}` : ""}`}
-                    title={descricaoFeriados || undefined}
-                    style={cores.length ? { background: cores.length === 1 ? cores[0] : `linear-gradient(90deg, ${cores.map((cor, i) => `${cor} ${i * 100 / cores.length}% ${(i + 1) * 100 / cores.length}%`).join(", ")})` } : undefined}
-                    className={`relative flex aspect-square items-center justify-center rounded-lg border text-sm transition-colors ${
-                      sel ? "border-primary font-bold" : cores.length ? "border-transparent hover:brightness-95" : "border-transparent hover:bg-muted/50"
-                    } ${fora ? "text-muted-foreground" : "text-foreground"} ${k === iso(hoje) && !sel ? "underline decoration-primary underline-offset-4" : ""}`}
+                    className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border text-sm transition-colors ${
+                      sel ? "border-primary bg-primary/15 font-bold text-foreground" : "border-transparent hover:bg-muted/50"
+                    } ${fora ? "text-muted-foreground/50" : "text-foreground"} ${k === iso(hoje) && !sel ? "underline decoration-primary underline-offset-4" : ""}`}
                   >
                     {d.getDate()}
-                    {feriados.length > 0 && <span aria-hidden="true" className="absolute bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-foreground" />}
+                    <span className="flex h-1.5 gap-0.5">
+                      {(["show", "particular", "folga"] as Tipo[])
+                        .filter((t) => evs.some((e) => e.tipo === t))
+                        .map((t) => <span key={t} className={`size-1.5 rounded-full ${TIPOS[t].ponto}`} />)}
+                    </span>
                   </button>
                 );
               })}
             </div>
             <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
               {(Object.keys(TIPOS) as Tipo[]).map((t) => (
-                <span key={t} className="flex items-center gap-1"><span className="size-3 rounded-sm" style={{ backgroundColor: TIPOS[t].corCalendario }} />{TIPOS[t].rotulo}</span>
+                <span key={t} className="flex items-center gap-1"><span className={`size-2 rounded-full ${TIPOS[t].ponto}`} />{TIPOS[t].rotulo}</span>
               ))}
-              <span className="flex items-center gap-1"><span aria-hidden="true" className="size-1.5 rounded-full bg-foreground" />Feriado</span>
             </div>
-            <p className="mt-3 text-center text-xs text-muted-foreground">Toque em uma data com pontinho para ver o feriado.</p>
           </section>
 
           <section className="flex flex-col gap-3">
             <h2 className="font-bold text-foreground">{dataBR(dia)}</h2>
-            {feriadosDoDia.length > 0 && (
-              <div aria-live="polite" className="space-y-2 rounded-xl border border-border bg-muted/40 p-3">
-                {feriadosDoDia.map((feriado) => (
-                  <div key={`${feriado.data}-${feriado.nome}`} className="flex items-start gap-2">
-                    <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-foreground" />
-                    <div className="min-w-0 text-sm">
-                      <p className="font-semibold">{feriado.nome}</p>
-                      <p className="text-xs text-muted-foreground">Feriado · {feriado.abrangencia}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(TIPOS) as Tipo[])
                 .filter((t) => t !== "show" || podeShows)
                 .map((t) => {
                   const { Icon, rotulo } = TIPOS[t];
                   return (
-                    <Button key={t} variant="outline" className="h-auto min-w-0 flex-col gap-1 whitespace-normal rounded-xl px-1 py-3 text-center text-xs font-bold" disabled={t === "show" && diaDeFolga} title={t === "show" && diaDeFolga ? "Data bloqueada por folga" : undefined} onClick={() => novo(t)}>
+                    <Button key={t} variant="outline" className="h-auto flex-col gap-1 rounded-xl py-3 text-xs font-bold" onClick={() => novo(t)}>
                       <PlusIcon className="size-4" /><Icon className="size-5" />{t === "particular" ? "Compromisso" : rotulo}
                     </Button>
                   );
                 })}
             </div>
-            {diaDeFolga && podeShows ? <p className="text-sm text-muted-foreground">Esta data está bloqueada para novos shows por uma folga.</p> : null}
             {doDia.length === 0 ? (
               <EmptyState title="Nenhum evento" hint="Toque em um dos botões acima para adicionar." />
             ) : (
@@ -338,28 +241,24 @@ function AgendaPage() {
                       {e.tipo === "show" ? <span className="ml-auto rounded-full border border-current px-2 py-0.5 text-xs">{STATUS[e.status]}</span> : null}
                     </div>
                     <p className="mt-2 font-semibold text-foreground">
-                      {e.tipo === "show" ? [e.cliente, e.cidade].filter(Boolean).join(" · ") || "Show" : e.descricao || (e.tipo === "folga" ? "Dia de folga" : "")}
+                      {e.tipo === "show" ? e.local : e.descricao || (e.tipo === "folga" ? "Dia de folga" : "")}
                     </p>
-                    {e.tipo === "folga" ? <p className="text-sm text-muted-foreground">{dataBR(e.data)}{e.dataFim !== e.data ? ` a ${dataBR(e.dataFim)}` : ""}</p> : <p className="text-sm text-muted-foreground">{horario(e)}{e.tipo === "show" ? ` · ${e.tipoValor === "couvert" ? "Couvert" : "Cachê"}: ${moeda(e.valor)}` : ""}</p>}
-                    {e.tipo === "show" ? <p className="mt-1 text-sm text-foreground">Consumação: {e.consumacaoValor !== null ? moeda(e.consumacaoValor) : e.consumacaoPessoas !== null ? `${e.consumacaoPessoas} pessoa(s)` : "A combinar"}</p> : null}
+                    {e.tipo !== "folga" ? <p className="text-sm text-muted-foreground">{horario(e)}{e.tipo === "show" ? ` · ${moeda(e.valor)}` : ""}</p> : null}
                     {podeMexer(e) ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {e.tipo === "show" ? (
                           e.status === "agendado" ? (
                             <>
                               <Button size="sm" variant="secondary" disabled={ocupado} onClick={() => rodar(() => mudar({ data: { ...cred!, id: e.id, status: "concluido" } }), "Show concluído.")}><CheckIcon /> Concluído</Button>
-                              <Button size="sm" variant="secondary" disabled={ocupado} onClick={() => { if (confirm("Cancelar este show?")) void rodar(() => mudar({ data: { ...cred!, id: e.id, status: "cancelado" } }), "Show cancelado.", e.id); }}><XIcon /> Cancelado</Button>
+                              <Button size="sm" variant="secondary" disabled={ocupado} onClick={() => rodar(() => mudar({ data: { ...cred!, id: e.id, status: "cancelado" } }), "Show cancelado.")}><XIcon /> Cancelado</Button>
                             </>
                           ) : (
-                            <Button size="sm" variant="secondary" disabled={ocupado} onClick={() => rodar(() => mudar({ data: { ...cred!, id: e.id, status: "agendado" } }), "Show reaberto.", e.id)}><RotateCcwIcon /> Reabrir</Button>
+                            <Button size="sm" variant="secondary" disabled={ocupado} onClick={() => rodar(() => mudar({ data: { ...cred!, id: e.id, status: "agendado" } }), "Show reaberto.")}><RotateCcwIcon /> Reabrir</Button>
                           )
                         ) : null}
-                        <Button size="sm" variant="outline" disabled={ocupado} onClick={() => { setConflitoShow(false); setForm({ id: e.id, tipo: e.tipo, data: e.data, dataFim: e.dataFim, horaInicio: e.horaInicio, horaFim: e.horaFim, local: e.local, descricao: e.descricao, valor: e.valor === null ? "" : String(e.valor).replace(".", ","), tipoValor: e.tipoValor, cliente: e.cliente, cidade: e.cidade, consumacaoTipo: e.consumacaoValor !== null ? "valor" : "pessoas", consumacaoPessoas: e.consumacaoPessoas === null ? "" : String(e.consumacaoPessoas), consumacaoValor: e.consumacaoValor === null ? "" : String(e.consumacaoValor).replace(".", ",") }); }}><PencilIcon /> Alterar</Button>
+                        <Button size="sm" variant="outline" disabled={ocupado} onClick={() => setForm({ id: e.id, tipo: e.tipo, data: e.data, horaInicio: e.horaInicio, horaFim: e.horaFim, local: e.local, descricao: e.descricao, valor: e.valor === null ? "" : String(e.valor).replace(".", ",") })}><PencilIcon /> Alterar</Button>
                         <Button size="sm" variant="outline" className="text-destructive" disabled={ocupado} onClick={() => { if (confirm("Excluir este evento?")) rodar(() => excluir({ data: { ...cred!, id: e.id } }), "Evento excluído."); }}><Trash2Icon /> Excluir</Button>
                       </div>
-                    ) : null}
-                    {e.tipo === "show" && podeMensagens && e.mensagemContratante ? (
-                      <Button className="mt-3" size="sm" variant="outline" disabled={ocupado} onClick={() => setMensagem({ id: e.id, texto: e.mensagemContratante! })}>Mensagem para contratante</Button>
                     ) : null}
                   </article>
                 );
@@ -375,55 +274,23 @@ function AgendaPage() {
             <div className="surface-tile overflow-x-auto rounded-2xl border border-border">
               <table className="w-full text-left text-sm">
                 <thead className="text-xs uppercase text-muted-foreground">
-                  <tr>{COLUNAS_RELATORIO.map(({ chave, rotulo, campos }) => (
-                    <th key={chave} scope="col" className="px-3 py-2 font-semibold">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button type="button" aria-label={`Filtrar por ${rotulo}`} className={`inline-flex items-center gap-1 rounded px-1 py-1 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary ${campos.some((campo) => filtros[campo]) ? "text-primary" : ""}`}>
-                            {rotulo}<FilterIcon className="size-3.5" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent align="start" className="w-64 space-y-3 text-sm normal-case">
-                          <p className="font-semibold text-foreground">Filtrar por {rotulo.toLowerCase()}</p>
-                          {chave === "data" ? <>
-                            <Campo rotulo="De"><Input type="date" value={filtros.dataInicio} onChange={(ev) => setFiltros((f) => ({ ...f, dataInicio: ev.target.value }))} /></Campo>
-                            <Campo rotulo="Até"><Input type="date" value={filtros.dataFim} onChange={(ev) => setFiltros((f) => ({ ...f, dataFim: ev.target.value }))} /></Campo>
-                          </> : null}
-                          {chave === "horario" ? <>
-                            <Campo rotulo="A partir de"><Input type="time" value={filtros.horaInicio} onChange={(ev) => setFiltros((f) => ({ ...f, horaInicio: ev.target.value }))} /></Campo>
-                            <Campo rotulo="Até"><Input type="time" value={filtros.horaFim} onChange={(ev) => setFiltros((f) => ({ ...f, horaFim: ev.target.value }))} /></Campo>
-                          </> : null}
-                          {chave === "local" ? <Campo rotulo="Cliente ou cidade"><Input placeholder="Buscar cliente ou cidade" value={filtros.local} onChange={(ev) => setFiltros((f) => ({ ...f, local: ev.target.value }))} /></Campo> : null}
-                          {chave === "valor" ? <>
-                            <Campo rotulo="Valor mínimo (R$)"><Input type="number" min="0" step="0.01" value={filtros.valorMin} onChange={(ev) => setFiltros((f) => ({ ...f, valorMin: ev.target.value }))} /></Campo>
-                            <Campo rotulo="Valor máximo (R$)"><Input type="number" min="0" step="0.01" value={filtros.valorMax} onChange={(ev) => setFiltros((f) => ({ ...f, valorMax: ev.target.value }))} /></Campo>
-                          </> : null}
-                          {chave === "status" ? <Campo rotulo="Status"><select className="h-9 w-full rounded-md border border-input bg-background px-3 text-foreground" value={filtros.status} onChange={(ev) => setFiltros((f) => ({ ...f, status: ev.target.value }))}>
-                            <option value="">Todos</option>
-                            {Object.entries(STATUS).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
-                          </select></Campo> : null}
-                          <Button type="button" size="sm" variant="outline" className="w-full" disabled={!campos.some((campo) => filtros[campo])} onClick={() => setFiltros((f) => ({ ...f, ...Object.fromEntries(campos.map((campo) => [campo, ""])) }))}>Limpar filtro</Button>
-                        </PopoverContent>
-                      </Popover>
-                    </th>
-                  ))}</tr>
+                  <tr>{["Data", "Horário", "Local", "Valor", "Status"].map((h) => <th key={h} className="px-3 py-2 font-semibold">{h}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {showsFiltrados.map((e) => (
+                  {shows.map((e) => (
                     <tr key={e.id} className="border-t border-border text-foreground">
                       <td className="px-3 py-2 whitespace-nowrap">{dataBR(e.data)}</td>
                       <td className="px-3 py-2 whitespace-nowrap">{horario(e)}</td>
-                      <td className="px-3 py-2">{[e.cliente, e.cidade].filter(Boolean).join(" · ") || "—"}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">{e.tipoValor === "couvert" ? "Couvert" : "Cachê"}: {moeda(e.valor)}</td>
+                      <td className="px-3 py-2">{e.local}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{moeda(e.valor)}</td>
                       <td className="px-3 py-2 whitespace-nowrap">{STATUS[e.status]}</td>
                     </tr>
                   ))}
-                  {showsFiltrados.length === 0 ? <tr><td colSpan={5} className="border-t border-border px-3 py-5 text-center text-muted-foreground">Nenhum show corresponde aos filtros.</td></tr> : null}
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border font-bold text-primary">
                     <td className="px-3 py-2" colSpan={3}>Total concluído</td>
-                    <td className="px-3 py-2 whitespace-nowrap" colSpan={2}>{moeda(showsFiltrados.filter((s) => s.status === "concluido").reduce((a, s) => a + (s.valor ?? 0), 0))}</td>
+                    <td className="px-3 py-2 whitespace-nowrap" colSpan={2}>{moeda(shows.filter((s) => s.status === "concluido").reduce((a, s) => a + (s.valor ?? 0), 0))}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -432,76 +299,35 @@ function AgendaPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!form && !conflitoShow} onOpenChange={(o) => !o && !conflitoShow && setForm(null)}>
-        <DialogContent className={form?.tipo === "show" ? "max-h-[90dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto" : "max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto"}>
+      <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)}>
+        <DialogContent>
           {form ? (
             <>
               <DialogHeader><DialogTitle>{form.id ? "Alterar" : "Novo"}: {TIPOS[form.tipo].rotulo}</DialogTitle></DialogHeader>
               <div className="flex flex-col gap-3">
                 {form.tipo === "show" ? (
-                  <>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <Campo rotulo="Cliente"><Input maxLength={200} placeholder="Nome do contratante" value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} className="h-11 text-base" /></Campo>
-                      <Campo rotulo="Cidade"><Input maxLength={200} value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} className="h-11 text-base" /></Campo>
-                    </div>
-                  </>
+                  <Campo rotulo="Local"><Input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} className="h-11 text-base" /></Campo>
                 ) : null}
                 {form.tipo === "particular" ? (
                   <Campo rotulo="Descrição do compromisso"><Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="h-11 text-base" /></Campo>
                 ) : null}
-                <Campo rotulo={form.tipo === "folga" ? "Data inicial" : "Data"}><Input type="date" value={form.data} onChange={(e) => { setConflitoShow(false); setForm({ ...form, data: e.target.value, dataFim: form.tipo === "folga" && form.dataFim < e.target.value ? e.target.value : form.dataFim }); }} className="h-11 text-base" /></Campo>
-                {form.tipo === "folga" ? (
-                  <Campo rotulo="Data final"><Input type="date" min={form.data} value={form.dataFim} onChange={(e) => setForm({ ...form, dataFim: e.target.value })} className="h-11 text-base" /></Campo>
-                ) : null}
+                <Campo rotulo="Data"><Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} className="h-11 text-base" /></Campo>
                 {form.tipo !== "folga" ? (
-                  <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Campo rotulo="Hora de início"><Input type="time" value={form.horaInicio} onChange={(e) => setForm({ ...form, horaInicio: e.target.value })} className="h-11 min-w-0 text-base" /></Campo>
-                    {form.tipo === "particular" ? <Campo rotulo="Hora de fim"><Input type="time" value={form.horaFim} onChange={(e) => setForm({ ...form, horaFim: e.target.value })} className="h-11 min-w-0 text-base" /></Campo> : null}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Campo rotulo="Hora de início"><Input type="time" value={form.horaInicio} onChange={(e) => setForm({ ...form, horaInicio: e.target.value })} className="h-11 text-base" /></Campo>
+                    <Campo rotulo="Hora de fim"><Input type="time" value={form.horaFim} onChange={(e) => setForm({ ...form, horaFim: e.target.value })} className="h-11 text-base" /></Campo>
                   </div>
                 ) : null}
                 {form.tipo === "show" ? (
-                  <>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <Campo rotulo="Forma de pagamento"><select value={form.tipoValor} onChange={(e) => setForm({ ...form, tipoValor: e.target.value as Form["tipoValor"] })} className="h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground">
-                        <option value="cache">Cachê</option>
-                        <option value="couvert">Couvert</option>
-                      </select></Campo>
-                      <Campo rotulo={`${form.tipoValor === "couvert" ? "Couvert" : "Cachê"} (R$)`}><Input inputMode="decimal" placeholder="A combinar" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="h-11 text-base" /></Campo>
-                      <Campo rotulo="Consumação em"><select value={form.consumacaoTipo} onChange={(e) => setForm({ ...form, consumacaoTipo: e.target.value as Form["consumacaoTipo"] })} className="h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground">
-                        <option value="pessoas">Quantidade de pessoas</option>
-                        <option value="valor">Valor em R$</option>
-                      </select></Campo>
-                      {form.consumacaoTipo === "pessoas" ? (
-                        <Campo rotulo="Quantidade de pessoas"><Input type="number" min="0" max="2147483647" step="1" inputMode="numeric" placeholder="A combinar" value={form.consumacaoPessoas} onChange={(e) => setForm({ ...form, consumacaoPessoas: e.target.value })} className="h-11 text-base" /></Campo>
-                      ) : (
-                        <Campo rotulo="Consumação (R$)"><Input inputMode="decimal" placeholder="A combinar" value={form.consumacaoValor} onChange={(e) => setForm({ ...form, consumacaoValor: e.target.value })} className="h-11 text-base" /></Campo>
-                      )}
-                    </div>
-                    {podeMensagens ? <p className="text-xs text-muted-foreground">Ao salvar, a mensagem para o contratante será aberta para copiar. Campos não preenchidos aparecerão como não informados ou a combinar.</p> : null}
-                  </>
+                  <Campo rotulo="Valor (R$)"><Input inputMode="decimal" placeholder="0,00" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="h-11 text-base" /></Campo>
                 ) : null}
                 {form.tipo === "folga" ? (
                   <Campo rotulo="Observação (opcional)"><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></Campo>
                 ) : null}
-                <Button disabled={ocupado} className="h-12 rounded-xl font-bold" onClick={() => void enviar()}>Salvar</Button>
+                <Button disabled={ocupado} className="h-12 rounded-xl font-bold" onClick={enviar}>Salvar</Button>
               </div>
             </>
           ) : null}
-        </DialogContent>
-      </Dialog>
-
-      {podeMensagens && mensagem && cred ? (
-        <MensagemShow key={`${mensagem.id}-${mensagem.texto}`} id={mensagem.id} texto={mensagem.texto} cred={cred} fechar={() => setMensagem(null)} />
-      ) : null}
-
-      <Dialog open={conflitoShow} onOpenChange={setConflitoShow}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Confirmar agendamento</DialogTitle></DialogHeader>
-          <p className="text-sm text-foreground">Já tem um show agendado nesta data! Quer agendar mesmo assim?</p>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setConflitoShow(false)}>Cancelar</Button>
-            <Button disabled={ocupado} onClick={() => void enviar(true)}>Agendar mesmo assim</Button>
-          </div>
         </DialogContent>
       </Dialog>
     </PageShell>

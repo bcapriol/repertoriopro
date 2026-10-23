@@ -1,23 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import {
   MusicIcon,
   ListMusicIcon,
   LibraryIcon,
   ArrowDownUpIcon,
-  BluetoothIcon,
+  RefreshCwIcon,
   LockIcon,
-  LogOutIcon,
   CalendarDaysIcon,
-  FileTextIcon,
-  MegaphoneIcon,
   type LucideIcon,
 } from "lucide-react";
 import { useAppData } from "@/lib/repertorio-store";
-import { salvarConta, useBanda, useConta } from "@/lib/banda-local";
-import { OfflineStatus } from "@/components/OfflineStatus";
-import { useAbrirRelogio } from "@/components/RelogioFlutuante";
-import { AfinadorPopup } from "@/components/AfinadorPopup";
+import { useBanda, useConta } from "@/lib/banda-local";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -64,25 +57,11 @@ function Index() {
   const { data } = useAppData();
   const banda = useBanda();
   const { conta } = useConta();
-  const abrirRelogio = useAbrirRelogio();
-  const [online, setOnline] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const atualizar = () => setOnline(navigator.onLine);
-    atualizar();
-    window.addEventListener("online", atualizar);
-    window.addEventListener("offline", atualizar);
-    return () => {
-      window.removeEventListener("online", atualizar);
-      window.removeEventListener("offline", atualizar);
-    };
-  }, []);
 
   return (
-    <main className="flex min-h-dvh flex-col bg-background px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6">
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
-        <div className="flex items-center justify-end gap-2">
-          <AfinadorPopup />
+    <main className="min-h-screen bg-background px-5 pt-10 pb-14">
+      <div className="mx-auto w-full max-w-4xl">
+        <div className="flex justify-end">
           <Link
             to="/adm"
             aria-label="Área do administrador"
@@ -90,40 +69,12 @@ function Index() {
           >
             <LockIcon className="size-4" />
           </Link>
-          <button
-            type="button"
-            onClick={() => salvarConta(null)}
-            aria-label="Sair"
-            title="Sair"
-            className="flex size-11 items-center justify-center rounded-lg border border-border text-primary transition-colors hover:bg-accent"
-          >
-            <LogOutIcon className="size-4" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={abrirRelogio}
-            aria-label="Abrir relógio e cronômetro"
-            title="Relógio e cronômetro"
-            className="flex size-11 items-center justify-center rounded-lg border border-border text-primary transition-colors hover:bg-accent"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
-            </svg>
-          </button>
         </div>
         <header className="text-center">
-          {online !== null && (
-            <div role="status" className="mb-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground">
-              <span className={`size-2 rounded-full ${online ? "bg-green-600" : "bg-red-600"}`} aria-hidden="true" />
-              {online ? "ONLINE" : "OFFLINE"}
-            </div>
-          )}
-          <img
-            src="/multivibe-logo.jpg"
-            alt="Logotipo Multivibe"
-            className="mx-auto mb-5 size-32 object-contain"
-          />
-          <h1 className="text-3xl leading-tight font-extrabold text-[oklch(0.62_0.24_250)]">
+          <span className="mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+            <MusicIcon className="size-7" strokeWidth={2.4} />
+          </span>
+          <h1 className="text-3xl leading-tight font-extrabold text-primary">
             {banda ? `Repertório ${banda}` : "Repertório Fácil"}
           </h1>
           <p className="mt-2 text-base font-semibold text-muted-foreground">
@@ -134,9 +85,7 @@ function Index() {
           </p>
         </header>
 
-        <div className="mt-6"><OfflineStatus sincronizar /></div>
-
-        <nav className="mt-6 grid grid-cols-1 gap-4 min-[380px]:grid-cols-2">
+        <nav className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {!banda && data.songs.length === 0 && data.setlists.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-5 py-4 text-center text-sm text-muted-foreground sm:col-span-2">
               Aparelho vazio. Use{" "}
@@ -144,11 +93,11 @@ function Index() {
               trazer as músicas e repertórios da sua banda.
             </p>
           ) : null}
-          <Link to="/repertorios" className={tileClass}>
+          <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>
             <TileBody
-              label="Repertório"
-              hint={`${data.setlists.length} lista(s) montada(s)`}
-              Icon={LibraryIcon}
+              label="Cadastrar Música"
+              hint="Título, artista, tom, letra e cifra"
+              Icon={MusicIcon}
             />
           </Link>
           <Link to="/musicas" className={tileClass}>
@@ -158,11 +107,11 @@ function Index() {
               Icon={ListMusicIcon}
             />
           </Link>
-          <Link to="/cadastrar" search={{ id: undefined }} className={tileClass}>
+          <Link to="/repertorios" className={tileClass}>
             <TileBody
-              label="Cadastrar Música"
-              hint="Título, artista, tom, letra e cifra"
-              Icon={MusicIcon}
+              label="Repertórios"
+              hint={`${data.setlists.length} lista(s) montada(s)`}
+              Icon={LibraryIcon}
             />
           </Link>
           <Link to="/agenda" className={tileClass}>
@@ -174,9 +123,9 @@ function Index() {
           </Link>
           <Link to="/sincronizar" className={tileClass}>
             <TileBody
-              label="Transferir entre aparelhos"
-              hint="Bluetooth, receber arquivo e backup"
-              Icon={BluetoothIcon}
+              label="Sincronizar Repertórios"
+              hint={banda ? `Banda atual: ${banda}` : "Wi-Fi, Bluetooth ou arquivo"}
+              Icon={RefreshCwIcon}
             />
           </Link>
           <Link to="/dados" className={tileClass}>
@@ -186,16 +135,7 @@ function Index() {
               Icon={ArrowDownUpIcon}
             />
           </Link>
-          <Link to="/contratos" className={tileClass}>
-            <TileBody label="Contratos de Eventos" hint="Contratos de Prestação de Serviços — Banda Multivibe" Icon={FileTextIcon} />
-          </Link>
-          <Link to="/divulgacao" className={tileClass}>
-            <TileBody label="Divulgação" hint="Monte o prompt e abra o ChatGPT para criar sua arte" Icon={MegaphoneIcon} />
-          </Link>
         </nav>
-        <footer className="mt-auto pt-10 text-center text-[11px] text-muted-foreground/70">
-          V 1.01
-        </footer>
       </div>
     </main>
   );

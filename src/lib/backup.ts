@@ -1,4 +1,4 @@
-import { newId, type Anexo, type AppData, type Exclusao, type Setlist, type Song } from "./repertorio-store";
+import { newId, type AppData, type Setlist, type Song } from "./repertorio-store";
 
 export type ImportResult = {
   songsAdicionadas: number;
@@ -191,13 +191,7 @@ export function validarBackup(bruto: unknown): {
       ritmo: texto(s['ritmo'], 60),
       observacoes: texto(s['observacoes']),
       letra: texto(s['letra'], 20000),
-      anexos: Array.isArray(s['anexos']) ? (s['anexos'] as unknown[]).filter((a): a is Anexo => {
-        if (!a || typeof a !== "object") return false;
-        const item = a as Record<string, unknown>;
-        return typeof item['id'] === "string" && typeof item['nome'] === "string" && typeof item['tipo'] === "string";
-      }) : [],
       criadoEm: typeof s['criadoEm'] === "number" ? s['criadoEm'] : Date.now(),
-      atualizadoEm: typeof s['atualizadoEm'] === "number" ? s['atualizadoEm'] : undefined,
     });
   });
 
@@ -238,11 +232,10 @@ export function validarBackup(bruto: unknown): {
       data: texto(r['data'], 30),
       songIds: validos,
       criadoEm: typeof r['criadoEm'] === "number" ? r['criadoEm'] : Date.now(),
-      atualizadoEm: typeof r['atualizadoEm'] === "number" ? r['atualizadoEm'] : undefined,
     });
   });
 
-  if (songs.length === 0 && setlists.length === 0 && !Array.isArray(obj['deletedSongs']) && !Array.isArray(obj['deletedSetlists'])) {
+  if (songs.length === 0 && setlists.length === 0) {
     return {
       data: null,
       erros: [
@@ -252,19 +245,7 @@ export function validarBackup(bruto: unknown): {
     };
   }
 
-  const exclusoes = (value: unknown): Exclusao[] => Array.isArray(value)
-    ? value.filter((item): item is Exclusao => Boolean(item) && typeof item.id === "string" && typeof item.atualizadoEm === "number" && Number.isFinite(item.atualizadoEm))
-    : [];
-
-  return {
-    data: {
-      songs,
-      setlists,
-      deletedSongs: exclusoes(obj['deletedSongs']),
-      deletedSetlists: exclusoes(obj['deletedSetlists']),
-    },
-    erros,
-  };
+  return { data: { songs, setlists }, erros };
 }
 
 

@@ -21,8 +21,6 @@ function useFonteAnexo(anexo: Anexo) {
   useEffect(() => {
     let ativo = true;
     let urlLocal = "";
-    setFalhou(false);
-    setFonte("");
     if (anexo.dados) {
       setFonte(anexo.dados);
       return () => {};
@@ -41,8 +39,7 @@ function useFonteAnexo(anexo: Anexo) {
           blob = await resposta.blob();
           await guardarAnexoOffline(anexo.id, blob);
         }
-        if (!ativo) return;
-        if (!blob) throw new Error("Arquivo não disponível neste aparelho.");
+        if (!blob || !ativo) return;
         urlLocal = URL.createObjectURL(blob);
         setFonte(urlLocal);
       } catch {
@@ -62,31 +59,6 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando");
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [dimensoes, setDimensoes] = useState(0);
-
-  // Recalcula a resolução ao girar o celular ou redimensionar a janela no tablet.
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    let timer: ReturnType<typeof setTimeout>;
-    let largura = container.clientWidth;
-    const atualizar = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => setDimensoes((n) => n + 1), 180);
-    };
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
-      if (container.clientWidth === largura) return;
-      largura = container.clientWidth;
-      atualizar();
-    });
-    observer?.observe(container);
-    window.addEventListener("resize", atualizar);
-    return () => {
-      clearTimeout(timer);
-      observer?.disconnect();
-      window.removeEventListener("resize", atualizar);
-    };
-  }, []);
 
   // URL de blob (fallback nativo do navegador)
   useEffect(() => {
@@ -111,7 +83,6 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
   useEffect(() => {
     let cancelado = false;
     let paginasOk = 0;
-    let tarefa: import("pdfjs-dist").PDFDocumentLoadingTask | undefined;
     setEstado("carregando");
 
     (async () => {
@@ -124,10 +95,9 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
         const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
         pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
 
-        if (!fonte || cancelado) return;
+        if (!fonte) return;
         const entrada = fonte.startsWith("data:") ? { data: dataUrlToUint8(fonte) } : { url: fonte };
-        tarefa = pdfjs.getDocument(entrada);
-        const doc = await tarefa.promise;
+        const doc = await pdfjs.getDocument(entrada).promise;
         for (let n = 1; n <= doc.numPages; n++) {
           if (cancelado) return;
           const page = await doc.getPage(n);
@@ -165,9 +135,8 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
 
     return () => {
       cancelado = true;
-      void tarefa?.destroy().catch(() => {});
     };
-  }, [fonte, fit, dimensoes]);
+  }, [fonte, fit]);
 
   return (
     <div className="w-full bg-background">
@@ -199,8 +168,8 @@ function PdfView({ anexo, fonte, falhou, fit = false }: { anexo: Anexo; fonte: s
 
 export function AnexoView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean }) {
   const { fonte, falhou } = useFonteAnexo(anexo);
-  if (falhou) return <p className="p-6 text-center text-sm text-muted-foreground">Arquivo indisponível neste aparelho. Conecte-se à internet e sincronize novamente para concluir a cópia offline.</p>;
   if (anexo.tipo.startsWith("image/")) {
+    if (falhou) return <p className="p-6 text-center text-sm text-muted-foreground">Anexo indisponível offline neste aparelho.</p>;
     if (!fonte) return <p className="p-6 text-center text-sm text-muted-foreground">Carregando imagem…</p>;
     return <img src={fonte} alt={anexo.nome} className={fit ? "h-full max-h-full w-full object-contain" : "w-full"} />;
   }
@@ -209,7 +178,7 @@ export function AnexoView({ anexo, fit = false }: { anexo: Anexo; fit?: boolean 
 
 export function AnexosViewer({ anexos, fit = false }: { anexos: Anexo[]; fit?: boolean }) {
   return (
-    <div className="h-full w-full overflow-auto overscroll-contain bg-background">
+    <div className={fit ? "h-full w-full overflow-hidden bg-background" : "h-full w-full overflow-auto bg-background"}>
       {anexos.map((a) => (
         <AnexoView key={a.id} anexo={a} fit={fit} />
       ))}

@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { EyeIcon, EyeOffIcon, LockIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, LockIcon, MusicIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { entrarComUsuario } from "@/lib/nuvem.functions";
@@ -15,29 +15,15 @@ export function PortaoLogin({ children }: { children: ReactNode }) {
   const [dadosProntos, setDadosProntos] = useState(false);
   const [erroDados, setErroDados] = useState("");
 
-  const carregar = () => {
-    setErroDados("");
-    void prepararDados().then(() => setDadosProntos(true)).catch((e) => setErroDados(e.message));
-  };
-
   useEffect(() => {
-    carregar();
+    prepararDados().then(() => setDadosProntos(true)).catch((e) => setErroDados(e.message));
   }, []);
 
-  if (erroDados) return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background p-6 text-center text-foreground">
-      <h1 className="text-xl font-bold">Não foi possível abrir a cópia local</h1>
-      <p className="max-w-md text-sm text-muted-foreground">{erroDados} Não limpe os dados do aplicativo, pois isso remove o conteúdo salvo.</p>
-      <Button onClick={carregar} className="min-h-11">Tentar novamente</Button>
-    </main>
-  );
-  if (!dadosProntos || !pronto) return (
-    <main role="status" className="flex min-h-dvh items-center justify-center bg-background p-6 text-center text-muted-foreground">
-      Abrindo os dados salvos neste aparelho…
-    </main>
-  );
+  if (erroDados) return <main className="flex min-h-screen items-center justify-center bg-background p-6 text-center text-foreground">{erroDados}</main>;
+  if (!dadosProntos) return null;
 
   if (pathname.startsWith("/adm")) return <>{children}</>;
+  if (!pronto) return null;
   if (conta) return <>{children}</>;
   return <TelaLogin />;
 }
@@ -50,10 +36,6 @@ function TelaLogin() {
   const [ocupado, setOcupado] = useState(false);
 
   const acessar = async () => {
-    if (!navigator.onLine) {
-      toast.error("Para entrar na conta, conecte-se à internet. Depois de preparar a cópia offline, mantenha sua conta conectada para consultar sem rede.");
-      return;
-    }
     if (!usuario.trim() || !senha) {
       toast.error("Informe usuário e senha.");
       return;
@@ -85,11 +67,9 @@ function TelaLogin() {
       <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
         <div className="px-6 pt-10 pb-6 sm:px-8">
         <header className="text-center">
-          <img
-            src="/multivibe-logo.jpg"
-            alt="Logotipo Multivibe"
-            className="mx-auto mb-5 size-32 object-contain"
-          />
+          <span className="mx-auto mb-5 flex size-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+            <MusicIcon className="size-7" strokeWidth={2.4} />
+          </span>
           <h1 className="text-2xl font-extrabold text-primary">
             Repertório Fácil Pro
           </h1>

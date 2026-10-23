@@ -8,7 +8,6 @@ import {
   PencilIcon,
   PlayIcon,
   PlusIcon,
-  RotateCcwIcon,
   XIcon,
 } from "lucide-react";
 
@@ -17,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppData } from "@/lib/repertorio-store";
 import { useAtualizarPrivilegios, useConta } from "@/lib/banda-local";
-import { reiniciarProgressoPalco, useProgressoPalco } from "@/hooks/use-progresso-palco";
 
 export const Route = createFileRoute("/repertorios/$id/")({
   head: () => ({
@@ -38,7 +36,6 @@ export const Route = createFileRoute("/repertorios/$id/")({
 
 function RepertorioDetalhe() {
   const { id } = Route.useParams();
-  const { pronto, progresso } = useProgressoPalco(id);
   const { data, update } = useAppData();
   const { conta } = useConta();
   useAtualizarPrivilegios();
@@ -119,27 +116,14 @@ function RepertorioDetalhe() {
       <div className="flex flex-col gap-5">
         {rep.songIds.length > 0 ? (
           <>
-            <Link to="/repertorios/$id/palco" params={{ id }} onClick={(e) => {
-              if (!pronto) { e.preventDefault(); return; }
-              void document.documentElement.requestFullscreen?.().catch(() => {});
-            }}>
-              <Button disabled={!pronto} className="min-h-14 h-auto w-full rounded-2xl px-4 py-4 text-base font-bold whitespace-normal">
-                <PlayIcon className="shrink-0" /> {progresso ? "Retomar repertório de onde parou" : "Iniciar modo palco"}
+            <Link to="/repertorios/$id/palco" params={{ id }} onClick={() => { void document.documentElement.requestFullscreen?.().catch(() => {}); }}>
+              <Button className="h-14 w-full rounded-2xl text-base font-bold">
+                <PlayIcon /> Iniciar modo palco
               </Button>
             </Link>
-            {pronto && progresso ? (
-              <Link to="/repertorios/$id/palco" params={{ id }} onClick={() => {
-                reiniciarProgressoPalco(id);
-                void document.documentElement.requestFullscreen?.().catch(() => {});
-              }}>
-                <Button variant="outline" className="min-h-12 h-auto w-full rounded-xl px-4 py-3 font-bold whitespace-normal">
-                  <RotateCcwIcon className="shrink-0" /> Reiniciar repertório do início do show
-                </Button>
-              </Link>
-            ) : null}
             <Button
               variant="outline"
-              className="min-h-12 h-auto rounded-xl px-4 py-3 font-bold whitespace-normal"
+              className="h-12 rounded-xl font-bold"
               onClick={async () => {
                 try {
                   const { exportarRepertorioPdf } = await import("@/lib/pdf-repertorio");
@@ -150,7 +134,7 @@ function RepertorioDetalhe() {
                 }
               }}
             >
-              <FileTextIcon /> Exportar lista de músicas deste repertório
+              <FileTextIcon /> Exportar PDF para imprimir
             </Button>
           </>
         ) : null}
@@ -274,7 +258,7 @@ function RepertorioDetalhe() {
                   key={songId}
                   className="surface-tile flex items-center gap-3 rounded-2xl border border-border px-3 py-3"
                 >
-                  <span className="gradient-accent flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-primary-foreground">
+                  <span className="gradient-accent flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-accent-foreground">
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1">

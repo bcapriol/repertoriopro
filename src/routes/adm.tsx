@@ -26,7 +26,6 @@ import {
   admPublicarShow,
 } from "@/lib/nuvem.functions";
 import { readData } from "@/lib/repertorio-store";
-import { NotificacoesAdm } from "@/components/NotificacoesAdm";
 
 type Banda = {
   id: string;
@@ -40,7 +39,6 @@ type Banda = {
     podeEditar: boolean;
     podeAgenda: boolean;
     podeAdicionarShows: boolean;
-    podeCopiarMensagensShows: boolean;
   }[];
   totalMusicas: number;
   totalRepertorios: number;
@@ -210,8 +208,6 @@ function AdmPage() {
                 <CloudUploadIcon /> Enviar músicas deste aparelho
               </Button>
 
-              <NotificacoesAdm senha={senha} bandaId={b.id} />
-
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-semibold text-foreground">Usuários</p>
                 {b.usuarios.length === 0 ? (
@@ -293,7 +289,6 @@ function AdmPage() {
                                     ["podeEditar", "Alterar sequência, nomes e anexos"],
                                     ["podeAdicionarShows", "Adicionar shows"],
                                     ["podeAgenda", "Agenda de shows"],
-                                    ["podeCopiarMensagensShows", "Copiar mensagens para contratantes"],
                                   ] as const
                                 ).map(([campo, rotulo]) => (
                                   <label
@@ -332,10 +327,6 @@ function AdmPage() {
                                                   campo === "podeAdicionarShows"
                                                     ? e.target.checked
                                                     : u.podeAdicionarShows,
-                                                podeCopiarMensagensShows:
-                                                  campo === "podeCopiarMensagensShows"
-                                                    ? e.target.checked
-                                                    : u.podeCopiarMensagensShows,
                                               },
                                             }),
                                           "Privilégios atualizados.",

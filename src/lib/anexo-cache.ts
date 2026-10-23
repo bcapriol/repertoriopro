@@ -16,17 +16,13 @@ function abrir(): Promise<IDBDatabase> {
 
 export async function guardarAnexoOffline(id: string, blob: Blob): Promise<void> {
   const db = await abrir();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).put(blob, id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error ?? new Error("Não foi possível salvar o arquivo neste aparelho."));
-    });
-  } finally {
-    db.close();
-  }
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(blob, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
 }
 
 export async function lerAnexoOffline(id: string): Promise<Blob | null> {
@@ -56,96 +52,12 @@ function dataUrlParaBlob(anexo: Anexo): Blob | null {
 }
 
 export async function guardarLegadoOffline(dados: AppData): Promise<void> {
+  const tarefas: Promise<void>[] = [];
   for (const musica of dados.songs) {
     for (const anexo of musica.anexos ?? []) {
       const blob = dataUrlParaBlob(anexo);
-      if (blob) await guardarAnexoOffline(anexo.id, blob);
+      if (blob) tarefas.push(guardarAnexoOffline(anexo.id, blob));
     }
   }
-}
-
-/** Remove arquivos que não pertencem mais a nenhuma música do aparelho. */
-export async function limparAnexosOffline(dados: AppData): Promise<void> {
-  const manter = new Set(dados.songs.flatMap((musica) => (musica.anexos ?? []).map((anexo) => anexo.id)));
-  const db = await abrir();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE, "readwrite");
-      const cursor = tx.objectStore(STORE).openCursor();
-      cursor.onsuccess = () => {
-        const item = cursor.result;
-        if (!item) return;
-        if (!manter.has(String(item.key))) item.delete();
-        item.continue();
-      };
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
-  } finally {
-    db.close();
-  }
-}
-
-export type CopiaOffline = { total: number; disponiveis: number; pendentes: number; telasProntas: boolean };
-
-/** Só considera disponível o arquivo gravado na memória local. */
-export async function prepararCopiaOffline(
-  dados: AppData,
-  baixar?: (anexo: Anexo) => Promise<Blob>,
-): Promise<CopiaOffline> {
-  if (typeof navigator !== "undefined" && navigator.storage?.persist) {
-    try { await navigator.storage.persist(); } catch { /* O navegador decide se permite persistência. */ }
-  }
-  await guardarLegadoOffline(dados);
-  const anexos = new Map(dados.songs.flatMap((musica) => (musica.anexos ?? []).map((anexo) => [anexo.id, anexo] as const)));
-  let disponiveis = 0;
-  for (const anexo of anexos.values()) {
-    if (await lerAnexoOffline(anexo.id)) {
-      disponiveis++;
-      continue;
-    }
-    if (!baixar || !anexo.caminho) continue;
-    let blob: Blob;
-    try {
-      blob = await baixar(anexo);
-    } catch {
-      // Uma falha de rede fica pendente para a próxima tentativa.
-      continue;
-    }
-    // Erros de armazenamento não podem ser confundidos com download concluído.
-    await guardarAnexoOffline(anexo.id, blob);
-    disponiveis++;
-  }
-  // A cópia dos dados não basta: também prepara as telas para reabrir o app.
-  const { prepararTelasOffline } = await import("./offline-app");
-  const telasProntas = await prepararTelasOffline(dados);
-  window.dispatchEvent(new Event("repertorio-copia-atualizada"));
-  return { total: anexos.size, disponiveis, pendentes: anexos.size - disponiveis, telasProntas };
-}
-
-/** Inclui os arquivos no envio sem internet, não apenas os endereços da nuvem. */
-export async function criarDadosPortateis(dados: AppData): Promise<AppData> {
-  const songs: AppData["songs"] = [];
-  for (const musica of dados.songs) {
-    const anexos: Anexo[] = [];
-    for (const anexo of musica.anexos ?? []) {
-      if (anexo.dados) {
-        anexos.push(anexo);
-        continue;
-      }
-      const blob = await lerAnexoOffline(anexo.id);
-      if (!blob) throw new Error(`O arquivo “${anexo.nome}” não está neste aparelho. Use Sincronizar Repertórios na tela inicial com internet antes de enviar.`);
-      const conteudo = await new Promise<string>((resolve, reject) => {
-        const leitor = new FileReader();
-        leitor.onload = () => resolve(String(leitor.result));
-        leitor.onerror = () => reject(leitor.error);
-        leitor.onabort = () => reject(new Error("Leitura do arquivo cancelada."));
-        leitor.readAsDataURL(blob);
-      });
-      anexos.push({ ...anexo, dados: conteudo });
-    }
-    songs.push({ ...musica, anexos });
-  }
-  return { ...dados, songs };
+  await Promise.all(tarefas);
 }
