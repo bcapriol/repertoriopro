@@ -14,6 +14,7 @@ import {
   PencilIcon,
   Trash2Icon,
   RotateCcwIcon,
+  FilterIcon,
   type LucideIcon,
 } from "lucide-react";
 import { PageShell, EmptyState } from "@/components/PageShell";
@@ -22,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { agendaExcluir, agendaListar, agendaSalvar, agendaStatus } from "@/lib/nuvem.functions";
+import { agendaExcluir, agendaListar, agendaPago, agendaSalvar, agendaStatus } from "@/lib/nuvem.functions";
 import { salvarConta, useConta } from "@/lib/banda-local";
 import type { EventoAgenda } from "@/lib/nuvem.server";
 
@@ -63,6 +64,7 @@ function AgendaPage() {
   const salvar = useServerFn(agendaSalvar);
   const excluir = useServerFn(agendaExcluir);
   const mudar = useServerFn(agendaStatus);
+  const marcarPago = useServerFn(agendaPago);
 
   const [eventos, setEventos] = useState<EventoAgenda[]>([]);
   const [podeShows, setPodeShows] = useState(false);
@@ -73,6 +75,11 @@ function AgendaPage() {
   const [mes, setMes] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
   const [dia, setDia] = useState(iso(hoje));
   const [form, setForm] = useState<Form | null>(null);
+  const [filtroAberto, setFiltroAberto] = useState<"data" | "cliente" | "pago" | null>(null);
+  const [fDe, setFDe] = useState("");
+  const [fAte, setFAte] = useState("");
+  const [fCliente, setFCliente] = useState("");
+  const [fPago, setFPago] = useState<"todos" | "pagos" | "nao">("todos");
 
   const cred = conta ? { usuario: conta.usuario, senha: conta.senha } : null;
 
@@ -126,6 +133,21 @@ function AgendaPage() {
   }, [mes]);
 
   const shows = eventos.filter((e) => e.tipo === "show");
+  const temFiltro = !!(fDe || fAte || fCliente.trim() || fPago !== "todos");
+  const showsFiltrados = shows.filter((e) => {
+    if (fDe && e.data < fDe) return false;
+    if (fAte && e.data > fAte) return false;
+    if (fCliente.trim() && !e.local.toLowerCase().includes(fCliente.trim().toLowerCase())) return false;
+    if (fPago === "pagos" && !e.pago) return false;
+    if (fPago === "nao" && e.pago) return false;
+    return true;
+  });
+  const limparFiltros = () => {
+    setFDe("");
+    setFAte("");
+    setFCliente("");
+    setFPago("todos");
+  };
   const doDia = porDia.get(dia) ?? [];
 
   const novo = (tipo: Tipo) =>
