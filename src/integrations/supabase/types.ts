@@ -30,6 +30,7 @@ export type Database = {
           id: string
           local: string
           mensagem_contratante: string
+          pago: boolean
           status: string
           tipo: string
           tipo_valor: string
@@ -51,6 +52,7 @@ export type Database = {
           id?: string
           local?: string
           mensagem_contratante?: string
+          pago?: boolean
           status?: string
           tipo: string
           tipo_valor?: string
@@ -72,6 +74,7 @@ export type Database = {
           id?: string
           local?: string
           mensagem_contratante?: string
+          pago?: boolean
           status?: string
           tipo?: string
           tipo_valor?: string

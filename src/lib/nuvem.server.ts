@@ -295,6 +295,7 @@ export type EventoAgenda = {
   descricao: string;
   valor: number | null;
   status: "agendado" | "concluido" | "cancelado";
+  pago: boolean;
 };
 
 async function contaAgenda(usuario: string, senha: string) {
@@ -323,13 +324,14 @@ export async function listarAgenda(usuario: string, senha: string) {
     descricao: e.descricao,
     valor: e.valor === null ? null : Number(e.valor),
     status: e.status as EventoAgenda["status"],
+    pago: e.pago ?? false,
   }));
   return { eventos, podeAgenda: conta.podeAgenda, podeAdicionarShows: conta.podeAdicionarShows };
 }
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$|^$/;
 
-export async function salvarEvento(usuario: string, senha: string, ev: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined }) {
+export async function salvarEvento(usuario: string, senha: string, ev: Omit<EventoAgenda, "id" | "status" | "pago"> & { id?: string | undefined }) {
   const conta = await contaAgenda(usuario, senha);
   const db = await admin();
   if (!["show", "particular", "folga"].includes(ev.tipo)) throw new Error("Tipo inválido.");
@@ -384,6 +386,14 @@ export async function statusEvento(usuario: string, senha: string, id: string, s
   const { conta, db, tipo } = await eventoDoUsuario(usuario, senha, id);
   if (tipo !== "show") throw new Error("Status só se aplica a shows.");
   const { error } = await db.from("agenda_eventos").update({ status, atualizado_em: new Date().toISOString() }).eq("id", id).eq("usuario_id", conta.usuarioId);
+  if (error) throw error;
+  return listarAgenda(usuario, senha);
+}
+
+export async function pagoEvento(usuario: string, senha: string, id: string, pago: boolean) {
+  const { conta, db, tipo } = await eventoDoUsuario(usuario, senha, id);
+  if (tipo !== "show") throw new Error("Pagamento só se aplica a shows.");
+  const { error } = await db.from("agenda_eventos").update({ pago, atualizado_em: new Date().toISOString() }).eq("id", id).eq("usuario_id", conta.usuarioId);
   if (error) throw error;
   return listarAgenda(usuario, senha);
 }

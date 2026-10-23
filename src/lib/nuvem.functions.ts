@@ -119,7 +119,7 @@ export const agendaListar = createServerFn({ method: "POST" })
   .handler(async ({ data }) => (await import("./nuvem.server")).listarAgenda(data.usuario, data.senha));
 
 export const agendaSalvar = createServerFn({ method: "POST" })
-  .inputValidator((d: Cred & { evento: Omit<EventoAgenda, "id" | "status"> & { id?: string | undefined } }) => d)
+  .inputValidator((d: Cred & { evento: Omit<EventoAgenda, "id" | "status" | "pago"> & { id?: string | undefined } }) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).salvarEvento(data.usuario, data.senha, data.evento));
 
 export const agendaExcluir = createServerFn({ method: "POST" })
@@ -129,3 +129,7 @@ export const agendaExcluir = createServerFn({ method: "POST" })
 export const agendaStatus = createServerFn({ method: "POST" })
   .inputValidator((d: Cred & { id: string; status: EventoAgenda["status"] }) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).statusEvento(data.usuario, data.senha, data.id, data.status));
+
+export const agendaPago = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string; pago: boolean }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).pagoEvento(data.usuario, data.senha, data.id, data.pago));
