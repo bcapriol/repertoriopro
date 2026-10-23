@@ -293,30 +293,93 @@ function AgendaPage() {
           {shows.length === 0 ? (
             <EmptyState title="Nenhum show" hint="Os shows cadastrados aparecem aqui." />
           ) : (
-            <div className="surface-tile overflow-x-auto rounded-2xl border border-border">
-              <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-muted-foreground">
-                  <tr>{["Data", "Horário", "Local", "Valor", "Status"].map((h) => <th key={h} className="px-3 py-2 font-semibold">{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {shows.map((e) => (
-                    <tr key={e.id} className="border-t border-border text-foreground">
-                      <td className="px-3 py-2 whitespace-nowrap">{dataBR(e.data)}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">{horario(e)}</td>
-                      <td className="px-3 py-2">{e.local}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">{moeda(e.valor)}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">{STATUS[e.status]}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-border font-bold text-primary">
-                    <td className="px-3 py-2" colSpan={3}>Total concluído</td>
-                    <td className="px-3 py-2 whitespace-nowrap" colSpan={2}>{moeda(shows.filter((s) => s.status === "concluido").reduce((a, s) => a + (s.valor ?? 0), 0))}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+            <>
+              {filtroAberto ? (
+                <div className="surface-tile mb-3 flex flex-wrap items-end gap-3 rounded-xl border border-border p-3">
+                  {filtroAberto === "data" ? (
+                    <>
+                      <Campo rotulo="De"><Input type="date" value={fDe} onChange={(e) => setFDe(e.target.value)} className="h-11 text-base" /></Campo>
+                      <Campo rotulo="Até"><Input type="date" value={fAte} onChange={(e) => setFAte(e.target.value)} className="h-11 text-base" /></Campo>
+                    </>
+                  ) : null}
+                  {filtroAberto === "cliente" ? (
+                    <Campo rotulo="Cliente ou local"><Input value={fCliente} onChange={(e) => setFCliente(e.target.value)} placeholder="Nome do cliente ou local" className="h-11 text-base" /></Campo>
+                  ) : null}
+                  {filtroAberto === "pago" ? (
+                    <div className="flex gap-2">
+                      {([["todos", "Todos"], ["pagos", "Pagos"], ["nao", "Não pagos"]] as const).map(([v, r]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setFPago(v)}
+                          className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${fPago === v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {temFiltro ? (
+                    <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros</Button>
+                  ) : null}
+                </div>
+              ) : null}
+              {showsFiltrados.length === 0 ? (
+                <EmptyState title="Nenhum show com esses filtros" hint="Ajuste ou limpe os filtros para ver mais resultados." />
+              ) : (
+                <div className="surface-tile overflow-x-auto rounded-2xl border border-border">
+                  <table className="w-full text-left text-sm">
+                    <thead className="text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2">
+                          <CabFiltro rotulo="Data" qual="data" ativo={!!(fDe || fAte)} aberto={filtroAberto} aoClicar={setFiltroAberto} />
+                        </th>
+                        <th className="px-3 py-2 font-semibold">Horário</th>
+                        <th className="px-3 py-2">
+                          <CabFiltro rotulo="Local" qual="cliente" ativo={!!fCliente.trim()} aberto={filtroAberto} aoClicar={setFiltroAberto} />
+                        </th>
+                        <th className="px-3 py-2 font-semibold">Valor</th>
+                        <th className="px-3 py-2 font-semibold">Status</th>
+                        <th className="px-3 py-2">
+                          <CabFiltro rotulo="Pago" qual="pago" ativo={fPago !== "todos"} aberto={filtroAberto} aoClicar={setFiltroAberto} />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {showsFiltrados.map((e) => (
+                        <tr key={e.id} className="border-t border-border text-foreground">
+                          <td className="px-3 py-2 whitespace-nowrap">{dataBR(e.data)}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{horario(e)}</td>
+                          <td className="px-3 py-2">{e.local}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{moeda(e.valor)}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{STATUS[e.status]}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {podeShows ? (
+                              <button
+                                type="button"
+                                disabled={ocupado}
+                                onClick={() => rodar(() => marcarPago({ data: { ...cred!, id: e.id, pago: !e.pago } }), e.pago ? "Marcado como não pago." : "Marcado como pago.")}
+                                className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${e.pago ? "border-primary/60 bg-primary/15 text-primary" : "border-border text-muted-foreground"}`}
+                              >
+                                {e.pago ? "Pago" : "Não pago"}
+                              </button>
+                            ) : (
+                              <span className={`text-xs font-semibold ${e.pago ? "text-primary" : "text-muted-foreground"}`}>{e.pago ? "Pago" : "Não pago"}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-border font-bold text-primary">
+                        <td className="px-3 py-2" colSpan={3}>Total concluído{temFiltro ? " (filtrado)" : ""}</td>
+                        <td className="px-3 py-2 whitespace-nowrap" colSpan={3}>{moeda(showsFiltrados.filter((s) => s.status === "concluido").reduce((a, s) => a + (s.valor ?? 0), 0))}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>
