@@ -4,3 +4,5 @@
 - [x] Corrigir o limite de armazenamento ao salvar músicas com anexos e sincronizar por Wi-Fi.
 - [x] Migrar imagens e PDFs para armazenamento em nuvem, mantendo cópias locais para acesso offline.
 - [x] Aplicar o tema branco, azul Royal e preto em todo o aplicativo.
+- [ ] Adicionar filtros nos cabeçalhos do Relatório de Shows (data, cliente, pago/não pago) e marcação de "pago" nos shows.
+- [ ] Cadastrar secrets ONESIGNAL_APP_ID, ONESIGNAL_REST_API_KEY e AGENDA_PUSH_TOKEN; publicar e validar.
