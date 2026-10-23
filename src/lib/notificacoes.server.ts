@@ -6,20 +6,26 @@ import type { ConfigNotificacoes } from "./notificacoes.functions";
 const PADRAO: ConfigNotificacoes = { ativo: false, avisar_vespera: true, hora_vespera: "09:00", avisar_dia: true, hora_dia: "09:00", fuso: "America/Sao_Paulo" };
 const uuid = (v: string) => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 type Cred = { usuario: string; senha: string };
-type Servico = { configurado: boolean; agendadorAtivo: boolean; ultimaExecucao: string | null; erro: string | null; faltantes: string[] };
+type Servico = { disponivel: boolean; configurado: boolean; agendadorAtivo: boolean; ultimaExecucao: string | null; erro: string | null; faltantes: string[] };
 
 async function servico(body: Record<string, unknown>) {
   const { data, error } = await db.functions.invoke("agenda-lembretes", { body });
   if (error || !data || data.erro) {
     let mensagem = typeof data?.erro === "string" ? data.erro : "";
+    const respostaHttp = error?.context instanceof Response ? error.context : null;
     // Preserva orientações do serviço (por exemplo, aguardar entre testes).
-    if (!mensagem && error?.context instanceof Response) {
+    if (!mensagem && respostaHttp) {
       try {
-        const resposta = await error.context.json();
+        const resposta = await respostaHttp.json();
         if (typeof resposta?.erro === "string") mensagem = resposta.erro;
-      } catch { /* resposta sem mensagem legível */ }
+      } catch { /* Não expõe respostas técnicas, credenciais ou cabeçalhos. */ }
     }
-    throw new Error(mensagem || "Serviço de avisos indisponível. Confira a publicação da função agenda-lembretes e os segredos no Lovable.");
+    if (respostaHttp?.status === 404) {
+      mensagem = "A consulta retornou 404: serviço de avisos não encontrado. No Lovable, confira se a função agenda-lembretes foi publicada no mesmo projeto do aplicativo.";
+    } else if (respostaHttp?.status === 401 || respostaHttp?.status === 403) {
+      mensagem = "A consulta ao serviço de avisos não foi autorizada. No Lovable, confira as credenciais do servidor e a publicação da função agenda-lembretes com a configuração de autenticação deste projeto.";
+    }
+    throw new Error(mensagem || "Não foi possível consultar o serviço de avisos. Isso não confirma se as chaves estão configuradas. No Lovable, confira a publicação e os registros da função agenda-lembretes; depois tente atualizar a situação.");
   }
   return data;
 }
@@ -40,9 +46,17 @@ export async function lerConfiguracao(d: { senha: string; bandaId: string }) {
     db.rpc("agenda_push_status"),
   ]);
   for (const r of [config, usuarios, preferencias, aparelhos, historico]) if (r.error) throw new Error("Não foi possível consultar as notificações.");
+  const statusBanco = historico.data as { agendadorAtivo?: boolean; ultimaExecucao?: string | null } | null;
   let estado: Servico;
-  try { estado = await servico({ acao: "status" }); }
-  catch (e) { estado = { configurado: false, agendadorAtivo: false, ultimaExecucao: null, erro: e instanceof Error ? e.message : "Serviço indisponível.", faltantes: [] }; }
+  try { estado = { ...await servico({ acao: "status" }), disponivel: true }; }
+  catch (e) {
+    estado = {
+      disponivel: false, configurado: false,
+      agendadorAtivo: statusBanco?.agendadorAtivo ?? false,
+      ultimaExecucao: statusBanco?.ultimaExecucao ?? null,
+      erro: e instanceof Error ? e.message : "Serviço indisponível.", faltantes: [],
+    };
+  }
   const ids = (usuarios.data ?? []).map((u) => u.id);
   const envios = ids.length ? await db.from("agenda_push_envios").select("id, estado, momento, data_show, enviado_em, erro, criado_em").in("usuario_id", ids).order("criado_em", { ascending: false }).limit(8) : { data: [] };
   return {

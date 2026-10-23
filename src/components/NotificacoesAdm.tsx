@@ -59,11 +59,21 @@ export function NotificacoesAdm({ senha, bandaId }: { senha: string; bandaId: st
         {!dados && <Button variant="outline" disabled={ocupado} onClick={carregar}>{ocupado ? "Carregando…" : "Tentar novamente"}</Button>}
         {dados && <>
           <div className="space-y-2 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-            <p className="font-semibold text-foreground">{dados.servico.configurado && dados.servico.agendadorAtivo ? "Serviço de envio ativado" : "Configuração do envio pendente"}</p>
-            <p>O aplicativo Median precisa estar integrado ao OneSignal. No Lovable, publique a função agenda-lembretes e configure ONESIGNAL_APP_ID, ONESIGNAL_REST_API_KEY e AGENDA_PUSH_TOKEN (chave aleatória com 32 caracteres ou mais).</p>
-            {dados.servico.faltantes.length > 0 && <p>Falta configurar: {dados.servico.faltantes.join(", ")}</p>}
+            <p className="font-semibold text-foreground">{!dados.servico.disponivel ? "Não foi possível consultar o serviço de avisos" : !dados.servico.configurado ? "Falta configurar o envio no Lovable" : dados.servico.agendadorAtivo ? "Serviço de envio ativado" : "Pronto para ativar o serviço automático"}</p>
+            <p>Verificação automática no banco: <strong className="text-foreground">{dados.servico.agendadorAtivo ? "ativada" : "desativada"}</strong>. Isso é separado da opção “Ativar avisos desta banda”.</p>
+            {!dados.servico.disponivel && <p>Sem resposta do serviço, não é possível confirmar se as chaves estão configuradas. O botão de ativação fica indisponível até essa consulta funcionar.</p>}
+            {dados.servico.faltantes.length > 0 && <p role="status">Falta configurar no Lovable: {dados.servico.faltantes.join(", ")}</p>}
             {dados.servico.erro && <p role="status">{dados.servico.erro}</p>}
-            <p>Última verificação: {dados.servico.ultimaExecucao ? new Date(dados.servico.ultimaExecucao).toLocaleString("pt-BR") : "aguardando primeira execução"}.</p>
+            {(!dados.servico.disponivel || !dados.servico.configurado) && <div className="space-y-2 rounded-md border border-border bg-background p-3">
+              <p className="font-semibold text-foreground">Como concluir no Lovable</p>
+              <ol className="list-decimal space-y-1 pl-4">
+                <li>Nas configurações de segredos, confira ONESIGNAL_APP_ID (o mesmo App ID do Median), ONESIGNAL_REST_API_KEY e AGENDA_PUSH_TOKEN (chave privada aleatória com pelo menos 32 caracteres).</li>
+                <li>No modo Build, peça para publicar a função agenda-lembretes e validar a consulta de situação, sem exibir os valores das chaves. Se faltar alguma chave, peça o formulário seguro de segredos.</li>
+                <li>Volte aqui, toque em “Atualizar situação” e, quando liberado, em “Ativar serviço automático”.</li>
+              </ol>
+              <p>Não envie chaves no chat. Esta tela não cadastra segredos nem publica a função; não gere outro APK apenas por causa deste aviso.</p>
+            </div>}
+            <p>Última execução registrada: {dados.servico.ultimaExecucao ? new Date(dados.servico.ultimaExecucao).toLocaleString("pt-BR") : "nenhuma"}.</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" disabled={ocupado || !dados.servico.configurado} onClick={() => executar("ativar")}>{dados.servico.agendadorAtivo ? "Revalidar serviço" : "Ativar serviço automático"}</Button>
               <Button variant="ghost" size="sm" disabled={ocupado} onClick={carregar}>Atualizar situação</Button>
