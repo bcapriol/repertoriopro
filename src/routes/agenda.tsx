@@ -427,3 +427,28 @@ function Campo({ rotulo, children }: { rotulo: string; children: React.ReactNode
     </label>
   );
 }
+
+function CabFiltro({
+  rotulo,
+  qual,
+  ativo,
+  aberto,
+  aoClicar,
+}: {
+  rotulo: string;
+  qual: "data" | "cliente" | "pago";
+  ativo: boolean;
+  aberto: "data" | "cliente" | "pago" | null;
+  aoClicar: (q: "data" | "cliente" | "pago" | null) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => aoClicar(aberto === qual ? null : qual)}
+      className={`flex items-center gap-1 font-semibold uppercase ${ativo || aberto === qual ? "text-primary" : ""}`}
+    >
+      {rotulo}
+      <FilterIcon className="size-3" />
+    </button>
+  );
+}
