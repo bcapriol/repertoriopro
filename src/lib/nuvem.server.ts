@@ -295,6 +295,7 @@ export type EventoAgenda = {
   descricao: string;
   valor: number | null;
   status: "agendado" | "concluido" | "cancelado";
+  pago: boolean;
 };
 
 async function contaAgenda(usuario: string, senha: string) {
@@ -323,6 +324,7 @@ export async function listarAgenda(usuario: string, senha: string) {
     descricao: e.descricao,
     valor: e.valor === null ? null : Number(e.valor),
     status: e.status as EventoAgenda["status"],
+    pago: e.pago ?? false,
   }));
   return { eventos, podeAgenda: conta.podeAgenda, podeAdicionarShows: conta.podeAdicionarShows };
 }
@@ -384,6 +386,14 @@ export async function statusEvento(usuario: string, senha: string, id: string, s
   const { conta, db, tipo } = await eventoDoUsuario(usuario, senha, id);
   if (tipo !== "show") throw new Error("Status só se aplica a shows.");
   const { error } = await db.from("agenda_eventos").update({ status, atualizado_em: new Date().toISOString() }).eq("id", id).eq("usuario_id", conta.usuarioId);
+  if (error) throw error;
+  return listarAgenda(usuario, senha);
+}
+
+export async function pagoEvento(usuario: string, senha: string, id: string, pago: boolean) {
+  const { conta, db, tipo } = await eventoDoUsuario(usuario, senha, id);
+  if (tipo !== "show") throw new Error("Pagamento só se aplica a shows.");
+  const { error } = await db.from("agenda_eventos").update({ pago, atualizado_em: new Date().toISOString() }).eq("id", id).eq("usuario_id", conta.usuarioId);
   if (error) throw error;
   return listarAgenda(usuario, senha);
 }

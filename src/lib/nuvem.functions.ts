@@ -129,3 +129,7 @@ export const agendaExcluir = createServerFn({ method: "POST" })
 export const agendaStatus = createServerFn({ method: "POST" })
   .inputValidator((d: Cred & { id: string; status: EventoAgenda["status"] }) => d)
   .handler(async ({ data }) => (await import("./nuvem.server")).statusEvento(data.usuario, data.senha, data.id, data.status));
+
+export const agendaPago = createServerFn({ method: "POST" })
+  .inputValidator((d: Cred & { id: string; pago: boolean }) => d)
+  .handler(async ({ data }) => (await import("./nuvem.server")).pagoEvento(data.usuario, data.senha, data.id, data.pago));
